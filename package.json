@@ -1,0 +1,11 @@
+{
+  "name": "qadam-parent-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dependency-free bilingual MVP for parent-led speech and development lessons.",
+  "type": "module",
+  "scripts": {
+    "check": "node --check src/app.js",
+    "serve": "node scripts/serve.mjs"
+  }
+}
