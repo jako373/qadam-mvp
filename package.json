@@ -5,6 +5,7 @@
   "description": "Dependency-free bilingual MVP for parent-led speech and development lessons.",
   "type": "module",
   "scripts": {
+    "build": "node scripts/build.mjs",
     "check": "node --check src/app.js",
     "serve": "node scripts/serve.mjs"
   }
