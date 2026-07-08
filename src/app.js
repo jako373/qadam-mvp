@@ -2,9 +2,11 @@ import {
   ageOptions,
   diagnosisOptions,
   getLesson2Activities,
+  getNextLessonId,
   homeLanguageOptions,
   lesson1Questions,
   lesson2Questions,
+  lessonOrder,
   lessons,
   ui,
   wordOptions,
@@ -57,6 +59,12 @@ function pageShell(content, options = {}) {
       ${showNav ? renderBottomNav() : ""}
     </div>
   `;
+}
+
+function localizedList(list) {
+  if (!list) return [];
+  if (Array.isArray(list)) return list;
+  return list[state.language] || list.kk || list.ru || [];
 }
 
 function renderLanguageSwitcher(compact = false) {
@@ -247,12 +255,12 @@ function renderParentIntro() {
 
 function nextLessonId() {
   const completed = new Set(state.progress.completedLessonIds);
-  return state.progress.unlockedLessonIds.find((lessonId) => !completed.has(lessonId)) || "lesson1";
+  return lessonOrder.find((lessonId) => state.progress.unlockedLessonIds.includes(lessonId) && !completed.has(lessonId)) || lessonOrder[lessonOrder.length - 1];
 }
 
 function progressPercent() {
   const count = state.progress.completedLessonIds.length;
-  return Math.min(100, Math.round((count / 2) * 100));
+  return Math.min(100, Math.round((count / lessonOrder.length) * 100));
 }
 
 function renderDashboard() {
@@ -261,7 +269,7 @@ function renderDashboard() {
   const nextId = nextLessonId();
   const lesson = lessons[nextId] || lessons.lesson1;
   const pathway = state.progress.selectedPathway ? pathwayMap[state.progress.selectedPathway] : null;
-  const direction = pathway ? pathway[state.language].level : "Lesson 1";
+  const direction = pathway ? pathway[state.language].level : labels.lessonPathway;
   return pageShell(`
     <section class="dashboard-header">
       <div>
@@ -316,28 +324,29 @@ function progressBar(percent) {
 
 function renderLessonList() {
   const labels = t();
-  const all = ["lesson1", "lesson2a", "lesson2b", "lesson2c", "lesson2d"];
+  const currentId = nextLessonId();
   return `
     <div class="lesson-grid">
-      ${all
+      ${lessonOrder
         .map((lessonId) => {
           const lesson = lessons[lessonId];
           const unlocked = state.progress.unlockedLessonIds.includes(lessonId);
           const completed = state.progress.completedLessonIds.includes(lessonId);
-          const assigned = state.progress.assignedLesson2 === lessonId;
+          const current = lessonId === currentId && !completed;
           return `
-            <article class="lesson-card ${unlocked ? "" : "locked"} ${assigned ? "assigned" : ""}">
-              <div>
-                <span class="lesson-number">${lessonId === "lesson1" ? "1" : "2"}</span>
-                ${assigned ? `<span class="pill small">${labels.selected}</span>` : ""}
+            <article class="lesson-card ${unlocked ? "" : "locked"} ${current ? "assigned" : ""}">
+              <div class="lesson-card-top">
+                <span class="lesson-number">${lesson.order}</span>
+                <span class="pill small">${lesson.duration} ${labels.minutes}</span>
+                ${completed ? `<span class="pill small">${labels.done}</span>` : current ? `<span class="pill small">${labels.nextLesson}</span>` : ""}
               </div>
               <h3>${lesson[state.language].title}</h3>
               <p>${unlocked ? lesson[state.language].description : labels.lockedMessage}</p>
               <div class="card-actions">
                 ${
                   unlocked
-                    ? `<button class="secondary" data-route="/lesson/${lessonId}" type="button">${completed ? labels.open : labels.open}</button>`
-                    : `<span class="lock" aria-label="${labels.locked}">⌕ ${labels.locked}</span>`
+                    ? `<button class="secondary" data-route="/lesson/${lessonId}" type="button">${labels.open}</button>`
+                    : `<span class="lock" aria-label="${labels.locked}">&#8981; ${labels.locked}</span>`
                 }
               </div>
             </article>
@@ -365,24 +374,31 @@ function renderLessonPage(lessonId) {
   const labels = t();
   const lesson = lessons[lessonId];
   if (!lesson) return renderNotFound();
-  const activities =
-    lessonId === "lesson1" ? lesson.activities : getLesson2Activities(lessonId, state.language);
+  const lessonData = lesson[state.language];
+  const activities = lesson.activities || getLesson2Activities(lessonId, state.language);
   const checks = state.activityChecks[lessonId] || {};
   const allDone = activities.every((activity) => checks[activity.id]);
+  const objects = localizedList(lesson.objects);
   return pageShell(`
     <section class="lesson-page">
       <div class="lesson-hero">
         <div>
-          <span class="pill">${lesson.duration} ${labels.minutes}</span>
-          <h1>${lesson[state.language].title}</h1>
-          <p>${lesson[state.language].description}</p>
+          <span class="pill">${lesson.order}/${lessonOrder.length} ${labels.lessonOf} · ${lesson.duration} ${labels.minutes}</span>
+          <h1>${lessonData.title}</h1>
+          <p>${lessonData.description}</p>
         </div>
         ${renderTimer(lessonId, activities)}
       </div>
 
       ${
-        lesson.objects
-          ? `<section class="objects-row"><strong>${labels.objects}</strong>${lesson.objects
+        lessonData.prep
+          ? `<section class="prep-card"><strong>${labels.prepare}</strong><p>${lessonData.prep}</p></section>`
+          : ""
+      }
+
+      ${
+        objects.length
+          ? `<section class="objects-row"><strong>${labels.objects}</strong>${objects
               .map((item) => `<span>${escapeHtml(item)}</span>`)
               .join("")}</section>`
           : ""
@@ -395,7 +411,7 @@ function renderLessonPage(lessonId) {
       <section class="lesson-complete">
         <p>${labels.allDoneHint}</p>
         <button class="primary" data-finish-lesson="${lessonId}" type="button" ${allDone ? "" : "disabled"}>
-          ${lessonId === "lesson1" ? labels.openAssessment : labels.openAssessment}
+          ${labels.openAssessment}
         </button>
       </section>
     </section>
@@ -406,19 +422,27 @@ function renderActivity(lessonId, activity, index, checked) {
   const labels = t();
   const langData = activity[state.language];
   const fallbackData = activity.kk || activity.ru || {};
+  const activityObjects = localizedList(activity.objects);
+  const steps = langData?.steps || fallbackData.steps || [];
+  const benefit = langData?.benefit || fallbackData.benefit || [];
   return `
     <article class="activity-card" data-activity-card="${lessonId}-${activity.id}">
       <div class="activity-head">
         <span class="activity-index">${index + 1}</span>
         <div>
           <h2>${langData?.title || fallbackData.title}</h2>
-          <p>${activity.duration || 5} ${labels.minutes}</p>
+          <p>${activity.duration || 4} ${labels.minutes}</p>
         </div>
       </div>
-      ${activity.objects ? `<div class="objects-row small">${activity.objects.map((item) => `<span>${item}</span>`).join("")}</div>` : ""}
-      <ol>
-        ${(langData?.steps || fallbackData.steps || []).map((step) => `<li>${step}</li>`).join("")}
-      </ol>
+      ${langData?.prep ? `<div class="activity-note"><strong>${labels.prepare}</strong><p>${langData.prep}</p></div>` : ""}
+      ${activityObjects.length ? `<div class="objects-row small">${activityObjects.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}</div>` : ""}
+      <div class="activity-steps">
+        <strong>${labels.howTo}</strong>
+        <ol>
+          ${steps.map((step) => `<li>${step}</li>`).join("")}
+        </ol>
+      </div>
+      ${benefit.length ? `<div class="activity-note benefit"><strong>${labels.whyUseful}</strong>${benefit.map((line) => `<p>${line}</p>`).join("")}</div>` : ""}
       <label class="check-row">
         <input data-activity-check="${lessonId}:${activity.id}" type="checkbox" ${checked ? "checked" : ""} />
         <span>${labels.done}</span>
@@ -431,7 +455,7 @@ function renderTimer(lessonId, activities) {
   const labels = t();
   const timer = getTimer(lessonId);
   const remaining = getRemaining(timer);
-  const activeIndex = getActiveActivityIndex(timer, activities.length);
+  const activeIndex = getActiveActivityIndex(timer, activities);
   const isLocal = ["localhost", "127.0.0.1", ""].includes(location.hostname);
   return `
     <aside class="timer-panel" data-timer="${lessonId}">
@@ -456,15 +480,20 @@ function renderTimer(lessonId, activities) {
 
 function getTimer(lessonId) {
   const timers = loadTimers();
-  return (
-    timers[lessonId] || {
-      started: false,
-      paused: true,
-      durationSeconds: 20 * 60,
-      remainingWhenPaused: 20 * 60,
-      startedAt: null,
-    }
-  );
+  const durationSeconds = getLessonDurationSeconds(lessonId);
+  const saved = timers[lessonId];
+  if (saved && saved.durationSeconds === durationSeconds) return saved;
+  return {
+    started: false,
+    paused: true,
+    durationSeconds,
+    remainingWhenPaused: durationSeconds,
+    startedAt: null,
+  };
+}
+
+function getLessonDurationSeconds(lessonId) {
+  return (lessons[lessonId]?.duration || 15) * 60;
 }
 
 function setTimer(lessonId, timer) {
@@ -479,9 +508,15 @@ function getRemaining(timer) {
   return Math.max(0, timer.remainingWhenPaused - elapsed);
 }
 
-function getActiveActivityIndex(timer, count) {
-  const elapsed = (timer.durationSeconds || 1200) - getRemaining(timer);
-  return Math.min(count - 1, Math.max(0, Math.floor(elapsed / 300)));
+function getActiveActivityIndex(timer, activities) {
+  if (!activities.length) return 0;
+  const elapsed = (timer.durationSeconds || 900) - getRemaining(timer);
+  let cumulative = 0;
+  for (let index = 0; index < activities.length; index += 1) {
+    cumulative += (activities[index].duration || 4) * 60;
+    if (elapsed < cumulative) return index;
+  }
+  return activities.length - 1;
 }
 
 function formatTime(totalSeconds) {
@@ -499,10 +534,11 @@ function tickTimer() {
   if (!panel) return;
   const lessonId = panel.dataset.timer;
   const timer = getTimer(lessonId);
+  const activities = lessons[lessonId]?.activities || [];
   const clock = panel.querySelector("[data-timer-clock]");
   const active = panel.querySelector("[data-timer-active]");
   if (clock) clock.textContent = formatTime(getRemaining(timer));
-  if (active) active.textContent = String(getActiveActivityIndex(timer, 4) + 1);
+  if (active) active.textContent = String(getActiveActivityIndex(timer, activities) + 1);
 }
 
 function renderAssessment(lessonId) {
@@ -542,7 +578,7 @@ function renderStarQuestion(index, question, selected) {
         ${[1, 2, 3, 4, 5]
           .map(
             (value) => `
-              <button class="star ${Number(selected) >= value ? "active" : ""}" data-star="${index}:${value}" type="button" role="radio" aria-checked="${Number(selected) === value}" aria-label="${value}">★</button>
+              <button class="star ${Number(selected) >= value ? "active" : ""}" data-star="${index}:${value}" type="button" role="radio" aria-checked="${Number(selected) === value}" aria-label="${value}">&#9733;</button>
             `,
           )
           .join("")}
@@ -579,14 +615,24 @@ function renderResult() {
 function renderProgressPage() {
   const labels = t();
   const pathway = state.progress.selectedPathway ? pathwayMap[state.progress.selectedPathway] : null;
+  const completedCount = state.progress.completedLessonIds.length;
   const answeredQuestions = Object.values(state.assessments).reduce((sum, assessment) => {
     return sum + Object.keys(assessment.answers || {}).length;
   }, 0);
-  const direction = pathway
-    ? pathway[state.language].level
-    : state.language === "kk"
-      ? "1-сабақ"
-      : "Урок 1";
+  const direction = pathway ? pathway[state.language].level : labels.lessonPathway;
+  const nextId = nextLessonId();
+  const next = completedCount >= lessonOrder.length ? null : lessons[nextId];
+  const remaining = Math.max(0, lessonOrder.length - completedCount);
+  const journeyTitle = completedCount >= lessonOrder.length
+    ? labels.progressAfterTwelveTitle
+    : completedCount >= 5
+      ? labels.progressAfterFiveTitle
+      : labels.progressJourneyTitle;
+  const journeyText = completedCount >= lessonOrder.length
+    ? labels.progressAfterTwelveText
+    : completedCount >= 5
+      ? labels.progressAfterFiveText
+      : labels.progressJourneyText;
   return pageShell(`
     <section class="section-heading">
       <div>
@@ -595,18 +641,27 @@ function renderProgressPage() {
       </div>
     </section>
     <section class="metric-grid">
-      ${metricCard(String(state.progress.completedLessonIds.length), labels.completedTasks, "")}
-      ${metricCard(String(answeredQuestions), labels.parentObservation, "")}
+      ${metricCard(`${completedCount}/${lessonOrder.length}`, labels.completedTasks, progressBar(progressPercent()))}
+      ${metricCard(next ? `${next.order}. ${next[state.language].title}` : "-", labels.nextLesson, "")}
       ${metricCard(direction, labels.currentDirection, "")}
     </section>
-    <section class="timeline progress-notes">
-      <h2>${labels.weeklyActivity}</h2>
-      <p>${labels.progressExplanation}</p>
-      <ul>
-        <li>${labels.progressNote1}</li>
-        <li>${labels.progressNote2}</li>
-        <li>${labels.progressNote3}</li>
-      </ul>
+    <section class="timeline progress-journey">
+      <div>
+        <span class="pill">${labels.weeklyActivity}</span>
+        <h2>${journeyTitle}</h2>
+        <p>${journeyText}</p>
+      </div>
+      <div class="journey-stats">
+        <span>${answeredQuestions} ${labels.parentObservation.toLowerCase()}</span>
+        <span>${remaining} ${labels.remainingLessons.toLowerCase()}</span>
+      </div>
+      <div class="roadmap-grid" aria-label="${labels.roadmapTitle}">
+        ${labels.roadmap
+          .map(
+            ([title, duration, text]) => `<article><strong>${title}</strong><span>${duration}</span><p>${text}</p></article>`,
+          )
+          .join("")}
+      </div>
     </section>
     ${renderLessonList()}
   `);
@@ -661,17 +716,19 @@ function guardRoute(pathname) {
   if (pathname === "/" || pathname === "/language") return pathname;
   if (!state.progress.onboardingCompleted && pathname !== "/onboarding") return "/language";
   if (pathname === "/lesson/lesson1" && !state.progress.parentIntroCompleted) return "/intro";
-  if (pathname.startsWith("/lesson/lesson2")) {
+  if (pathname.startsWith("/lesson/")) {
     const lessonId = pathname.split("/").pop();
+    if (!lessons[lessonId]) return "/dashboard";
     if (!state.progress.unlockedLessonIds.includes(lessonId)) return "/dashboard";
   }
   if (pathname === "/result" && !state.progress.lesson1AssessmentCompleted) return "/dashboard";
-  if (pathname === "/assessment/lesson1" && !state.progress.lesson1Completed) return "/lesson/lesson1";
-  if (pathname.startsWith("/assessment/lesson2")) {
+  if (pathname.startsWith("/assessment/")) {
     const lessonId = pathname.split("/").pop();
+    if (!lessons[lessonId]) return "/dashboard";
     if (!state.progress.unlockedLessonIds.includes(lessonId)) return "/dashboard";
+    if (lessonId === "lesson1" && !state.progress.lesson1Completed) return "/lesson/lesson1";
     const checks = state.activityChecks[lessonId] || {};
-    const activities = getLesson2Activities(lessonId, state.language);
+    const activities = lessons[lessonId]?.activities || [];
     if (!activities.every((activity) => checks[activity.id])) return `/lesson/${lessonId}`;
   }
   return pathname;
@@ -752,6 +809,8 @@ function refreshAssessmentSubmit(form) {
 
 function submitAssessment(lessonId) {
   const answers = state.assessments[lessonId]?.answers || {};
+  const next = getNextLessonId(lessonId);
+
   if (lessonId === "lesson1") {
     const scores = {
       interactionScore: Number(answers[1]),
@@ -761,19 +820,17 @@ function submitAssessment(lessonId) {
       regulationScore: Number(answers[5]),
     };
     const pathway = calculatePathway(scores);
-    const assignedLesson = pathwayMap[pathway].lessonId;
     state.assessments.lesson1 = {
       ...state.assessments.lesson1,
       scores,
       selectedPathway: pathway,
-      assignedLesson,
       completedAt: new Date().toISOString(),
     };
     state.progress.lesson1AssessmentCompleted = true;
     state.progress.selectedPathway = pathway;
-    state.progress.assignedLesson2 = assignedLesson;
-    state.progress.completedLessonIds = unique([...state.progress.completedLessonIds, "lesson1"]);
-    state.progress.unlockedLessonIds = unique([...state.progress.unlockedLessonIds, assignedLesson]);
+    state.progress.assignedLesson2 = next;
+    state.progress.completedLessonIds = unique([...state.progress.completedLessonIds, lessonId]);
+    state.progress.unlockedLessonIds = unique([...state.progress.unlockedLessonIds, next].filter(Boolean));
     saveState(state);
     routeTo("/result");
     return;
@@ -784,12 +841,27 @@ function submitAssessment(lessonId) {
     completedAt: new Date().toISOString(),
   };
   state.progress.completedLessonIds = unique([...state.progress.completedLessonIds, lessonId]);
+  state.progress.unlockedLessonIds = unique([...state.progress.unlockedLessonIds, next].filter(Boolean));
   saveState(state);
   routeTo("/progress");
 }
 
 function unique(values) {
   return [...new Set(values)];
+}
+
+function normalizeState() {
+  const valid = new Set(lessonOrder);
+  state.progress.completedLessonIds = (state.progress.completedLessonIds || []).filter((lessonId) => valid.has(lessonId));
+  state.progress.unlockedLessonIds = (state.progress.unlockedLessonIds || []).filter((lessonId) => valid.has(lessonId));
+  if (!state.progress.unlockedLessonIds.includes("lesson1")) {
+    state.progress.unlockedLessonIds.unshift("lesson1");
+  }
+  for (const lessonId of state.progress.completedLessonIds) {
+    const next = getNextLessonId(lessonId);
+    if (next) state.progress.unlockedLessonIds.push(next);
+  }
+  state.progress.unlockedLessonIds = unique(state.progress.unlockedLessonIds);
 }
 
 function handleClick(event) {
@@ -837,8 +909,8 @@ function handleClick(event) {
     setTimer(start.dataset.timerStart, {
       started: true,
       paused: false,
-      durationSeconds: 20 * 60,
-      remainingWhenPaused: 20 * 60,
+      durationSeconds: getLessonDurationSeconds(start.dataset.timerStart),
+      remainingWhenPaused: getLessonDurationSeconds(start.dataset.timerStart),
       startedAt: Date.now(),
     });
     render();
@@ -874,7 +946,7 @@ function handleClick(event) {
     setTimer(lessonId, {
       started: true,
       paused: true,
-      durationSeconds: 20 * 60,
+      durationSeconds: getLessonDurationSeconds(lessonId),
       remainingWhenPaused: 0,
       startedAt: null,
     });
@@ -918,4 +990,5 @@ window.addEventListener("popstate", render);
 document.addEventListener("click", handleClick);
 document.addEventListener("change", handleChange);
 
+normalizeState();
 render();
