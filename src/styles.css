@@ -584,6 +584,13 @@ button:disabled {
   font-size: 1.28rem;
 }
 
+.lesson-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .lock {
   color: var(--muted);
   font-weight: 700;
@@ -667,6 +674,27 @@ button:disabled {
   margin: 10px 0;
 }
 
+.prep-card {
+  padding: 18px 20px;
+  background: #fff8ec;
+  border: 1px solid #edd7a7;
+  border-radius: var(--radius);
+}
+
+.prep-card strong,
+.activity-note strong,
+.activity-steps strong {
+  color: var(--teal-dark);
+  font-weight: 850;
+}
+
+.prep-card p,
+.activity-note p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
 .activity-list {
   display: grid;
   gap: 14px;
@@ -688,12 +716,29 @@ button:disabled {
 }
 
 .activity-card ol {
-  margin: 18px 0;
+  margin: 10px 0 0;
   padding-left: 24px;
 }
 
 .activity-card li + li {
   margin-top: 8px;
+}
+
+.activity-note,
+.activity-steps {
+  margin-top: 14px;
+  padding: 14px;
+  background: #f7faf7;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.activity-note.benefit {
+  background: var(--mist);
+}
+
+.activity-note.benefit p + p {
+  margin-top: 4px;
 }
 
 .lesson-complete {
@@ -808,12 +853,14 @@ button:disabled {
   border-radius: 6px 6px 0 0;
 }
 
-.progress-notes {
+.progress-notes,
+.progress-journey {
   display: grid;
   gap: 12px;
 }
 
-.progress-notes p {
+.progress-notes p,
+.progress-journey p {
   margin: 0;
   color: var(--muted);
   line-height: 1.65;
@@ -824,6 +871,44 @@ button:disabled {
   padding-left: 20px;
   color: var(--ink);
   line-height: 1.65;
+}
+
+.progress-journey h2 {
+  margin: 8px 0;
+  font-size: 1.55rem;
+}
+
+.journey-stats,
+.roadmap-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.journey-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.journey-stats span,
+.roadmap-grid article {
+  padding: 14px;
+  background: #f7faf7;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.roadmap-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.roadmap-grid strong,
+.roadmap-grid span {
+  display: block;
+}
+
+.roadmap-grid span {
+  margin: 6px 0;
+  color: var(--coral);
+  font-weight: 850;
 }
 
 .profile-grid {
@@ -886,7 +971,9 @@ button:disabled {
   .lesson-grid,
   .form-grid,
   .choice-grid,
-  .profile-grid {
+  .profile-grid,
+  .journey-stats,
+  .roadmap-grid {
     grid-template-columns: 1fr;
   }
 
