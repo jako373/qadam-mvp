@@ -1,0 +1,18 @@
+{
+  "name": "Qadam",
+  "short_name": "Qadam",
+  "description": "Қазақша және орысша 12 қысқа үй сабағы.",
+  "start_url": "/language",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fbfaf7",
+  "theme_color": "#17625c",
+  "icons": [
+    {
+      "src": "/public/icons/qadam-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
