@@ -579,9 +579,14 @@ function renderResult() {
 function renderProgressPage() {
   const labels = t();
   const pathway = state.progress.selectedPathway ? pathwayMap[state.progress.selectedPathway] : null;
-  const totalStars = Object.values(state.assessments).reduce((sum, assessment) => {
-    return sum + Object.values(assessment.answers || {}).reduce((inner, value) => inner + Number(value || 0), 0);
+  const answeredQuestions = Object.values(state.assessments).reduce((sum, assessment) => {
+    return sum + Object.keys(assessment.answers || {}).length;
   }, 0);
+  const direction = pathway
+    ? pathway[state.language].level
+    : state.language === "kk"
+      ? "1-сабақ"
+      : "Урок 1";
   return pageShell(`
     <section class="section-heading">
       <div>
@@ -591,16 +596,17 @@ function renderProgressPage() {
     </section>
     <section class="metric-grid">
       ${metricCard(String(state.progress.completedLessonIds.length), labels.completedTasks, "")}
-      ${metricCard(String(totalStars), labels.parentObservation, "")}
-      ${metricCard(pathway ? pathway[state.language].level : "Lesson 1", labels.currentDirection, "")}
+      ${metricCard(String(answeredQuestions), labels.parentObservation, "")}
+      ${metricCard(direction, labels.currentDirection, "")}
     </section>
-    <section class="timeline">
+    <section class="timeline progress-notes">
       <h2>${labels.weeklyActivity}</h2>
-      <div class="week-bars">
-        ${[35, 55, 20, progressPercent(), 0, 0, 0]
-          .map((height, index) => `<span style="height:${Math.max(12, height)}%" aria-label="day ${index + 1}"></span>`)
-          .join("")}
-      </div>
+      <p>${labels.progressExplanation}</p>
+      <ul>
+        <li>${labels.progressNote1}</li>
+        <li>${labels.progressNote2}</li>
+        <li>${labels.progressNote3}</li>
+      </ul>
     </section>
     ${renderLessonList()}
   `);
