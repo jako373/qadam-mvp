@@ -447,9 +447,21 @@ function renderLessonPage(lessonId) {
           : ""
       }
 
+      ${
+        lessonData.objectsUse
+          ? `<section class="prep-card"><strong>${labels.objectsHow}</strong><p>${lessonData.objectsUse}</p></section>`
+          : ""
+      }
+
       <section class="activity-list">
         ${activities.map((activity, index) => renderActivity(lessonId, activity, index, checks[activity.id])).join("")}
       </section>
+
+      ${
+        lessonData.repeatPlan
+          ? `<section class="prep-card"><strong>${labels.repeatAtHome}</strong><p>${lessonData.repeatPlan}</p></section>`
+          : ""
+      }
 
       <section class="lesson-complete">
         <p>${labels.allDoneHint}</p>
@@ -468,6 +480,7 @@ function renderActivity(lessonId, activity, index, checked) {
   const activityObjects = localizedList(activity.objects);
   const steps = langData?.steps || fallbackData.steps || [];
   const benefit = langData?.benefit || fallbackData.benefit || [];
+  const repeat = langData?.repeat || fallbackData.repeat || labels.activityRepeatDefault;
   return `
     <article class="activity-card" data-activity-card="${lessonId}-${activity.id}">
       <div class="activity-head">
@@ -486,6 +499,7 @@ function renderActivity(lessonId, activity, index, checked) {
         </ol>
       </div>
       ${benefit.length ? `<div class="activity-note benefit"><strong>${labels.whyUseful}</strong>${benefit.map((line) => `<p>${line}</p>`).join("")}</div>` : ""}
+      <div class="activity-note"><strong>${labels.repeatAtHome}</strong><p>${repeat}</p></div>
       <label class="check-row">
         <input data-activity-check="${lessonId}:${activity.id}" type="checkbox" ${checked ? "checked" : ""} />
         <span>${labels.done}</span>
