@@ -681,6 +681,16 @@ button:disabled {
   border-radius: var(--radius);
 }
 
+.phone-free-card {
+  background: var(--teal-dark);
+  border-color: var(--teal-dark);
+}
+
+.phone-free-card strong,
+.phone-free-card p {
+  color: white;
+}
+
 .prep-card strong,
 .activity-note strong,
 .activity-steps strong {
