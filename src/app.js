@@ -370,6 +370,24 @@ function renderLessonsPage() {
   `);
 }
 
+function renderPhoneFreeGuide() {
+  if (state.language === "ru") {
+    return `
+      <section class="prep-card phone-free-card">
+        <strong>Как заниматься без телефона в руках</strong>
+        <p>Сначала прочитайте занятие 1-2 минуты. Потом включите таймер, отложите телефон экраном вниз и занимайтесь с ребёнком; галочки и звёзды отметьте только после упражнения.</p>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="prep-card phone-free-card">
+      <strong>Телефонға үңіліп отырмайсыз</strong>
+      <p>Алдымен сабақты 1-2 минут оқып алыңыз. Сосын таймерді қосып, телефонды экранмен төмен қойыңыз да, балаға қараңыз; белгі мен жұлдызшаны жаттығудан кейін ғана қоясыз.</p>
+    </section>
+  `;
+}
+
 function renderLessonPage(lessonId) {
   const labels = t();
   const lesson = lessons[lessonId];
@@ -389,6 +407,8 @@ function renderLessonPage(lessonId) {
         </div>
         ${renderTimer(lessonId, activities)}
       </div>
+
+      ${renderPhoneFreeGuide()}
 
       ${
         lessonData.prep
