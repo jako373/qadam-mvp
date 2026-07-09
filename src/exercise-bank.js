@@ -298,7 +298,7 @@ const exerciseRows = [
     "4–5 минут, 4 сурет.",
     "Нысана: 4 суреттің 2-еуінде екі мағыналы сөз.",
     "Бала суреттерді итеріп, жауап беруден бас тартса.",
-    "Бір сессияда жаңа сөзді көп қоспаңыз; 4–6 сурет жеткілікті. 2. Сөздік қорды көбейту Күнделікті зат, әрекет және қасиет сөздерін түсіну мен қолдануды кеңейту."
+    "Бір сессияда жаңа сөзді көп қоспаңыз; 4-6 сурет жеткілікті."
   ],
   [
     "ex09",
@@ -515,7 +515,7 @@ const exerciseRows = [
     "5 минут.",
     "Нысана: 5 суреттің 4-еуін табу; 1 жаңа сөзге жауап беру.",
     "Бала кітапты жабатын болса, күшпен ашпаңыз; басқа бет/кітап таңдаңыз.",
-    "Жыртылған өткір беттері жоқ кітап қолданыңыз. 3. Нұсқауды түсіну Бір және екі қадамды күнделікті нұсқауды түсініп орындауды дамыту."
+    "Жыртылған немесе өткір беттері жоқ кітап қолданыңыз."
   ],
   [
     "ex17",
@@ -721,7 +721,7 @@ const exerciseRows = [
     "4–5 минут.",
     "Нысана: 5 тапсырманың 3-еуін көмексіз толық орындау.",
     "Бірінші қадам да тұрақсыз болса, бір қадамға қайта оралыңыз.",
-    "Қауіпті немесе ауыр заттарды қоспаңыз. 4. Зейін және еліктеу Ортақ әрекетке қосылу, кезектесу және қимылды/затпен әрекетті қайталау."
+    "Қауіпті немесе ауыр заттарды қоспаңыз."
   ],
   [
     "ex25",
@@ -931,7 +931,7 @@ const exerciseRows = [
     "5 минут, 3–4 сурет.",
     "Нысана: 4 әрекеттің 3-еуін көшіру.",
     "Кітапқа қызығушылық жоғалса, бір суретпен аяқтаңыз.",
-    "Секіру сияқты қимылды қауіпсіз бос жерде жасаңыз. 5. Ұсақ моторика Қол саусақтарының күші, дәлдігі және күнделікті құралдарды пайдалануын дамыту."
+    "Секіру сияқты қимылды қауіпсіз бос жерде жасаңыз."
   ],
   [
     "ex33",
@@ -1143,7 +1143,7 @@ const exerciseRows = [
     "4 минут.",
     "Нысана: 6 жолдың 4-еуін бағытпен аяқтау.",
     "Қолын қатты қысып, ауырсыну немесе күйзелу.",
-    "Қарындашты ауызға салмауын бақылаңыз; күшпен қолын ұстап жүргізбеңіз. 6. Киіну және өзіне қызмет ету Күнделікті әрекеттерге қатысу және біртіндеп дербестікке жету."
+    "Қарындашты ауызға салмауын бақылаңыз; күшпен қолын ұстап жүргізбеңіз."
   ],
   [
     "ex41",
@@ -1355,7 +1355,7 @@ const exerciseRows = [
     "Тамақ кезінде 3–5 минут.",
     "Нысана: 5 қасықтың кемінде 3-еуін өзі жеу.",
     "Жөтелу, тұншығу, дауыстың өзгеруі, қайталама құсу немесе қатты бас тарту.",
-    "Жұтыну қиындығы болса бұл жаттығуды мамансыз қолданбаңыз; қауіпсіз текстураны ғана таңдаңыз. 7. Қарым-қатынас және өтініш білдіру Сөз, ым немесе сурет арқылы қажеттілікті анық және қауіпсіз білдіру."
+    "Жұтыну қиындығы болса, бұл жаттығуды мамансыз қолданбаңыз; қауіпсіз текстураны ғана таңдаңыз."
   ],
   [
     "ex49",
@@ -1568,7 +1568,7 @@ const exerciseRows = [
     "Күні бойы 5–8 табиғи мүмкіндік.",
     "Нысана: 5 мүмкіндіктің 2-еуінде екі сөздік әрекет.",
     "Тіркес талап ету салдарынан бала сұрауды доғарса.",
-    "Коммуникацияның кез келген тиімді түрін сақтаңыз; сөйлеуді жалғыз дұрыс жол етпеңіз. 8. Мінез-құлық және күту Болжамдылық, қауіпсіз ауысу, қысқа күту және эмоцияны реттеуді қолдау."
+    "Коммуникацияның кез келген тиімді түрін сақтаңыз; сөйлеуді жалғыз дұрыс жол етпеңіз."
   ],
   [
     "ex57",
@@ -1782,7 +1782,7 @@ const exerciseRows = [
     "Күніне 1–3 табиғи жағдай.",
     "Нысана: 3 жағдайдың 2-еуінде қауіпсіз күту немесе ауысу.",
     "Уәде орындалмай қалса немесе уақыт тым ұзақ болып күйзеліс күшейсе.",
-    "Орындай алмайтын уәде бермеңіз; негізгі қажеттіліктерді кейінге қалдырмаңыз. Әдістемелік негіз және кәсіби тексеру Бұл 64 жаттығудың әрқайсысы жеке клиникалық хаттама немесе «дәлелденген ем» ретінде ұсынылмайды. Жинақ ерте араласу, отбасыға бағытталған практика, табиғи күн тәртібі, жауап беретін тілдік модельдеу, ойын арқылы әлеуметтік коммуникация және балама коммуникацияны қолдау қағидаларын ата-анаға арналған қарапайым форматқа бейімдейді. Соңғы өнімді жарияламас бұрын әр бөлімді тиісті маман тексеруі керек: Сөйлеу және коммуникация: логопед/сөйлеу тілі маманы; Зейін, оқу және жалпы даму: дефектолог/арнайы педагог; Ұсақ моторика және өзіне қызмет ету: эрготерапевт немесе осы салада құзыретті маман; Мінез-құлық пен эмоцияны реттеу: балалар психологы және мінез-құлықты функционалды бағалайтын маман; Қауіпсіздік пен медициналық «қызыл белгілер»: педиатр/балалар неврологы; тамақтану-жұтыну жаттығулары үшін жұтыну маманы. American Speech-Language-Hearing Association (ASHA). Early Intervention. Отбасыға бағытталған, табиғи ортадағы және күнделікті әрекеттерге енгізілетін ерте араласу; ата-ананы үйрету; ым және AAC қолдану. American Speech-Language-Hearing Association (ASHA). Late Language Emergence. Тілді бағалауда түсіну, сөз, ым, ойын, есту және жалпы дамуды бірге қарастыру; ерте бағалау және мониторинг. American Speech-Language-Hearing Association (ASHA). Augmentative and Alternative Communication. AAC үшін міндетті бастапқы талап жоқ; коммуникациялық қажеттілікке сәйкес ым, сурет және басқа жүйелерді қолдану. National Institute for Health and Care Excellence (NICE), CG170. Autism spectrum disorder in under 19s: support and management. Баланың даму деңгейіне бейімделген ойын негізіндегі әлеуметтік-коммуникациялық тәсілдер; ата-ана/қамқоршы медиациясы; мінез-құлықты функционалды бағалау. Centers for Disease Control and Prevention (CDC). Learn the Signs. Act Early. Даму кезеңдерін тұрақты бақылау және алаңдаушылық болса ерте әрекет ету. Құрастырылған күні: 9 шілде 2026 жыл. Нұсқа: MVP-1.0."
+    "Орындай алмайтын уәде бермеңіз; негізгі қажеттіліктерді кейінге қалдырмаңыз."
   ]
 ];
 
@@ -1800,42 +1800,13 @@ const pathwayCategoryMap = {
   wordCombination: ["vocabulary", "speechStart", "instructions"],
 };
 
-const defaultCategorySequence = [
-  "speechStart",
-  "attentionImitation",
-  "instructions",
-  "communication",
-  "vocabulary",
-  "fineMotor",
-  "selfCare",
-  "waitingBehavior",
-];
+const defaultCategorySequence = ["speechStart", "attentionImitation", "instructions", "communication", "vocabulary", "fineMotor", "selfCare", "waitingBehavior"];
 
-function categorySequence(pathway) {
-  return pathwayCategoryMap[pathway] || defaultCategorySequence;
-}
-
-function modeLevelOffset(mode) {
-  if (mode === "easy") return -1;
-  if (mode === "hard") return 1;
-  return 0;
-}
-
-function targetLevel(lessonOrder = 2, mode = "standard") {
-  const base = lessonOrder <= 4 ? 1 : lessonOrder <= 8 ? 2 : 3;
-  return Math.max(1, Math.min(3, base + modeLevelOffset(mode)));
-}
-
-function chooseCategory(lessonOrder = 2, pathway) {
-  const sequence = categorySequence(pathway);
-  return sequence[Math.max(0, lessonOrder - 2) % sequence.length];
-}
-
-function rotate(values, offset) {
-  if (!values.length) return [];
-  const start = offset % values.length;
-  return [...values.slice(start), ...values.slice(0, start)];
-}
+function categorySequence(pathway) { return pathwayCategoryMap[pathway] || defaultCategorySequence; }
+function modeLevelOffset(mode) { if (mode === "easy") return -1; if (mode === "hard") return 1; return 0; }
+function targetLevel(lessonOrder = 2, mode = "standard") { const base = lessonOrder <= 4 ? 1 : lessonOrder <= 8 ? 2 : 3; return Math.max(1, Math.min(3, base + modeLevelOffset(mode))); }
+function chooseCategory(lessonOrder = 2, pathway) { const sequence = categorySequence(pathway); return sequence[Math.max(0, lessonOrder - 2) % sequence.length]; }
+function rotate(values, offset) { if (!values.length) return []; const start = offset % values.length; return [...values.slice(start), ...values.slice(0, start)]; }
 
 function pickExercises(lessonOrder = 2, pathway, mode = "standard") {
   const primaryCategory = chooseCategory(lessonOrder, pathway);
@@ -1853,11 +1824,7 @@ function pickExercises(lessonOrder = 2, pathway, mode = "standard") {
   return selected;
 }
 
-function modeLine(data, mode) {
-  if (mode === "easy" && data.easy) return data.easy;
-  if (mode === "hard" && data.hard) return data.hard;
-  return data.easy || data.hard || "";
-}
+function modeLine(data, mode) { if (mode === "easy" && data.easy) return data.easy; if (mode === "hard" && data.hard) return data.hard; return data.easy || data.hard || ""; }
 
 function toActivity(exercise, mode = "standard", durationOverride) {
   const kk = exercise.kk;
@@ -1870,9 +1837,9 @@ function toActivity(exercise, mode = "standard", durationOverride) {
     objects: { kk: kk.materialChips || [], ru: kk.materialChips || [] },
     kk: {
       title: kk.title,
-      prep: kk.suitableFor ? `Кімге: ${kk.suitableFor}` : "",
+      prep: kk.suitableFor ? "Кімге: " + kk.suitableFor : "",
       steps: kk.steps || [],
-      benefit: [kk.benefit, kk.skill ? `Дамытатын дағды: ${kk.skill}` : ""].filter(Boolean),
+      benefit: [kk.benefit, kk.skill ? "Дамытатын дағды: " + kk.skill : ""].filter(Boolean),
       repeat: [kk.time, kk.scoring].filter(Boolean).join(" ") || "Күніне 1 рет, 2-4 минут қана қайталаңыз.",
       levelTip: modeLine(kk, mode),
       stop: kk.stop,
@@ -1880,9 +1847,9 @@ function toActivity(exercise, mode = "standard", durationOverride) {
     },
     ru: {
       title: kk.title,
-      prep: kk.suitableFor ? `Кому: ${kk.suitableFor}` : "",
+      prep: kk.suitableFor ? "Кому: " + kk.suitableFor : "",
       steps: kk.steps || [],
-      benefit: [kk.benefit, kk.skill ? `Навык: ${kk.skill}` : ""].filter(Boolean),
+      benefit: [kk.benefit, kk.skill ? "Навык: " + kk.skill : ""].filter(Boolean),
       repeat: [kk.time, kk.scoring].filter(Boolean).join(" ") || "Повторяйте 1 раз в день по 2-4 минуты.",
       levelTip: modeLine(kk, mode),
       stop: kk.stop,
@@ -1894,29 +1861,11 @@ function toActivity(exercise, mode = "standard", durationOverride) {
 export function getExerciseLessonMeta({ lessonOrder = 2, pathway, mode = "standard", language = "kk" } = {}) {
   const category = chooseCategory(lessonOrder, pathway);
   const meta = exerciseCategories[category]?.[language] || exerciseCategories[category]?.kk;
-  return {
-    category,
-    title: meta?.title || "Жаттығу",
-    description: meta?.description || "Бала деңгейіне қарай таңдалған қысқа үй жаттығулары.",
-    level: targetLevel(lessonOrder, mode),
-  };
+  return { category, title: meta?.title || "Жаттығу", description: meta?.description || "Бала деңгейіне қарай таңдалған қысқа үй жаттығулары.", level: targetLevel(lessonOrder, mode) };
 }
 
-function lessonDuration(lessonOrder) {
-  if (lessonOrder >= 9) return 17;
-  if (lessonOrder >= 5) return 16;
-  return 15;
-}
-
-function splitLessonDuration(total, count) {
-  const base = Math.floor(total / count);
-  let remainder = total - base * count;
-  return Array.from({ length: count }, () => {
-    const value = base + (remainder > 0 ? 1 : 0);
-    remainder -= 1;
-    return value;
-  });
-}
+function lessonDuration(lessonOrder) { if (lessonOrder >= 9) return 17; if (lessonOrder >= 5) return 16; return 15; }
+function splitLessonDuration(total, count) { const base = Math.floor(total / count); let remainder = total - base * count; return Array.from({ length: count }, () => { const value = base + (remainder > 0 ? 1 : 0); remainder -= 1; return value; }); }
 
 export function getAdaptiveExerciseActivities({ lessonOrder = 2, pathway, mode = "standard" } = {}) {
   const selected = pickExercises(lessonOrder, pathway, mode);
