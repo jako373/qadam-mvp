@@ -818,6 +818,11 @@ button:disabled {
   background: var(--mist);
 }
 
+.activity-note.safety {
+  background: #fff2ef;
+  border-color: rgba(207, 100, 66, 0.32);
+}
+
 .activity-note.benefit p + p {
   margin-top: 4px;
 }
