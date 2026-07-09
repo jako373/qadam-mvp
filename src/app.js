@@ -11,6 +11,11 @@ import {
   ui,
   wordOptions,
 } from "./data.js";
+import {
+  getAdaptiveExerciseActivities,
+  getExerciseLessonMeta,
+} from "./exercise-bank.js";
+import { runPageMotion } from "./motion.js";
 import { calculatePathway, pathwayMap } from "./pathway.js";
 import {
   loadState,
@@ -68,21 +73,35 @@ function localizedList(list) {
 }
 
 function getLessonActivities(lessonId) {
+  const lesson = lessons[lessonId];
+  if (!lesson) return [];
+  if (lessonId !== "lesson1" && state.progress.selectedPathway) {
+    return getAdaptiveExerciseActivities({
+      lessonOrder: lesson.order,
+      pathway: state.progress.selectedPathway,
+      mode: state.progress.lessonMode || "standard",
+    });
+  }
   return getLesson2Activities(lessonId, state.progress.selectedPathway);
 }
 
 function isAdaptiveLesson(lessonId) {
-  return lessonId === "lesson2" && Boolean(state.progress.selectedPathway);
+  return lessonId !== "lesson1" && Boolean(state.progress.selectedPathway);
 }
 
 function getLessonDisplay(lessonId) {
   const lesson = lessons[lessonId];
   if (!lesson) return { title: "", description: "" };
   if (isAdaptiveLesson(lessonId)) {
-    const pathway = pathwayMap[state.progress.selectedPathway];
+    const meta = getExerciseLessonMeta({
+      lessonOrder: lesson.order,
+      pathway: state.progress.selectedPathway,
+      mode: state.progress.lessonMode || "standard",
+      language: state.language,
+    });
     return {
-      title: pathway[state.language].level,
-      description: pathway[state.language].explanation,
+      title: meta.title,
+      description: meta.description,
     };
   }
   return {
@@ -303,8 +322,30 @@ function renderParentIntro() {
 }
 
 function nextLessonId() {
+  const assigned = state.progress.assignedNextLesson;
+  if (assigned && state.progress.unlockedLessonIds.includes(assigned)) {
+    return assigned;
+  }
   const completed = new Set(state.progress.completedLessonIds);
   return lessonOrder.find((lessonId) => state.progress.unlockedLessonIds.includes(lessonId) && !completed.has(lessonId)) || lessonOrder[lessonOrder.length - 1];
+}
+
+function averageAssessmentScore(answers = {}) {
+  const values = Object.values(answers).map(Number).filter((value) => Number.isFinite(value));
+  if (!values.length) return 3;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function scoreMode(average) {
+  if (average <= 2.4) return "easy";
+  if (average >= 4.1) return "hard";
+  return "standard";
+}
+
+function chooseNextLessonAfterAssessment(lessonId, average) {
+  if (lessonId === "lesson1") return getNextLessonId(lessonId);
+  if (average <= 2.4) return lessonId;
+  return getNextLessonId(lessonId) || lessonId;
 }
 
 function progressPercent() {
@@ -321,12 +362,12 @@ function renderDashboard() {
   const pathway = state.progress.selectedPathway ? pathwayMap[state.progress.selectedPathway] : null;
   const direction = pathway ? pathway[state.language].level : labels.lessonPathway;
   const adaptiveNote =
-    pathway && lesson.id === "lesson2"
+    pathway && lesson.id !== "lesson1"
       ? `
         <section class="adaptive-note">
           <span class="pill">${labels.summaryTitle}</span>
-          <h2>${labels.summaryNextLesson}</h2>
-          <p><strong>${pathway[state.language].level}</strong> - ${pathway[state.language].lesson}</p>
+          <h2>${lessonDisplay.title}</h2>
+          <p>${lessonDisplay.description}</p>
         </section>
       `
       : "";
@@ -544,6 +585,9 @@ function renderActivity(lessonId, activity, index) {
   const steps = langData?.steps || fallbackData.steps || [];
   const benefit = langData?.benefit || fallbackData.benefit || [];
   const repeat = langData?.repeat || fallbackData.repeat || labels.activityRepeatDefault;
+  const levelTip = langData?.levelTip || fallbackData.levelTip || "";
+  const stop = langData?.stop || fallbackData.stop || "";
+  const safety = langData?.safety || fallbackData.safety || "";
   return `
     <article class="activity-card" data-activity-card="${lessonId}-${activity.id}">
       <div class="activity-head">
@@ -562,7 +606,9 @@ function renderActivity(lessonId, activity, index) {
         </ol>
       </div>
       ${benefit.length ? `<div class="activity-note benefit"><strong>${labels.whyUseful}</strong>${benefit.map((line) => `<p>${line}</p>`).join("")}</div>` : ""}
+      ${levelTip ? `<div class="activity-note"><strong>${labels.levelTip}</strong><p>${levelTip}</p></div>` : ""}
       <div class="activity-note"><strong>${labels.repeatAtHome}</strong><p>${repeat}</p></div>
+      ${stop || safety ? `<div class="activity-note safety"><strong>${labels.safety}</strong>${stop ? `<p>${stop}</p>` : ""}${safety ? `<p>${safety}</p>` : ""}</div>` : ""}
     </article>
   `;
 }
@@ -681,7 +727,7 @@ function renderAssessment(lessonId) {
           <span>3 - ${labels.starLabels.three}</span>
           <span>5 - ${labels.starLabels.five}</span>
         </div>
-        <button id="assessment-submit" class="primary" type="submit" disabled>${lessonId === "lesson1" ? labels.showResult : labels.backDashboard}</button>
+        <button id="assessment-submit" class="primary" type="submit" disabled>${labels.showResult}</button>
       </form>
     </section>
   `);
@@ -710,31 +756,49 @@ function starAriaLabel(value) {
   return `${value}/5 - ${meaning}`;
 }
 
+function latestCompletedAssessment() {
+  return Object.entries(state.assessments)
+    .filter(([, assessment]) => assessment.completedAt)
+    .sort(([, a], [, b]) => String(b.completedAt).localeCompare(String(a.completedAt)))[0];
+}
+
 function renderResult() {
   const labels = t();
   const pathwayKey = state.progress.selectedPathway;
   if (!pathwayKey) return renderDashboard();
   const pathway = pathwayMap[pathwayKey];
+  const nextId = state.progress.assignedNextLesson || nextLessonId();
+  const nextDisplay = getLessonDisplay(nextId);
+  const latest = latestCompletedAssessment();
+  const latestAssessment = latest?.[1] || {};
+  const mode = latestAssessment.scoreMode || state.progress.lessonMode || "standard";
+  const modeText = labels.modeText[mode] || labels.modeText.standard;
+  const average = Number(latestAssessment.average || 0);
+  const scoreText = average ? `${average.toFixed(1)}/5` : "-";
   return pageShell(`
     <section class="result-page">
       <div class="result-visual">
         <span class="pill">${labels.resultTitle}</span>
-        <h1>${pathway[state.language].level}</h1>
-        <p>${pathway[state.language].explanation}</p>
+        <h1>${modeText}</h1>
+        <p>${mode === "easy" ? labels.resultEasyText : mode === "hard" ? labels.resultHardText : labels.resultStandardText}</p>
       </div>
       <div class="result-details">
         <article class="metric-card">
-          <span>${escapeHtml(state.childProfile?.name || "")}</span>
-          <strong>${pathway[state.language].lesson}</strong>
+          <span>${labels.currentDirection}</span>
+          <strong>${pathway[state.language].level}</strong>
+        </article>
+        <article class="metric-card">
+          <span>${labels.parentObservation}</span>
+          <strong>${scoreText}</strong>
         </article>
         <article class="metric-card">
           <span>${labels.resultNextTitle}</span>
-          <strong>${pathway[state.language].level}</strong>
+          <strong>${nextDisplay.title}</strong>
         </article>
         <p>${labels.resultNextText}</p>
         ${progressBar(progressPercent())}
         <p class="disclaimer">${labels.resultDisclaimer}</p>
-        <button class="primary" data-route="/lesson/${pathway.lessonId}" type="button">${labels.openLesson2}</button>
+        <button class="primary" data-route="/lesson/${nextId}" type="button">${labels.openNextLesson}</button>
       </div>
     </section>
   `);
@@ -750,6 +814,7 @@ function renderProgressPage() {
   const direction = pathway ? pathway[state.language].level : labels.lessonPathway;
   const nextId = nextLessonId();
   const next = completedCount >= lessonOrder.length ? null : lessons[nextId];
+  const nextDisplay = next ? getLessonDisplay(nextId) : null;
   const remaining = Math.max(0, lessonOrder.length - completedCount);
   const journeyTitle = completedCount >= lessonOrder.length
     ? labels.progressAfterTwelveTitle
@@ -770,7 +835,7 @@ function renderProgressPage() {
     </section>
     <section class="metric-grid">
       ${metricCard(`${completedCount}/${lessonOrder.length}`, labels.completedTasks, progressBar(progressPercent()))}
-      ${metricCard(next ? `${next.order}. ${next[state.language].title}` : "-", labels.nextLesson, "")}
+      ${metricCard(next && nextDisplay ? `${next.order}. ${nextDisplay.title}` : "-", labels.nextLesson, "")}
       ${metricCard(direction, labels.currentDirection, "")}
     </section>
     <section class="timeline progress-journey">
@@ -889,6 +954,7 @@ function render() {
     tickTimer();
     timerInterval = window.setInterval(tickTimer, 1000);
   }
+  runPageMotion();
 }
 
 function mountForms() {
@@ -937,7 +1003,9 @@ function refreshAssessmentSubmit(form) {
 
 function submitAssessment(lessonId) {
   const answers = state.assessments[lessonId]?.answers || {};
-  const next = getNextLessonId(lessonId);
+  const average = averageAssessmentScore(answers);
+  const mode = scoreMode(average);
+  const next = chooseNextLessonAfterAssessment(lessonId, average);
 
   if (lessonId === "lesson1") {
     const scores = {
@@ -951,12 +1019,17 @@ function submitAssessment(lessonId) {
     state.assessments.lesson1 = {
       ...state.assessments.lesson1,
       scores,
+      average,
+      scoreMode: mode,
       selectedPathway: pathway,
+      assignedNextLesson: next,
       completedAt: new Date().toISOString(),
     };
     state.progress.lesson1AssessmentCompleted = true;
     state.progress.selectedPathway = pathway;
     state.progress.assignedLesson2 = next;
+    state.progress.assignedNextLesson = next;
+    state.progress.lessonMode = mode;
     state.progress.completedLessonIds = unique([...state.progress.completedLessonIds, lessonId]);
     state.progress.unlockedLessonIds = unique([...state.progress.unlockedLessonIds, next].filter(Boolean));
     saveState(state);
@@ -966,12 +1039,19 @@ function submitAssessment(lessonId) {
 
   state.assessments[lessonId] = {
     ...state.assessments[lessonId],
+    average,
+    scoreMode: mode,
+    assignedNextLesson: next,
     completedAt: new Date().toISOString(),
   };
-  state.progress.completedLessonIds = unique([...state.progress.completedLessonIds, lessonId]);
+  state.progress.lessonMode = mode;
+  state.progress.assignedNextLesson = next;
+  if (mode !== "easy") {
+    state.progress.completedLessonIds = unique([...state.progress.completedLessonIds, lessonId]);
+  }
   state.progress.unlockedLessonIds = unique([...state.progress.unlockedLessonIds, next].filter(Boolean));
   saveState(state);
-  routeTo("/progress");
+  routeTo("/result");
 }
 
 function unique(values) {
@@ -984,6 +1064,12 @@ function normalizeState() {
   state.progress.unlockedLessonIds = (state.progress.unlockedLessonIds || []).filter((lessonId) => valid.has(lessonId));
   if (!state.progress.unlockedLessonIds.includes("lesson1")) {
     state.progress.unlockedLessonIds.unshift("lesson1");
+  }
+  if (!["easy", "standard", "hard"].includes(state.progress.lessonMode)) {
+    state.progress.lessonMode = "standard";
+  }
+  if (state.progress.assignedNextLesson && !valid.has(state.progress.assignedNextLesson)) {
+    state.progress.assignedNextLesson = null;
   }
   for (const lessonId of state.progress.completedLessonIds) {
     const next = getNextLessonId(lessonId);
