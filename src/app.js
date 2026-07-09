@@ -67,6 +67,30 @@ function localizedList(list) {
   return list[state.language] || list.kk || list.ru || [];
 }
 
+function getLessonActivities(lessonId) {
+  return getLesson2Activities(lessonId, state.progress.selectedPathway);
+}
+
+function isAdaptiveLesson(lessonId) {
+  return lessonId === "lesson2" && Boolean(state.progress.selectedPathway);
+}
+
+function getLessonDisplay(lessonId) {
+  const lesson = lessons[lessonId];
+  if (!lesson) return { title: "", description: "" };
+  if (isAdaptiveLesson(lessonId)) {
+    const pathway = pathwayMap[state.progress.selectedPathway];
+    return {
+      title: pathway[state.language].level,
+      description: pathway[state.language].explanation,
+    };
+  }
+  return {
+    title: lesson[state.language].title,
+    description: lesson[state.language].description,
+  };
+}
+
 function renderLanguageSwitcher(compact = false) {
   const labels = t();
   const switcherLabel = labels.languageSwitcher || (state.language === "ru" ? "Переключатель языка" : "Тіл ауыстыру");
@@ -293,15 +317,25 @@ function renderDashboard() {
   const childName = escapeHtml(state.childProfile?.name || "");
   const nextId = nextLessonId();
   const lesson = lessons[nextId] || lessons.lesson1;
+  const lessonDisplay = getLessonDisplay(lesson.id);
   const pathway = state.progress.selectedPathway ? pathwayMap[state.progress.selectedPathway] : null;
   const direction = pathway ? pathway[state.language].level : labels.lessonPathway;
+  const adaptiveNote =
+    pathway && lesson.id === "lesson2"
+      ? `
+        <section class="adaptive-note">
+          <span class="pill">${labels.summaryTitle}</span>
+          <h2>${labels.summaryNextLesson}</h2>
+          <p><strong>${pathway[state.language].level}</strong> - ${pathway[state.language].lesson}</p>
+        </section>
+      `
+      : "";
   return pageShell(`
     <section class="dashboard-header">
       <div>
         <div class="section-kicker">${labels.home}</div>
         <h1>${childName ? `${childName}, ${labels.todayLesson.toLowerCase()}` : labels.todayLesson}</h1>
       </div>
-      <button class="secondary" data-route="/lessons" type="button">${labels.lessons}</button>
     </section>
 
     <section class="metric-grid">
@@ -313,19 +347,14 @@ function renderDashboard() {
     <section class="lesson-focus">
       <div>
         <span class="pill">${labels.todayLesson}</span>
-        <h2>${lesson[state.language].title}</h2>
-        <p>${lesson[state.language].description}</p>
+        <h2>${lessonDisplay.title}</h2>
+        <p>${lessonDisplay.description}</p>
       </div>
-      <button class="primary" data-route="/lesson/${lesson.id}" type="button">${labels.open}</button>
+      <button class="primary" data-route="/lesson/${lesson.id}" type="button">${labels.openTodayLesson}</button>
     </section>
 
-    <section class="band">
-      <div class="section-heading">
-        <h2>${labels.lessonPathway}</h2>
-        <p>${labels.disclaimer}</p>
-      </div>
-      ${renderLessonList()}
-    </section>
+    ${adaptiveNote}
+    ${renderLessonFlow()}
   `);
 }
 
@@ -355,6 +384,7 @@ function renderLessonList() {
       ${lessonOrder
         .map((lessonId) => {
           const lesson = lessons[lessonId];
+          const lessonDisplay = getLessonDisplay(lessonId);
           const unlocked = state.progress.unlockedLessonIds.includes(lessonId);
           const completed = state.progress.completedLessonIds.includes(lessonId);
           const current = lessonId === currentId && !completed;
@@ -365,8 +395,8 @@ function renderLessonList() {
                 <span class="pill small">${lesson.duration} ${labels.minutes}</span>
                 ${completed ? `<span class="pill small">${labels.done}</span>` : current ? `<span class="pill small">${labels.nextLesson}</span>` : ""}
               </div>
-              <h3>${lesson[state.language].title}</h3>
-              <p>${unlocked ? lesson[state.language].description : labels.lockedMessage}</p>
+              <h3>${lessonDisplay.title}</h3>
+              <p>${unlocked ? lessonDisplay.description : labels.lockedMessage}</p>
               <div class="card-actions">
                 ${
                   unlocked
@@ -400,7 +430,7 @@ function renderPhoneFreeGuide() {
     return `
       <section class="prep-card phone-free-card">
         <strong>Как заниматься без телефона в руках</strong>
-        <p>Сначала прочитайте занятие 1-2 минуты. Потом включите таймер, отложите телефон экраном вниз и занимайтесь с ребёнком; галочки и звёзды отметьте только после упражнения.</p>
+        <p>Сначала прочитайте занятие 1-2 минуты. Потом включите таймер, отложите телефон экраном вниз и занимайтесь с ребёнком; звёзды отметьте только в конце.</p>
       </section>
     `;
   }
@@ -408,7 +438,37 @@ function renderPhoneFreeGuide() {
   return `
     <section class="prep-card phone-free-card">
       <strong>Телефонға үңіліп отырмайсыз</strong>
-      <p>Алдымен сабақты 1-2 минут оқып алыңыз. Сосын таймерді қосып, телефонды экранмен төмен қойыңыз да, балаға қараңыз; белгі мен жұлдызшаны жаттығудан кейін ғана қоясыз.</p>
+      <p>Алдымен сабақты 1-2 минут оқып алыңыз. Сосын таймерді қосып, телефонды экранмен төмен қойыңыз да, балаға қараңыз; жұлдызшаны сабақ соңында ғана қоясыз.</p>
+    </section>
+  `;
+}
+
+function renderLessonFlow() {
+  const labels = t();
+  return `
+    <section class="lesson-flow">
+      <div>
+        <span class="pill">${labels.lessonFlowTitle}</span>
+        <p>${labels.oneScreenPlan}</p>
+      </div>
+      <div class="flow-grid">
+        <article><strong>1</strong><span>${labels.lessonFlowPrep}</span></article>
+        <article><strong>2</strong><span>${labels.lessonFlowPlay}</span></article>
+        <article><strong>3</strong><span>${labels.lessonFlowReflect}</span></article>
+      </div>
+    </section>
+  `;
+}
+
+function renderAdaptiveLessonNote(lessonId) {
+  if (!isAdaptiveLesson(lessonId)) return "";
+  const labels = t();
+  const pathway = pathwayMap[state.progress.selectedPathway];
+  return `
+    <section class="adaptive-note">
+      <span class="pill">${labels.lessonMatchedTitle}</span>
+      <h2>${pathway[state.language].level}</h2>
+      <p>${labels.lessonMatchedText}</p>
     </section>
   `;
 }
@@ -418,22 +478,23 @@ function renderLessonPage(lessonId) {
   const lesson = lessons[lessonId];
   if (!lesson) return renderNotFound();
   const lessonData = lesson[state.language];
-  const activities = lesson.activities || getLesson2Activities(lessonId, state.language);
-  const checks = state.activityChecks[lessonId] || {};
-  const allDone = activities.every((activity) => checks[activity.id]);
+  const lessonDisplay = getLessonDisplay(lessonId);
+  const activities = getLessonActivities(lessonId);
   const objects = localizedList(lesson.objects);
   return pageShell(`
     <section class="lesson-page">
       <div class="lesson-hero">
         <div>
           <span class="pill">${lesson.order}/${lessonOrder.length} ${labels.lessonOf} · ${lesson.duration} ${labels.minutes}</span>
-          <h1>${lessonData.title}</h1>
-          <p>${lessonData.description}</p>
+          <h1>${lessonDisplay.title}</h1>
+          <p>${lessonDisplay.description}</p>
         </div>
         ${renderTimer(lessonId, activities)}
       </div>
 
       ${renderPhoneFreeGuide()}
+      ${renderAdaptiveLessonNote(lessonId)}
+      ${renderLessonFlow()}
 
       ${
         lessonData.prep
@@ -456,7 +517,7 @@ function renderLessonPage(lessonId) {
       }
 
       <section class="activity-list">
-        ${activities.map((activity, index) => renderActivity(lessonId, activity, index, checks[activity.id])).join("")}
+        ${activities.map((activity, index) => renderActivity(lessonId, activity, index)).join("")}
       </section>
 
       ${
@@ -467,15 +528,15 @@ function renderLessonPage(lessonId) {
 
       <section class="lesson-complete">
         <p>${labels.allDoneHint}</p>
-        <button class="primary" data-finish-lesson="${lessonId}" type="button" ${allDone ? "" : "disabled"}>
-          ${labels.openAssessment}
+        <button class="primary" data-finish-lesson="${lessonId}" type="button">
+          ${labels.finishLessonButton}
         </button>
       </section>
     </section>
   `);
 }
 
-function renderActivity(lessonId, activity, index, checked) {
+function renderActivity(lessonId, activity, index) {
   const labels = t();
   const langData = activity[state.language];
   const fallbackData = activity.kk || activity.ru || {};
@@ -502,10 +563,6 @@ function renderActivity(lessonId, activity, index, checked) {
       </div>
       ${benefit.length ? `<div class="activity-note benefit"><strong>${labels.whyUseful}</strong>${benefit.map((line) => `<p>${line}</p>`).join("")}</div>` : ""}
       <div class="activity-note"><strong>${labels.repeatAtHome}</strong><p>${repeat}</p></div>
-      <label class="check-row">
-        <input data-activity-check="${lessonId}:${activity.id}" type="checkbox" ${checked ? "checked" : ""} />
-        <span>${labels.done}</span>
-      </label>
     </article>
   `;
 }
@@ -593,7 +650,7 @@ function tickTimer() {
   if (!panel) return;
   const lessonId = panel.dataset.timer;
   const timer = getTimer(lessonId);
-  const activities = lessons[lessonId]?.activities || [];
+  const activities = getLessonActivities(lessonId);
   const clock = panel.querySelector("[data-timer-clock]");
   const active = panel.querySelector("[data-timer-active]");
   if (clock) clock.textContent = formatTime(getRemaining(timer));
@@ -603,13 +660,14 @@ function tickTimer() {
 function renderAssessment(lessonId) {
   const labels = t();
   const lesson = lessons[lessonId];
+  const lessonDisplay = getLessonDisplay(lessonId);
   const questions = lessonId === "lesson1" ? lesson1Questions[state.language] : lesson2Questions[state.language];
   const saved = state.assessments[lessonId]?.answers || {};
   return pageShell(`
     <section class="assessment-page">
       <div class="section-heading">
         <div>
-          <span class="pill">${lesson[state.language].title}</span>
+          <span class="pill">${lessonDisplay.title}</span>
           <h1>${labels.parentObservation}</h1>
         </div>
         <p>${labels.requiredQuestions}</p>
@@ -669,6 +727,11 @@ function renderResult() {
           <span>${escapeHtml(state.childProfile?.name || "")}</span>
           <strong>${pathway[state.language].lesson}</strong>
         </article>
+        <article class="metric-card">
+          <span>${labels.resultNextTitle}</span>
+          <strong>${pathway[state.language].level}</strong>
+        </article>
+        <p>${labels.resultNextText}</p>
         ${progressBar(progressPercent())}
         <p class="disclaimer">${labels.resultDisclaimer}</p>
         <button class="primary" data-route="/lesson/${pathway.lessonId}" type="button">${labels.openLesson2}</button>
@@ -793,7 +856,7 @@ function guardRoute(pathname) {
     if (!state.progress.unlockedLessonIds.includes(lessonId)) return "/dashboard";
     if (lessonId === "lesson1" && !state.progress.lesson1Completed) return "/lesson/lesson1";
     const checks = state.activityChecks[lessonId] || {};
-    const activities = lessons[lessonId]?.activities || [];
+    const activities = getLessonActivities(lessonId);
     if (!activities.every((activity) => checks[activity.id])) return `/lesson/${lessonId}`;
   }
   return pathname;
@@ -1034,12 +1097,18 @@ function handleClick(event) {
   const finish = event.target.closest("[data-finish-lesson]");
   if (finish && !finish.disabled) {
     const lessonId = finish.dataset.finishLesson;
+    const activities = getLessonActivities(lessonId);
+    state.activityChecks[lessonId] = activities.reduce((checks, activity) => {
+      checks[activity.id] = true;
+      return checks;
+    }, {});
     if (lessonId === "lesson1") {
       state.progress.lesson1Completed = true;
       saveState(state);
       routeTo("/assessment/lesson1");
       return;
     }
+    saveState(state);
     routeTo(`/assessment/${lessonId}`);
     return;
   }
