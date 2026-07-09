@@ -943,7 +943,12 @@ function handleClick(event) {
 
   const pickLang = event.target.closest("[data-pick-language]");
   if (pickLang) {
-    setLanguage(pickLang.dataset.pickLanguage);
+    const selectedLanguage = pickLang.dataset.pickLanguage;
+    resetState();
+    state = loadState();
+    state.language = selectedLanguage;
+    saveState(state);
+    document.documentElement.lang = selectedLanguage;
     routeTo("/onboarding");
     return;
   }
