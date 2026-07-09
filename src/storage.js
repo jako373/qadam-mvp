@@ -8,6 +8,8 @@ export const defaultProgress = {
   lesson1AssessmentCompleted: false,
   selectedPathway: null,
   assignedLesson2: null,
+  assignedNextLesson: null,
+  lessonMode: "standard",
   completedLessonIds: [],
   unlockedLessonIds: ["lesson1"],
 };
