@@ -146,6 +146,7 @@ function normalizePath(path) {
 function renderLanding() {
   const labels = t();
   const benefitsAria = labels.benefitsAria || (state.language === "ru" ? "Преимущества" : "Артықшылықтар");
+  const hasProfile = Boolean(state.progress.onboardingCompleted);
   return pageShell(
     `
       <section class="hero">
@@ -159,7 +160,8 @@ function renderLanding() {
           <h1>${labels.landingTitle}</h1>
           <p>${labels.landingText}</p>
           <div class="hero-actions">
-            <button class="primary" data-route="/language" type="button">${labels.start}</button>
+            <button class="primary" data-route="${hasProfile ? "/dashboard" : "/language"}" type="button">${hasProfile ? labels.continue : labels.start}</button>
+            ${hasProfile ? `<button class="secondary" data-new-profile type="button">${labels.resetDemo}</button>` : ""}
             ${renderLanguageSwitcher(true)}
           </div>
         </div>
@@ -944,12 +946,19 @@ function handleClick(event) {
   const pickLang = event.target.closest("[data-pick-language]");
   if (pickLang) {
     const selectedLanguage = pickLang.dataset.pickLanguage;
-    resetState();
-    state = loadState();
     state.language = selectedLanguage;
     saveState(state);
     document.documentElement.lang = selectedLanguage;
     routeTo("/onboarding");
+    return;
+  }
+
+  if (event.target.closest("[data-new-profile]")) {
+    if (window.confirm(t().resetConfirm)) {
+      resetState();
+      state = loadState();
+      routeTo("/language");
+    }
     return;
   }
 
