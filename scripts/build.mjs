@@ -1,9 +1,11 @@
 import { copyFile, cp, mkdir, rm } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(root, "dist");
+
+await import("./compile-exercises.mjs");
 
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
@@ -17,38 +19,30 @@ const appRoutes = [
   "onboarding",
   "intro",
   "dashboard",
+  "today",
+  "skill-check",
+  "plan-ready",
+  "daily-summary",
+  "library",
   "lessons",
   "result",
   "progress",
   "profile",
-  "lesson/lesson1",
-  "lesson/lesson2",
-  "lesson/lesson3",
-  "lesson/lesson4",
-  "lesson/lesson5",
-  "lesson/lesson6",
-  "lesson/lesson7",
-  "lesson/lesson8",
-  "lesson/lesson9",
-  "lesson/lesson10",
-  "lesson/lesson11",
-  "lesson/lesson12",
-  "assessment/lesson1",
-  "assessment/lesson2",
-  "assessment/lesson3",
-  "assessment/lesson4",
-  "assessment/lesson5",
-  "assessment/lesson6",
-  "assessment/lesson7",
-  "assessment/lesson8",
-  "assessment/lesson9",
-  "assessment/lesson10",
-  "assessment/lesson11",
-  "assessment/lesson12",
+  ...Array.from({ length: 16 }, (_, index) => `skill-check/${index + 1}`),
+  ...Array.from({ length: 3 }, (_, index) => `daily/${index + 1}`),
+  ...Array.from({ length: 3 }, (_, index) => `daily-results/${index + 1}`),
+  ...Array.from({ length: 8 }, (_, index) => `recheck/${index + 1}`),
+  ...["joint_attention", "understanding", "imitation", "communication", "play_thinking", "fine_motor", "regulation", "daily_social"].flatMap((category) =>
+    Array.from({ length: 15 }, (_, index) => `library/${category}-${String(index + 1).padStart(2, "0")}`),
+  ),
+  ...Array.from({ length: 12 }, (_, index) => `lesson/lesson${index + 1}`),
+  ...Array.from({ length: 12 }, (_, index) => `assessment/lesson${index + 1}`),
 ];
 
 for (const route of appRoutes) {
-  const routeDir = join(dist, route);
-  await mkdir(routeDir, { recursive: true });
-  await copyFile(join(dist, "index.html"), join(routeDir, "index.html"));
+  const routeDirectory = join(dist, route);
+  await mkdir(routeDirectory, { recursive: true });
+  await copyFile(join(dist, "index.html"), join(routeDirectory, "index.html"));
 }
+
+console.log("Qadam build complete: dist/");

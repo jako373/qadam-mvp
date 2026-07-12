@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 
 import { calculatePathway } from "../src/pathway.js";
 
@@ -12,26 +13,26 @@ const baseScores = {
 
 describe("calculatePathway", () => {
   it("prioritizes interaction when interaction is low", () => {
-    expect(calculatePathway({ ...baseScores, interactionScore: 2 })).toBe("interaction");
+    assert.equal(calculatePathway({ ...baseScores, interactionScore: 2 }), "interaction");
   });
 
   it("prioritizes interaction when regulation is low", () => {
-    expect(calculatePathway({ ...baseScores, regulationScore: 2 })).toBe("interaction");
+    assert.equal(calculatePathway({ ...baseScores, regulationScore: 2 }), "interaction");
   });
 
   it("returns understanding when understanding is low", () => {
-    expect(calculatePathway({ ...baseScores, understandingScore: 2 })).toBe("understanding");
+    assert.equal(calculatePathway({ ...baseScores, understandingScore: 2 }), "understanding");
   });
 
   it("returns understanding when request score is low", () => {
-    expect(calculatePathway({ ...baseScores, requestScore: 2 })).toBe("understanding");
+    assert.equal(calculatePathway({ ...baseScores, requestScore: 2 }), "understanding");
   });
 
   it("returns firstWords when speech is at the boundary", () => {
-    expect(calculatePathway({ ...baseScores, speechScore: 3 })).toBe("firstWords");
+    assert.equal(calculatePathway({ ...baseScores, speechScore: 3 }), "firstWords");
   });
 
   it("returns wordCombination when all scores are strong", () => {
-    expect(calculatePathway({ ...baseScores, speechScore: 4 })).toBe("wordCombination");
+    assert.equal(calculatePathway({ ...baseScores, speechScore: 4 }), "wordCombination");
   });
 });

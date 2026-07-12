@@ -11,11 +11,6 @@ import {
   ui,
   wordOptions,
 } from "./data.js";
-import {
-  getAdaptiveExerciseActivities,
-  getExerciseLessonMeta,
-} from "./exercise-bank.js";
-import { runPageMotion } from "./motion.js";
 import { calculatePathway, pathwayMap } from "./pathway.js";
 import {
   loadState,
@@ -24,6 +19,15 @@ import {
   saveState,
   saveTimers,
 } from "./storage.js";
+import {
+  applyLibraryFilters,
+  getAdaptiveNav,
+  guardAdaptiveRoute,
+  handleAdaptiveClick,
+  handleAdaptiveInput,
+  renderAdaptiveRoute,
+} from "./adaptive-flow.js";
+import { adaptiveUi } from "./data/adaptive-ui.js";
 
 let state = loadState();
 let timerInterval = null;
@@ -32,6 +36,17 @@ const app = document.getElementById("app");
 
 function t() {
   return ui[state.language];
+}
+
+function adaptiveContext() {
+  return {
+    state,
+    pageShell,
+    escapeHtml,
+    saveState,
+    routeTo,
+    render,
+  };
 }
 
 function escapeHtml(value = "") {
@@ -73,35 +88,21 @@ function localizedList(list) {
 }
 
 function getLessonActivities(lessonId) {
-  const lesson = lessons[lessonId];
-  if (!lesson) return [];
-  if (lessonId !== "lesson1" && state.progress.selectedPathway) {
-    return getAdaptiveExerciseActivities({
-      lessonOrder: lesson.order,
-      pathway: state.progress.selectedPathway,
-      mode: state.progress.lessonMode || "standard",
-    });
-  }
   return getLesson2Activities(lessonId, state.progress.selectedPathway);
 }
 
 function isAdaptiveLesson(lessonId) {
-  return lessonId !== "lesson1" && Boolean(state.progress.selectedPathway);
+  return lessonId === "lesson2" && Boolean(state.progress.selectedPathway);
 }
 
 function getLessonDisplay(lessonId) {
   const lesson = lessons[lessonId];
   if (!lesson) return { title: "", description: "" };
   if (isAdaptiveLesson(lessonId)) {
-    const meta = getExerciseLessonMeta({
-      lessonOrder: lesson.order,
-      pathway: state.progress.selectedPathway,
-      mode: state.progress.lessonMode || "standard",
-      language: state.language,
-    });
+    const pathway = pathwayMap[state.progress.selectedPathway];
     return {
-      title: meta.title,
-      description: meta.description,
+      title: pathway[state.language].level,
+      description: pathway[state.language].explanation,
     };
   }
   return {
@@ -127,15 +128,14 @@ function renderTopNav() {
   const navAria = labels.primaryNavigation || (state.language === "ru" ? "Основная навигация" : "Негізгі навигация");
   return `
     <header class="top-nav">
-      <button class="brand-mark" data-route="/dashboard" type="button" aria-label="${homeAria}">
+      <button class="brand-mark" data-route="/today" type="button" aria-label="${homeAria}">
         <span>Q</span>
         <strong>${labels.brand}</strong>
       </button>
       <nav aria-label="${navAria}">
-        ${navButton("/dashboard", "home", labels.home)}
-        ${navButton("/lessons", "list", labels.lessons)}
-        ${navButton("/progress", "chart", labels.progress)}
-        ${navButton("/profile", "user", labels.profile)}
+        ${getAdaptiveNav(state.language)
+          .map(([path, iconName, label]) => navButton(path, iconName, label))
+          .join("")}
       </nav>
       ${renderLanguageSwitcher(true)}
     </header>
@@ -147,10 +147,9 @@ function renderBottomNav() {
   const navAria = labels.mobileNavigation || (state.language === "ru" ? "Нижняя навигация" : "Төменгі навигация");
   return `
     <nav class="bottom-nav" aria-label="${navAria}">
-      ${navButton("/dashboard", "home", labels.home)}
-      ${navButton("/lessons", "list", labels.lessons)}
-      ${navButton("/progress", "chart", labels.progress)}
-      ${navButton("/profile", "user", labels.profile)}
+      ${getAdaptiveNav(state.language)
+        .map(([path, iconName, label]) => navButton(path, iconName, label))
+        .join("")}
     </nav>
   `;
 }
@@ -203,7 +202,7 @@ function renderLanding() {
           <h1>${labels.landingTitle}</h1>
           <p>${labels.landingText}</p>
           <div class="hero-actions">
-            <button class="primary" data-route="${hasProfile ? "/dashboard" : "/language"}" type="button">${hasProfile ? labels.continue : labels.start}</button>
+            <button class="primary" data-route="${hasProfile ? "/today" : "/language"}" type="button">${hasProfile ? labels.continue : labels.start}</button>
             ${hasProfile ? `<button class="secondary" data-new-profile type="button">${labels.resetDemo}</button>` : ""}
             ${renderLanguageSwitcher(true)}
           </div>
@@ -254,6 +253,7 @@ function renderLanguagePage() {
 
 function renderOnboarding() {
   const labels = t();
+  const adaptiveLabels = adaptiveUi[state.language];
   const profile = state.childProfile || {};
   return pageShell(
     `
@@ -266,11 +266,14 @@ function renderOnboarding() {
           ${selectField("diagnosis", labels.diagnosis, diagnosisOptions, profile.diagnosis || "", true)}
           ${selectField("homeLanguage", labels.homeLanguage, homeLanguageOptions, profile.homeLanguage || "", true)}
           ${selectField("meaningfulWords", labels.meaningfulWords, wordOptions, profile.meaningfulWords || "", true)}
+          ${textareaField("interests", adaptiveLabels.interests, profile.interests || "")}
+          ${textareaField("dislikes", adaptiveLabels.dislikes, profile.dislikes || "")}
+          ${inputField("bestTime", adaptiveLabels.bestTime, "text", profile.bestTime || "", false)}
           <label class="check-row full">
             <input id="consent" name="consent" type="checkbox" required />
-            <span>${labels.consent}</span>
+            <span>${adaptiveLabels.consent}</span>
           </label>
-          <button id="profile-submit" class="primary full" type="submit" disabled>${labels.continue}</button>
+          <button id="profile-submit" class="primary full" type="submit" disabled>${adaptiveLabels.saveProfile}</button>
         </form>
       </section>
     `,
@@ -279,10 +282,21 @@ function renderOnboarding() {
 }
 
 function inputField(name, label, type, value, required) {
+  const autocomplete = name === "name" ? "name" : "off";
+  const maxLength = name === "name" ? ' maxlength="80"' : ' maxlength="160"';
   return `
     <label class="field">
       <span>${label}</span>
-      <input name="${name}" type="${type}" value="${escapeHtml(value)}" ${required ? "required" : ""} autocomplete="off" />
+      <input name="${name}" type="${type}" value="${escapeHtml(value)}" ${required ? "required" : ""}${maxLength} autocomplete="${autocomplete}" />
+    </label>
+  `;
+}
+
+function textareaField(name, label, value) {
+  return `
+    <label class="field full">
+      <span>${label}</span>
+      <textarea name="${name}" maxlength="240" rows="3">${escapeHtml(value)}</textarea>
     </label>
   `;
 }
@@ -322,30 +336,8 @@ function renderParentIntro() {
 }
 
 function nextLessonId() {
-  const assigned = state.progress.assignedNextLesson;
-  if (assigned && state.progress.unlockedLessonIds.includes(assigned)) {
-    return assigned;
-  }
   const completed = new Set(state.progress.completedLessonIds);
   return lessonOrder.find((lessonId) => state.progress.unlockedLessonIds.includes(lessonId) && !completed.has(lessonId)) || lessonOrder[lessonOrder.length - 1];
-}
-
-function averageAssessmentScore(answers = {}) {
-  const values = Object.values(answers).map(Number).filter((value) => Number.isFinite(value));
-  if (!values.length) return 3;
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-function scoreMode(average) {
-  if (average <= 2.4) return "easy";
-  if (average >= 4.1) return "hard";
-  return "standard";
-}
-
-function chooseNextLessonAfterAssessment(lessonId, average) {
-  if (lessonId === "lesson1") return getNextLessonId(lessonId);
-  if (average <= 2.4) return lessonId;
-  return getNextLessonId(lessonId) || lessonId;
 }
 
 function progressPercent() {
@@ -362,12 +354,12 @@ function renderDashboard() {
   const pathway = state.progress.selectedPathway ? pathwayMap[state.progress.selectedPathway] : null;
   const direction = pathway ? pathway[state.language].level : labels.lessonPathway;
   const adaptiveNote =
-    pathway && lesson.id !== "lesson1"
+    pathway && lesson.id === "lesson2"
       ? `
         <section class="adaptive-note">
           <span class="pill">${labels.summaryTitle}</span>
-          <h2>${lessonDisplay.title}</h2>
-          <p>${lessonDisplay.description}</p>
+          <h2>${labels.summaryNextLesson}</h2>
+          <p><strong>${pathway[state.language].level}</strong> - ${pathway[state.language].lesson}</p>
         </section>
       `
       : "";
@@ -410,10 +402,9 @@ function metricCard(value, label, extra) {
 }
 
 function progressBar(percent) {
+  const value = Math.max(0, Math.min(100, Number(percent) || 0));
   return `
-    <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}">
-      <span style="width:${percent}%"></span>
-    </div>
+    <progress class="progress-bar" max="100" value="${value}" aria-label="${escapeHtml(t().progress)}">${value}%</progress>
   `;
 }
 
@@ -585,9 +576,6 @@ function renderActivity(lessonId, activity, index) {
   const steps = langData?.steps || fallbackData.steps || [];
   const benefit = langData?.benefit || fallbackData.benefit || [];
   const repeat = langData?.repeat || fallbackData.repeat || labels.activityRepeatDefault;
-  const levelTip = langData?.levelTip || fallbackData.levelTip || "";
-  const stop = langData?.stop || fallbackData.stop || "";
-  const safety = langData?.safety || fallbackData.safety || "";
   return `
     <article class="activity-card" data-activity-card="${lessonId}-${activity.id}">
       <div class="activity-head">
@@ -606,9 +594,7 @@ function renderActivity(lessonId, activity, index) {
         </ol>
       </div>
       ${benefit.length ? `<div class="activity-note benefit"><strong>${labels.whyUseful}</strong>${benefit.map((line) => `<p>${line}</p>`).join("")}</div>` : ""}
-      ${levelTip ? `<div class="activity-note"><strong>${labels.levelTip}</strong><p>${levelTip}</p></div>` : ""}
       <div class="activity-note"><strong>${labels.repeatAtHome}</strong><p>${repeat}</p></div>
-      ${stop || safety ? `<div class="activity-note safety"><strong>${labels.safety}</strong>${stop ? `<p>${stop}</p>` : ""}${safety ? `<p>${safety}</p>` : ""}</div>` : ""}
     </article>
   `;
 }
@@ -727,7 +713,7 @@ function renderAssessment(lessonId) {
           <span>3 - ${labels.starLabels.three}</span>
           <span>5 - ${labels.starLabels.five}</span>
         </div>
-        <button id="assessment-submit" class="primary" type="submit" disabled>${labels.showResult}</button>
+        <button id="assessment-submit" class="primary" type="submit" disabled>${lessonId === "lesson1" ? labels.showResult : labels.backDashboard}</button>
       </form>
     </section>
   `);
@@ -756,49 +742,31 @@ function starAriaLabel(value) {
   return `${value}/5 - ${meaning}`;
 }
 
-function latestCompletedAssessment() {
-  return Object.entries(state.assessments)
-    .filter(([, assessment]) => assessment.completedAt)
-    .sort(([, a], [, b]) => String(b.completedAt).localeCompare(String(a.completedAt)))[0];
-}
-
 function renderResult() {
   const labels = t();
   const pathwayKey = state.progress.selectedPathway;
   if (!pathwayKey) return renderDashboard();
   const pathway = pathwayMap[pathwayKey];
-  const nextId = state.progress.assignedNextLesson || nextLessonId();
-  const nextDisplay = getLessonDisplay(nextId);
-  const latest = latestCompletedAssessment();
-  const latestAssessment = latest?.[1] || {};
-  const mode = latestAssessment.scoreMode || state.progress.lessonMode || "standard";
-  const modeText = labels.modeText[mode] || labels.modeText.standard;
-  const average = Number(latestAssessment.average || 0);
-  const scoreText = average ? `${average.toFixed(1)}/5` : "-";
   return pageShell(`
     <section class="result-page">
       <div class="result-visual">
         <span class="pill">${labels.resultTitle}</span>
-        <h1>${modeText}</h1>
-        <p>${mode === "easy" ? labels.resultEasyText : mode === "hard" ? labels.resultHardText : labels.resultStandardText}</p>
+        <h1>${pathway[state.language].level}</h1>
+        <p>${pathway[state.language].explanation}</p>
       </div>
       <div class="result-details">
         <article class="metric-card">
-          <span>${labels.currentDirection}</span>
-          <strong>${pathway[state.language].level}</strong>
-        </article>
-        <article class="metric-card">
-          <span>${labels.parentObservation}</span>
-          <strong>${scoreText}</strong>
+          <span>${escapeHtml(state.childProfile?.name || "")}</span>
+          <strong>${pathway[state.language].lesson}</strong>
         </article>
         <article class="metric-card">
           <span>${labels.resultNextTitle}</span>
-          <strong>${nextDisplay.title}</strong>
+          <strong>${pathway[state.language].level}</strong>
         </article>
         <p>${labels.resultNextText}</p>
         ${progressBar(progressPercent())}
         <p class="disclaimer">${labels.resultDisclaimer}</p>
-        <button class="primary" data-route="/lesson/${nextId}" type="button">${labels.openNextLesson}</button>
+        <button class="primary" data-route="/lesson/${pathway.lessonId}" type="button">${labels.openLesson2}</button>
       </div>
     </section>
   `);
@@ -814,7 +782,6 @@ function renderProgressPage() {
   const direction = pathway ? pathway[state.language].level : labels.lessonPathway;
   const nextId = nextLessonId();
   const next = completedCount >= lessonOrder.length ? null : lessons[nextId];
-  const nextDisplay = next ? getLessonDisplay(nextId) : null;
   const remaining = Math.max(0, lessonOrder.length - completedCount);
   const journeyTitle = completedCount >= lessonOrder.length
     ? labels.progressAfterTwelveTitle
@@ -835,7 +802,7 @@ function renderProgressPage() {
     </section>
     <section class="metric-grid">
       ${metricCard(`${completedCount}/${lessonOrder.length}`, labels.completedTasks, progressBar(progressPercent()))}
-      ${metricCard(next && nextDisplay ? `${next.order}. ${nextDisplay.title}` : "-", labels.nextLesson, "")}
+      ${metricCard(next ? `${next.order}. ${next[state.language].title}` : "-", labels.nextLesson, "")}
       ${metricCard(direction, labels.currentDirection, "")}
     </section>
     <section class="timeline progress-journey">
@@ -908,6 +875,8 @@ function renderNotFound() {
 function guardRoute(pathname) {
   if (pathname === "/" || pathname === "/language") return pathname;
   if (!state.progress.onboardingCompleted && pathname !== "/onboarding") return "/language";
+  const adaptiveRedirect = guardAdaptiveRoute(pathname, state);
+  if (adaptiveRedirect) return adaptiveRedirect;
   if (pathname === "/lesson/lesson1" && !state.progress.parentIntroCompleted) return "/intro";
   if (pathname.startsWith("/lesson/")) {
     const lessonId = pathname.split("/").pop();
@@ -936,7 +905,9 @@ function render() {
     window.history.replaceState({}, "", guarded);
   }
   const path = guarded;
-  if (path === "/") app.innerHTML = renderLanding();
+  const adaptiveHtml = renderAdaptiveRoute(path, adaptiveContext());
+  if (adaptiveHtml !== null) app.innerHTML = adaptiveHtml;
+  else if (path === "/") app.innerHTML = renderLanding();
   else if (path === "/language") app.innerHTML = renderLanguagePage();
   else if (path === "/onboarding") app.innerHTML = renderOnboarding();
   else if (path === "/intro") app.innerHTML = renderParentIntro();
@@ -950,11 +921,11 @@ function render() {
   else app.innerHTML = renderNotFound();
 
   mountForms();
+  applyLibraryFilters();
   if (document.querySelector("[data-timer]")) {
     tickTimer();
     timerInterval = window.setInterval(tickTimer, 1000);
   }
-  runPageMotion();
 }
 
 function mountForms() {
@@ -968,17 +939,31 @@ function mountForms() {
     form.addEventListener("change", validate);
     form.addEventListener("submit", (event) => {
       event.preventDefault();
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
       const data = new FormData(form);
+      const age = Number(data.get("age"));
+      const diagnosis = String(data.get("diagnosis") || "");
+      const homeLanguage = String(data.get("homeLanguage") || "");
+      const meaningfulWords = String(data.get("meaningfulWords") || "");
+      if (!ageOptions.includes(age) || !diagnosisOptions.includes(diagnosis) || !homeLanguageOptions.includes(homeLanguage) || !wordOptions.includes(meaningfulWords)) {
+        return;
+      }
       state.childProfile = {
         name: String(data.get("name") || "").trim(),
-        age: Number(data.get("age")),
-        diagnosis: String(data.get("diagnosis") || ""),
-        homeLanguage: String(data.get("homeLanguage") || ""),
-        meaningfulWords: String(data.get("meaningfulWords") || ""),
+        age,
+        diagnosis,
+        homeLanguage,
+        meaningfulWords,
+        interests: String(data.get("interests") || "").trim(),
+        dislikes: String(data.get("dislikes") || "").trim(),
+        bestTime: String(data.get("bestTime") || "").trim(),
       };
       state.progress.onboardingCompleted = true;
       saveState(state);
-      routeTo("/intro");
+      routeTo(state.adaptive.initialAssessment.completedAt ? "/today" : "/skill-check");
     });
     validate();
   }
@@ -1003,9 +988,7 @@ function refreshAssessmentSubmit(form) {
 
 function submitAssessment(lessonId) {
   const answers = state.assessments[lessonId]?.answers || {};
-  const average = averageAssessmentScore(answers);
-  const mode = scoreMode(average);
-  const next = chooseNextLessonAfterAssessment(lessonId, average);
+  const next = getNextLessonId(lessonId);
 
   if (lessonId === "lesson1") {
     const scores = {
@@ -1019,17 +1002,12 @@ function submitAssessment(lessonId) {
     state.assessments.lesson1 = {
       ...state.assessments.lesson1,
       scores,
-      average,
-      scoreMode: mode,
       selectedPathway: pathway,
-      assignedNextLesson: next,
       completedAt: new Date().toISOString(),
     };
     state.progress.lesson1AssessmentCompleted = true;
     state.progress.selectedPathway = pathway;
     state.progress.assignedLesson2 = next;
-    state.progress.assignedNextLesson = next;
-    state.progress.lessonMode = mode;
     state.progress.completedLessonIds = unique([...state.progress.completedLessonIds, lessonId]);
     state.progress.unlockedLessonIds = unique([...state.progress.unlockedLessonIds, next].filter(Boolean));
     saveState(state);
@@ -1039,19 +1017,12 @@ function submitAssessment(lessonId) {
 
   state.assessments[lessonId] = {
     ...state.assessments[lessonId],
-    average,
-    scoreMode: mode,
-    assignedNextLesson: next,
     completedAt: new Date().toISOString(),
   };
-  state.progress.lessonMode = mode;
-  state.progress.assignedNextLesson = next;
-  if (mode !== "easy") {
-    state.progress.completedLessonIds = unique([...state.progress.completedLessonIds, lessonId]);
-  }
+  state.progress.completedLessonIds = unique([...state.progress.completedLessonIds, lessonId]);
   state.progress.unlockedLessonIds = unique([...state.progress.unlockedLessonIds, next].filter(Boolean));
   saveState(state);
-  routeTo("/result");
+  routeTo("/progress");
 }
 
 function unique(values) {
@@ -1060,25 +1031,50 @@ function unique(values) {
 
 function normalizeState() {
   const valid = new Set(lessonOrder);
-  state.progress.completedLessonIds = (state.progress.completedLessonIds || []).filter((lessonId) => valid.has(lessonId));
-  state.progress.unlockedLessonIds = (state.progress.unlockedLessonIds || []).filter((lessonId) => valid.has(lessonId));
+  let profile = state.childProfile;
+  if (profile?.diagnosis === "ОНР") {
+    profile = { ...profile, diagnosis: "ОНР 1-4 (нақтылау керек / нужно уточнить)" };
+    state.childProfile = profile;
+  }
+  const profileIsValid =
+    profile &&
+    typeof profile.name === "string" &&
+    profile.name.trim().length > 0 &&
+    ageOptions.includes(Number(profile.age)) &&
+    diagnosisOptions.includes(profile.diagnosis) &&
+    homeLanguageOptions.includes(profile.homeLanguage) &&
+    wordOptions.includes(profile.meaningfulWords);
+
+  if (!profileIsValid) {
+    state.childProfile = null;
+    state.progress.onboardingCompleted = false;
+    state.progress.parentIntroCompleted = false;
+  }
+
+  if (!Object.hasOwn(pathwayMap, state.progress.selectedPathway)) {
+    state.progress.selectedPathway = null;
+  }
+
+  state.progress.completedLessonIds = unique(
+    (Array.isArray(state.progress.completedLessonIds) ? state.progress.completedLessonIds : []).filter((lessonId) => valid.has(lessonId)),
+  );
+  state.progress.unlockedLessonIds = unique(
+    (Array.isArray(state.progress.unlockedLessonIds) ? state.progress.unlockedLessonIds : []).filter((lessonId) => valid.has(lessonId)),
+  );
   if (!state.progress.unlockedLessonIds.includes("lesson1")) {
     state.progress.unlockedLessonIds.unshift("lesson1");
-  }
-  if (!["easy", "standard", "hard"].includes(state.progress.lessonMode)) {
-    state.progress.lessonMode = "standard";
-  }
-  if (state.progress.assignedNextLesson && !valid.has(state.progress.assignedNextLesson)) {
-    state.progress.assignedNextLesson = null;
   }
   for (const lessonId of state.progress.completedLessonIds) {
     const next = getNextLessonId(lessonId);
     if (next) state.progress.unlockedLessonIds.push(next);
   }
   state.progress.unlockedLessonIds = unique(state.progress.unlockedLessonIds);
+  saveState(state);
 }
 
 function handleClick(event) {
+  if (handleAdaptiveClick(event, adaptiveContext())) return;
+
   const route = event.target.closest("[data-route]");
   if (route) {
     event.preventDefault();
@@ -1122,6 +1118,7 @@ function handleClick(event) {
   if (star) {
     const [question, value] = star.dataset.star.split(":");
     const form = star.closest("[data-assessment]");
+    if (!form) return;
     const lessonId = form.dataset.assessment;
     state.assessments[lessonId] = state.assessments[lessonId] || { answers: {} };
     state.assessments[lessonId].answers[question] = Number(value);
@@ -1209,6 +1206,7 @@ function handleClick(event) {
 }
 
 function handleChange(event) {
+  if (handleAdaptiveInput(event)) return;
   const check = event.target.closest("[data-activity-check]");
   if (!check) return;
   const [lessonId, activityId] = check.dataset.activityCheck.split(":");
@@ -1221,6 +1219,7 @@ function handleChange(event) {
 window.addEventListener("popstate", render);
 document.addEventListener("click", handleClick);
 document.addEventListener("change", handleChange);
+document.addEventListener("input", handleAdaptiveInput);
 
 normalizeState();
 render();
