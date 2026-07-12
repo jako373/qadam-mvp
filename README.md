@@ -1,120 +1,67 @@
 # Qadam Parent MVP
 
-Qadam is a polished bilingual MVP for parents of children with speech and developmental concerns. It runs as a dependency-free static web app, so it is simple to deploy on Vercel and safe to demo before a backend is connected.
+Qadam is a dependency-free bilingual web platform for parents of children with speech and developmental concerns. It now combines an adaptive catalogue of 120 home exercises with the existing 12 guided lessons in Kazakh and Russian.
 
-## What Is Included
+## Parent Flow
 
-- Kazakh and Russian language flow
-- Child profile onboarding with only allowed select-based developmental fields
-- Parent support screen before the first lesson
-- Lesson 1 with four activities, 20-minute timer, pause/resume, refresh persistence, and completion checks
-- Star-only assessment with required answers
-- Adaptive pathway selection from individual question scores
-- Four personalized Lesson 2 variants
-- Dashboard, lessons, progress, and profile pages
-- Route protection for locked lessons and result pages
-- Reset demo flow with confirmation
-- Vercel static deployment config
-- Supabase-ready SQL schema with RLS policies
+1. A parent chooses Kazakh or Russian and creates one child profile.
+2. Sixteen short questions establish a separate starting level for eight skill areas.
+3. Qadam prepares exactly three exercises for the day, with no more than one new exercise.
+4. The exercise screen shows only the title, required item, three steps, and the next button.
+5. After all three exercises, the parent selects one outcome for each: independent, assisted, unable, or refused.
+6. The next plan adapts to those outcomes. Refusal does not lower a level, and repeated difficulty produces an easier choice.
+7. A short reassessment becomes available after 14 days.
 
-## Local Launch
+The diagnosis remains part of the child profile but is not used to choose exercises. Qadam is educational support, not a diagnostic or medical service.
 
-1. Open this folder in a terminal.
-2. Run:
+## Exercise Catalogue
 
-```bash
+- 120 exercises across eight categories
+- 15 exercises per category
+- Five exercises at each of levels 1, 2, and 3
+- Complete Kazakh and Russian parent instructions
+- Search, category and level filters, favorites, and full exercise details
+
+The source catalogue is src/data/exercises.ts. scripts/compile-exercises.mjs validates and compiles it into the browser-ready bilingual src/data/exercises.js.
+
+## Architecture
+
+- index.html is the browser entry point.
+- src/app.js keeps the existing router and 12-lesson flow.
+- src/adaptive-flow.js owns the new assessment, daily plan, outcomes, catalogue, result, and profile screens.
+- src/lib/recommendation-engine.js selects the three daily exercises.
+- src/lib/progress-engine.js calculates skill levels and applies parent outcomes.
+- src/lib/adaptive-state.js validates stored adaptive progress.
+- src/storage.js is the local persistence adapter.
+- src/data.js contains the original 12 bilingual lessons.
+- supabase/schema.sql is an authenticated, RLS-protected future backend schema. It is not connected to the current static app.
+
+## Local Use
+
+~~~bash
 npm run serve
-```
+~~~
 
-3. Open:
+Open http://127.0.0.1:3000.
 
-```txt
-http://localhost:3000
-```
+Run the complete quality check with:
 
-This local server mirrors the Vercel route fallback, so direct links like `/lesson/lesson1` work during testing.
+~~~bash
+npm run verify
+~~~
 
-## Project Structure
+This compiles all 120 exercises, checks JavaScript and deployment wiring, runs the automated tests, and builds dist/.
 
-```txt
-index.html
-src/
-  app.js
-  data.js
-  pathway.js
-  storage.js
-  styles.css
-public/
-  images/
-    parent-child-lesson.svg
-supabase/
-  schema.sql
-vercel.json
-.env.example
-```
+## Vercel
 
-## Adaptive Lesson Logic
-
-Lesson 1 assessment stores five separate scores:
-
-- interactionScore = question 1
-- understandingScore = question 2
-- requestScore = question 3
-- speechScore = question 4
-- regulationScore = question 5
-
-Priority order:
-
-1. Interaction and shared play when `interactionScore <= 2 || regulationScore <= 2`
-2. Understanding and requesting when `understandingScore <= 2 || requestScore <= 2`
-3. First functional words when `speechScore <= 3`
-4. Combining words otherwise
-
-The selected pathway unlocks only the matching Lesson 2 variant.
-
-## How To Add New Lessons
-
-1. Add lesson content in `src/data.js`.
-2. Add the lesson id to the lesson list in `src/app.js`.
-3. Add unlock rules where progress is updated after an assessment.
-4. Keep assessments star-only unless the product requirement changes.
-
-## Vercel Deployment
-
-This app is intentionally static. On Vercel:
-
+- Build command: npm run build
+- Output directory: dist
 - Framework preset: Other
-- Build command: leave empty
-- Output directory: leave empty or use project root
-- Install command: not required
 
-`vercel.json` handles:
+vercel.json preserves direct SPA links and applies a strict Content Security Policy plus standard browser security headers. Production code does not download executable code from GitHub or third parties.
 
-- clean URLs
-- SPA fallback for direct route access
-- cache headers for the generated image
-- basic security headers
+## Data And Privacy
 
-Do not put Supabase secrets in `vercel.json`. Use Vercel Project Settings for environment variables later.
+The current MVP stores the child profile and progress in that browser only. A shared Qadam link never contains another child's data. Clearing browser data removes the profile, and a second device starts with a clean profile.
 
-## Supabase Plan
-
-The current MVP uses localStorage for demo speed. Later, replace localStorage with Supabase:
-
-1. Create a Supabase project.
-2. Open Supabase SQL Editor.
-3. Run `supabase/schema.sql`.
-4. Add browser-safe Supabase variables in Vercel:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-5. Never expose `SUPABASE_SERVICE_ROLE_KEY` to browser code.
-
-The schema enables RLS for parent and child data. Each parent can only access their own rows.
-
-## Current Deployment Risk Notes
-
-- There was no existing GitHub repo in this workspace to audit.
-- Vercel account is connected, but there are no projects yet.
-- Supabase account is connected, but there are no projects yet.
-- npm registry access failed in this environment, so the MVP avoids external dependencies.
-- Because there is no backend connected yet, production user data must not be treated as synced or recoverable.
+Cross-device accounts require Supabase Auth and a storage adapter that syncs the existing local state to the RLS-protected tables in supabase/schema.sql. Only the Supabase URL and publishable key may be used in browser code. Secret and service-role keys must never be exposed.
