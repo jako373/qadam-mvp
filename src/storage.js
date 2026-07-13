@@ -4,36 +4,10 @@ import {
 } from "./lib/adaptive-state.js";
 
 const STORAGE_KEY = "qadam.mvp.state.v1";
-const TIMER_KEY = "qadam.mvp.timers.v1";
-
 const memoryStore = new Map();
-
-function createDefaultProgress() {
-  return {
-    onboardingCompleted: false,
-    parentIntroCompleted: false,
-    lesson1Completed: false,
-    lesson1AssessmentCompleted: false,
-    selectedPathway: null,
-    assignedLesson2: null,
-    completedLessonIds: [],
-    unlockedLessonIds: ["lesson1"],
-  };
-}
-
-export const defaultProgress = createDefaultProgress();
 
 function isRecord(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function stringArray(value) {
-  return Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
-}
-
-function recordValues(value) {
-  if (!isRecord(value)) return {};
-  return Object.fromEntries(Object.entries(value).filter(([, item]) => isRecord(item)));
 }
 
 function readItem(key) {
@@ -59,7 +33,7 @@ function removeItem(key) {
   try {
     globalThis.localStorage?.removeItem(key);
   } catch {
-    // Nothing else is required when browser storage is unavailable.
+    // The browser may intentionally block persistent storage.
   }
 }
 
@@ -67,9 +41,7 @@ export function createDefaultState() {
   return {
     language: "kk",
     childProfile: null,
-    progress: createDefaultProgress(),
-    assessments: {},
-    activityChecks: {},
+    progress: { onboardingCompleted: false },
     adaptive: createDefaultAdaptiveState(),
   };
 }
@@ -78,24 +50,11 @@ export function loadState() {
   try {
     const saved = JSON.parse(readItem(STORAGE_KEY) || "null");
     if (!isRecord(saved)) return createDefaultState();
-
-    const savedProgress = isRecord(saved.progress) ? saved.progress : {};
+    const progress = isRecord(saved.progress) ? saved.progress : {};
     return {
-      ...createDefaultState(),
-      ...saved,
       language: saved.language === "ru" ? "ru" : "kk",
       childProfile: isRecord(saved.childProfile) ? saved.childProfile : null,
-      progress: {
-        ...createDefaultProgress(),
-        ...savedProgress,
-        completedLessonIds: stringArray(savedProgress.completedLessonIds),
-        unlockedLessonIds:
-          savedProgress.unlockedLessonIds === undefined
-            ? ["lesson1"]
-            : stringArray(savedProgress.unlockedLessonIds),
-      },
-      assessments: recordValues(saved.assessments),
-      activityChecks: recordValues(saved.activityChecks),
+      progress: { onboardingCompleted: progress.onboardingCompleted === true },
       adaptive: normalizeAdaptiveState(saved.adaptive),
     };
   } catch {
@@ -109,18 +68,4 @@ export function saveState(state) {
 
 export function resetState() {
   removeItem(STORAGE_KEY);
-  removeItem(TIMER_KEY);
-}
-
-export function loadTimers() {
-  try {
-    const timers = JSON.parse(readItem(TIMER_KEY) || "{}");
-    return recordValues(timers);
-  } catch {
-    return {};
-  }
-}
-
-export function saveTimers(timers) {
-  writeItem(TIMER_KEY, JSON.stringify(isRecord(timers) ? timers : {}));
 }

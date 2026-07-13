@@ -152,11 +152,17 @@ export function weeklySummary(adaptive, now = new Date()) {
   };
 }
 
-export function completionStreak(adaptive) {
+export function completionStreak(adaptive, now = new Date()) {
   const dates = [...new Set(adaptive.completedDates)].sort().reverse();
   if (!dates.length) return 0;
+  const today = new Date(now);
+  today.setHours(12, 0, 0, 0);
+  const latest = new Date(`${dates[0]}T12:00:00`);
+  const latestGap = Math.round((today - latest) / 86400000);
+  if (latestGap < 0 || latestGap > 1) return 0;
+
   let streak = 1;
-  let previous = new Date(`${dates[0]}T12:00:00`);
+  let previous = latest;
   for (let index = 1; index < dates.length; index += 1) {
     const current = new Date(`${dates[index]}T12:00:00`);
     const gap = Math.round((previous - current) / 86400000);

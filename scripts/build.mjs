@@ -17,15 +17,11 @@ for (const entry of ["index.html", "src", "public"]) {
 const appRoutes = [
   "language",
   "onboarding",
-  "intro",
-  "dashboard",
   "today",
   "skill-check",
   "plan-ready",
   "daily-summary",
   "library",
-  "lessons",
-  "result",
   "progress",
   "profile",
   ...Array.from({ length: 16 }, (_, index) => `skill-check/${index + 1}`),
@@ -35,8 +31,6 @@ const appRoutes = [
   ...["joint_attention", "understanding", "imitation", "communication", "play_thinking", "fine_motor", "regulation", "daily_social"].flatMap((category) =>
     Array.from({ length: 15 }, (_, index) => `library/${category}-${String(index + 1).padStart(2, "0")}`),
   ),
-  ...Array.from({ length: 12 }, (_, index) => `lesson/lesson${index + 1}`),
-  ...Array.from({ length: 12 }, (_, index) => `assessment/lesson${index + 1}`),
 ];
 
 for (const route of appRoutes) {

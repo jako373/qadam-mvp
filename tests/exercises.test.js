@@ -34,16 +34,32 @@ describe("120 exercise catalogue", () => {
         for (const field of [
           "title",
           "goal",
+          "preparation",
+          "parentWords",
+          "repeatPlan",
           "successCriteria",
           "easierVersion",
           "harderVersion",
+          "benefit",
           "parentTip",
+          "stopRule",
         ]) {
           assert.ok(copy[field]?.trim(), `${exercise.id}.${language}.${field}`);
         }
         assert.ok(copy.materials.length >= 1, `${exercise.id}.${language}.materials`);
         assert.equal(copy.steps.length, 3, `${exercise.id}.${language}.steps`);
         assert.ok(copy.steps.every((step) => step.trim()), `${exercise.id}.${language}.steps`);
+        assert.ok(copy.steps[1].includes(copy.parentWords), `${exercise.id}.${language}.parentWords`);
+        assert.ok(copy.benefit.split(/[.!?]/).filter((sentence) => sentence.trim()).length >= 2, `${exercise.id}.${language}.benefit`);
+      }
+    }
+  });
+
+  it("uses exercise-specific parent phrases within every category", () => {
+    for (const category of exerciseCategoryOrder) {
+      const categoryExercises = exercises.filter((exercise) => exercise.category === category);
+      for (const language of ["kk", "ru"]) {
+        assert.equal(new Set(categoryExercises.map((exercise) => exercise[language].parentWords)).size, 15, `${category}.${language}`);
       }
     }
   });

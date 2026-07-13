@@ -1,13 +1,16 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { formatPlanDate } from "../src/adaptive-flow.js";
 import { assessmentQuestions } from "../src/data/assessment-questions.js";
 import { exerciseCategoryOrder } from "../src/data/exercise-localization.js";
 import { exercises } from "../src/data/exercises.js";
-import { createDefaultAdaptiveState } from "../src/lib/adaptive-state.js";
+import { createDefaultAdaptiveState, shiftDateKey } from "../src/lib/adaptive-state.js";
 import {
   calculateSkillLevels,
   completeInitialAssessment,
+  completionStreak,
+  markDayCompleted,
   recordExerciseOutcome,
 } from "../src/lib/progress-engine.js";
 import {
@@ -33,6 +36,24 @@ function assessedAdaptive(answer = 1) {
     exercises,
   );
 }
+
+describe("bilingual plan dates", () => {
+  it("formats tomorrow without relying on optional browser locales", () => {
+    assert.equal(formatPlanDate("2026-07-14", "kk"), "14 шілде, сейсенбі");
+    assert.equal(formatPlanDate("2026-07-14", "ru"), "14 июля, вторник");
+  });
+});
+
+describe("completion streak", () => {
+  it("keeps a streak only when the latest completion is today or yesterday", () => {
+    const adaptive = createDefaultAdaptiveState();
+    adaptive.completedDates = ["2026-07-10", "2026-07-11"];
+    assert.equal(completionStreak(adaptive, new Date("2026-07-13T12:00:00")), 0);
+
+    adaptive.completedDates.push("2026-07-12");
+    assert.equal(completionStreak(adaptive, new Date("2026-07-13T12:00:00")), 3);
+  });
+});
 
 describe("adaptive skill levels", () => {
   it("calculates every category independently", () => {
@@ -144,5 +165,47 @@ describe("daily recommendation", () => {
     for (const id of firstThreeCommon) {
       assert.ok(!plans[3].items.some((item) => item.exerciseId === id), id);
     }
+  });
+
+  it("builds tomorrow's plan from the child's three latest outcomes", () => {
+    const date = "2026-07-13";
+    const tomorrow = shiftDateKey(date, 1);
+    const selected = [
+      exercises.find((item) => item.category === "understanding" && item.level === 2),
+      exercises.find((item) => item.category === "communication" && item.level === 2),
+      exercises.find((item) => item.category === "imitation" && item.level === 2),
+    ];
+    const outcomes = ["unable", "assisted", "independent"];
+    let adaptive = {
+      ...assessedAdaptive(1),
+      introducedExerciseIds: selected.map((exercise) => exercise.id),
+      dailyPlans: {
+        [date]: {
+          date,
+          items: selected.map((exercise) => ({ exerciseId: exercise.id, isNew: false, variant: "balanced" })),
+          results: {},
+          viewedCount: 3,
+          completedAt: null,
+        },
+      },
+    };
+
+    selected.forEach((exercise, index) => {
+      adaptive = recordExerciseOutcome(adaptive, exercise, outcomes[index], date, exercises);
+      adaptive.dailyPlans[date].results[exercise.id] = outcomes[index];
+    });
+    adaptive = markDayCompleted(adaptive, date);
+
+    const next = ensureDailyPlan(adaptive, exercises, tomorrow);
+    const nextExercises = next.plan.items.map((item) => ({
+      ...item,
+      exercise: exercises.find((exercise) => exercise.id === item.exerciseId),
+    }));
+    assert.equal(next.plan.basedOnDate, date);
+    assert.equal(next.plan.date, tomorrow);
+    assert.ok(nextExercises.some((item) => item.exercise.category === "understanding" && item.variant === "easier"));
+    assert.ok(nextExercises.some((item) => item.exercise.category === "communication" && item.variant === "guided"));
+    assert.ok(nextExercises.some((item) => item.exercise.category === "imitation" && item.variant === "progress"));
+    assert.ok(nextExercises.find((item) => item.exercise.category === "understanding").exercise.level <= 1);
   });
 });

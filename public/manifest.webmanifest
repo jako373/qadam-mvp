@@ -1,8 +1,8 @@
 {
   "name": "Qadam",
   "short_name": "Qadam",
-  "description": "Қазақша және орысша 12 қысқа үй сабағы.",
-  "start_url": "/language",
+  "description": "Ерекше балалардың ата-аналарына арналған қазақша және орысша түсінікті үй жаттығулары.",
+  "start_url": "/today",
   "scope": "/",
   "display": "standalone",
   "background_color": "#fbfaf7",

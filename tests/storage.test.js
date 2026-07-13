@@ -4,10 +4,8 @@ import { beforeEach, describe, it } from "node:test";
 import {
   createDefaultState,
   loadState,
-  loadTimers,
   resetState,
   saveState,
-  saveTimers,
 } from "../src/storage.js";
 
 function createMemoryStorage() {
@@ -28,42 +26,87 @@ describe("storage", () => {
     resetState();
   });
 
-  it("creates independent default arrays", () => {
+  it("creates independent adaptive collections", () => {
     const first = createDefaultState();
     const second = createDefaultState();
-    first.progress.unlockedLessonIds.push("lesson2");
-    assert.deepEqual(second.progress.unlockedLessonIds, ["lesson1"]);
+    first.adaptive.completedDates.push("2026-07-13");
+    assert.deepEqual(second.adaptive.completedDates, []);
   });
 
   it("loads the default state when nothing is saved", () => {
     assert.deepEqual(loadState(), createDefaultState());
   });
 
-  it("merges saved progress with defaults", () => {
+  it("keeps only the current onboarding progress shape", () => {
     saveState({
       language: "ru",
-      progress: { onboardingCompleted: true, completedLessonIds: ["lesson1"] },
+      progress: {
+        onboardingCompleted: true,
+        completedLessonIds: ["lesson1"],
+        unlockedLessonIds: ["lesson1", "lesson2"],
+      },
     });
-    const progress = loadState().progress;
-    assert.equal(progress.onboardingCompleted, true);
-    assert.equal(progress.parentIntroCompleted, false);
-    assert.deepEqual(progress.completedLessonIds, ["lesson1"]);
-    assert.deepEqual(progress.unlockedLessonIds, ["lesson1"]);
+    assert.deepEqual(loadState().progress, { onboardingCompleted: true });
+    assert.ok(!Object.hasOwn(loadState(), "assessments"));
+    assert.ok(!Object.hasOwn(loadState(), "activityChecks"));
   });
 
   it("sanitizes malformed saved values", () => {
     saveState({
       language: "unsupported",
       childProfile: [],
-      progress: { completedLessonIds: "lesson1", unlockedLessonIds: ["lesson1", 2] },
-      assessments: { lesson1: null },
+      progress: { onboardingCompleted: "yes" },
+      adaptive: { dailyPlans: [] },
     });
     const state = loadState();
     assert.equal(state.language, "kk");
     assert.equal(state.childProfile, null);
-    assert.deepEqual(state.progress.completedLessonIds, []);
-    assert.deepEqual(state.progress.unlockedLessonIds, ["lesson1"]);
-    assert.deepEqual(state.assessments, {});
+    assert.deepEqual(state.progress, { onboardingCompleted: false });
+    assert.deepEqual(state.adaptive.dailyPlans, {});
+  });
+
+  it("repairs malformed nested adaptive values", () => {
+    saveState({
+      ...createDefaultState(),
+      adaptive: {
+        initialAssessment: {
+          answers: { valid: 2, unknown: null, invalid: "2" },
+          completedAt: "not-a-date",
+        },
+        exerciseProgress: {
+          "understanding-01": {
+            independentCount: -4,
+            unableStreak: "2",
+            attempts: 999999,
+            lastOutcome: "wrong",
+            lastDate: "2026-99-40",
+          },
+        },
+        dailyPlans: {
+          invalid: { items: [] },
+          "2026-07-13": {
+            items: [{ exerciseId: "understanding-01", isNew: true, variant: "unknown" }],
+            results: null,
+            viewedCount: 99,
+            completedAt: 42,
+          },
+        },
+        completedDates: ["2026-07-13", "not-a-date"],
+      },
+    });
+
+    const adaptive = loadState().adaptive;
+    assert.deepEqual(adaptive.initialAssessment.answers, { valid: 2, unknown: null });
+    assert.equal(adaptive.initialAssessment.completedAt, null);
+    assert.deepEqual(adaptive.completedDates, ["2026-07-13"]);
+    assert.equal(adaptive.exerciseProgress["understanding-01"].independentCount, 0);
+    assert.equal(adaptive.exerciseProgress["understanding-01"].unableStreak, 2);
+    assert.equal(adaptive.exerciseProgress["understanding-01"].attempts, 10000);
+    assert.equal(adaptive.exerciseProgress["understanding-01"].lastOutcome, null);
+    assert.equal(adaptive.dailyPlans["2026-07-13"].viewedCount, 3);
+    assert.deepEqual(adaptive.dailyPlans["2026-07-13"].results, {});
+    assert.equal(adaptive.dailyPlans["2026-07-13"].items[0].variant, "balanced");
+    assert.ok(!Object.hasOwn(adaptive.dailyPlans, "invalid"));
   });
 
   it("falls back to defaults when saved JSON is corrupted", () => {
@@ -88,12 +131,5 @@ describe("storage", () => {
     });
     saveState({ ...createDefaultState(), language: "ru" });
     assert.equal(loadState().language, "ru");
-  });
-
-  it("saves and clears timers", () => {
-    saveTimers({ lesson1: { remainingWhenPaused: 12 } });
-    assert.deepEqual(loadTimers(), { lesson1: { remainingWhenPaused: 12 } });
-    resetState();
-    assert.deepEqual(loadTimers(), {});
   });
 });

@@ -52,38 +52,6 @@ create table if not exists public.children (
   constraint children_id_parent_unique unique (id, parent_id)
 );
 
-create table if not exists public.lesson_progress (
-  id uuid primary key default gen_random_uuid(),
-  parent_id uuid not null references auth.users(id) on delete cascade,
-  child_id uuid not null,
-  lesson_id text not null check (lesson_id ~ '^lesson([1-9]|1[0-2])$'),
-  status text not null default 'unlocked' check (status in ('locked', 'unlocked', 'completed')),
-  selected_pathway text check (selected_pathway in ('interaction', 'understanding', 'firstWords', 'wordCombination')),
-  completed_at timestamptz,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  constraint lesson_progress_child_owner_fk
-    foreign key (child_id, parent_id) references public.children(id, parent_id) on delete cascade,
-  constraint lesson_progress_completed_at_check
-    check (status <> 'completed' or completed_at is not null),
-  unique (child_id, lesson_id)
-);
-
-create table if not exists public.assessments (
-  id uuid primary key default gen_random_uuid(),
-  parent_id uuid not null references auth.users(id) on delete cascade,
-  child_id uuid not null,
-  lesson_id text not null check (lesson_id ~ '^lesson([1-9]|1[0-2])$'),
-  answers jsonb not null check (jsonb_typeof(answers) = 'object'),
-  scores jsonb check (scores is null or jsonb_typeof(scores) = 'object'),
-  selected_pathway text check (selected_pathway in ('interaction', 'understanding', 'firstWords', 'wordCombination')),
-  assigned_lesson_id text check (assigned_lesson_id is null or assigned_lesson_id ~ '^lesson([1-9]|1[0-2])$'),
-  completed_at timestamptz not null default now(),
-  constraint assessments_child_owner_fk
-    foreign key (child_id, parent_id) references public.children(id, parent_id) on delete cascade,
-  unique (child_id, lesson_id)
-);
-
 create table if not exists public.skill_assessments (
   id uuid primary key default gen_random_uuid(),
   parent_id uuid not null references auth.users(id) on delete cascade,
@@ -190,8 +158,6 @@ create table if not exists public.exercise_attempts (
 );
 
 create index if not exists children_parent_id_idx on public.children(parent_id);
-create index if not exists lesson_progress_parent_child_idx on public.lesson_progress(parent_id, child_id);
-create index if not exists assessments_parent_child_idx on public.assessments(parent_id, child_id);
 create index if not exists skill_assessments_parent_child_completed_idx
   on public.skill_assessments(parent_id, child_id, completed_at desc);
 create index if not exists child_skill_levels_parent_child_idx
@@ -205,8 +171,6 @@ create index if not exists exercise_attempts_parent_child_date_idx
 
 alter table public.profiles enable row level security;
 alter table public.children enable row level security;
-alter table public.lesson_progress enable row level security;
-alter table public.assessments enable row level security;
 alter table public.skill_assessments enable row level security;
 alter table public.child_skill_levels enable row level security;
 alter table public.child_exercise_progress enable row level security;
@@ -256,44 +220,6 @@ create policy "children_delete_own"
 on public.children for delete
 to authenticated
 using ((select auth.uid()) = parent_id);
-
-drop policy if exists "lesson_progress_select_own" on public.lesson_progress;
-create policy "lesson_progress_select_own"
-on public.lesson_progress for select
-to authenticated
-using ((select auth.uid()) = parent_id);
-
-drop policy if exists "lesson_progress_insert_own" on public.lesson_progress;
-create policy "lesson_progress_insert_own"
-on public.lesson_progress for insert
-to authenticated
-with check ((select auth.uid()) = parent_id);
-
-drop policy if exists "lesson_progress_update_own" on public.lesson_progress;
-create policy "lesson_progress_update_own"
-on public.lesson_progress for update
-to authenticated
-using ((select auth.uid()) = parent_id)
-with check ((select auth.uid()) = parent_id);
-
-drop policy if exists "assessments_select_own" on public.assessments;
-create policy "assessments_select_own"
-on public.assessments for select
-to authenticated
-using ((select auth.uid()) = parent_id);
-
-drop policy if exists "assessments_insert_own" on public.assessments;
-create policy "assessments_insert_own"
-on public.assessments for insert
-to authenticated
-with check ((select auth.uid()) = parent_id);
-
-drop policy if exists "assessments_update_own" on public.assessments;
-create policy "assessments_update_own"
-on public.assessments for update
-to authenticated
-using ((select auth.uid()) = parent_id)
-with check ((select auth.uid()) = parent_id);
 
 drop policy if exists "skill_assessments_select_own" on public.skill_assessments;
 create policy "skill_assessments_select_own"
@@ -378,8 +304,6 @@ with check ((select auth.uid()) = parent_id);
 
 revoke all on public.profiles from anon, authenticated;
 revoke all on public.children from anon, authenticated;
-revoke all on public.lesson_progress from anon, authenticated;
-revoke all on public.assessments from anon, authenticated;
 revoke all on public.skill_assessments from anon, authenticated;
 revoke all on public.child_skill_levels from anon, authenticated;
 revoke all on public.child_exercise_progress from anon, authenticated;
@@ -388,8 +312,6 @@ revoke all on public.exercise_attempts from anon, authenticated;
 
 grant select, insert, update on public.profiles to authenticated;
 grant select, insert, update, delete on public.children to authenticated;
-grant select, insert, update on public.lesson_progress to authenticated;
-grant select, insert, update on public.assessments to authenticated;
 grant select, insert on public.skill_assessments to authenticated;
 grant select, insert, update on public.child_skill_levels to authenticated;
 grant select, insert, update on public.child_exercise_progress to authenticated;

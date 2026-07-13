@@ -25,6 +25,14 @@ function recentPlanDates(adaptive, date, count = 3) {
     .slice(-count);
 }
 
+function latestCompletedPlan(adaptive, date) {
+  const key = Object.keys(adaptive.dailyPlans)
+    .filter((planDate) => planDate < date && adaptive.dailyPlans[planDate]?.completedAt)
+    .sort()
+    .at(-1);
+  return key ? adaptive.dailyPlans[key] : null;
+}
+
 function repeatedThreeDays(adaptive, exerciseId, date) {
   const dates = recentPlanDates(adaptive, date, 3);
   return dates.length === 3 && dates.every((key) =>
@@ -32,10 +40,16 @@ function repeatedThreeDays(adaptive, exerciseId, date) {
   );
 }
 
-function lastOutcome(adaptive, exerciseId) {
+function lastAttempt(adaptive, exerciseId) {
   return [...adaptive.exerciseHistory]
     .reverse()
-    .find((item) => item.exerciseId === exerciseId)?.outcome || null;
+    .find((item) => item.exerciseId === exerciseId) || null;
+}
+
+function recentlyRefused(adaptive, exerciseId, date) {
+  const attempt = lastAttempt(adaptive, exerciseId);
+  if (attempt?.outcome !== "refused") return false;
+  return recentPlanDates(adaptive, date, 3).includes(attempt.date);
 }
 
 function dateHash(value) {
@@ -50,22 +64,53 @@ function rotateForDate(items, date, salt) {
   return [...items.slice(offset), ...items.slice(0, offset)];
 }
 
-function categoryHadDifficulty(adaptive, category) {
-  const last = [...adaptive.exerciseHistory].reverse().find((item) => item.category === category);
-  return last?.outcome === "unable";
+function recentCategoryAttempt(adaptive, category) {
+  return [...adaptive.exerciseHistory].reverse().find((item) => item.category === category) || null;
+}
+
+function targetLevelFor(adaptive, category) {
+  const currentLevel = Number(adaptive.skillLevels[category] || 1);
+  const recent = recentCategoryAttempt(adaptive, category);
+  if (recent?.outcome === "unable") {
+    return Math.max(1, Math.min(currentLevel, Number(recent.level || currentLevel) - 1));
+  }
+  return currentLevel;
+}
+
+function itemReason(adaptive, category) {
+  const outcome = recentCategoryAttempt(adaptive, category)?.outcome;
+  if (outcome === "unable") return "easier";
+  if (outcome === "assisted") return "guided";
+  if (outcome === "independent") return "progress";
+  if (outcome === "refused") return "alternative";
+  return "balanced";
+}
+
+function resultPriorityCategories(adaptive, exercises, date) {
+  const latest = latestCompletedPlan(adaptive, date);
+  if (!latest) return [];
+  const byId = new Map(exercises.map((exercise) => [exercise.id, exercise]));
+  const order = { unable: 0, assisted: 1, independent: 2, refused: 3 };
+  return latest.items
+    .map((item, index) => ({
+      category: byId.get(item.exerciseId)?.category,
+      outcome: latest.results?.[item.exerciseId],
+      index,
+    }))
+    .filter((item) => item.category && Object.hasOwn(order, item.outcome))
+    .sort((left, right) => order[left.outcome] - order[right.outcome] || left.index - right.index)
+    .map((item) => item.category)
+    .filter((category, index, list) => list.indexOf(category) === index);
 }
 
 function candidatesFor(adaptive, exercises, category, selected, date, options = {}) {
-  const currentLevel = Number(adaptive.skillLevels[category] || 1);
-  const targetLevel = categoryHadDifficulty(adaptive, category)
-    ? Math.max(1, currentLevel - 1)
-    : currentLevel;
+  const targetLevel = targetLevelFor(adaptive, category);
   const introduced = new Set(adaptive.introducedExerciseIds);
   let candidates = exercises.filter((exercise) => {
     if (!exercise.isActive || exercise.category !== category || selected.has(exercise.id)) return false;
     if (exercise.level > targetLevel) return false;
     if (repeatedThreeDays(adaptive, exercise.id, date)) return false;
-    if (lastOutcome(adaptive, exercise.id) === "refused") return false;
+    if (recentlyRefused(adaptive, exercise.id, date)) return false;
     if (Number(adaptive.exerciseProgress[exercise.id]?.independentCount || 0) >= 2) return false;
     if (options.familiarOnly && !introduced.has(exercise.id)) return false;
     if (options.newOnly && introduced.has(exercise.id)) return false;
@@ -74,10 +119,11 @@ function candidatesFor(adaptive, exercises, category, selected, date, options = 
 
   candidates.sort((left, right) => {
     const exactLevel = Number(right.level === targetLevel) - Number(left.level === targetLevel);
-    const attempts = Number(adaptive.exerciseProgress[right.id]?.attempts || 0) - Number(adaptive.exerciseProgress[left.id]?.attempts || 0);
-    return exactLevel || attempts || left.id.localeCompare(right.id);
+    const attempts = Number(adaptive.exerciseProgress[left.id]?.attempts || 0) - Number(adaptive.exerciseProgress[right.id]?.attempts || 0);
+    const independent = Number(adaptive.exerciseProgress[left.id]?.independentCount || 0) - Number(adaptive.exerciseProgress[right.id]?.independentCount || 0);
+    const tieBreak = dateHash(`${date}:${left.id}`) - dateHash(`${date}:${right.id}`);
+    return exactLevel || attempts || independent || tieBreak || left.id.localeCompare(right.id);
   });
-  candidates = rotateForDate(candidates, date, `${category}:${options.familiarOnly ? "old" : "new"}`);
   return candidates;
 }
 
@@ -146,13 +192,14 @@ export function createDailyPlan(adaptive, exercises, date) {
   adaptive = ensureMinimumFamiliar(adaptive, exercises);
   const weakCategories = categoryRank(adaptive, "weak");
   const strongCategories = categoryRank(adaptive, "strong");
+  const resultCategories = resultPriorityCategories(adaptive, exercises, date);
   const speechCategories = ["understanding", "communication"].sort((left, right) =>
     weakCategories.indexOf(left) - weakCategories.indexOf(right),
   );
   const slotCategories = [
-    weakCategories,
-    speechCategories,
-    [...new Set([...strongCategories, "regulation"])],
+    [...new Set([resultCategories[0], ...weakCategories].filter(Boolean))],
+    [...new Set([resultCategories[1], ...speechCategories, ...weakCategories].filter(Boolean))],
+    [...new Set([resultCategories[2], ...strongCategories, "regulation"].filter(Boolean))],
   ];
 
   const introduced = new Set(adaptive.introducedExerciseIds);
@@ -193,12 +240,14 @@ export function createDailyPlan(adaptive, exercises, date) {
     items.push({
       exerciseId: exercise.id,
       isNew,
-      variant: categoryHadDifficulty(adaptive, exercise.category) ? "easier" : "standard",
+      variant: itemReason(adaptive, exercise.category),
     });
   }
 
+  const basis = latestCompletedPlan(adaptive, date);
   return {
     date,
+    basedOnDate: basis?.date || null,
     items,
     results: {},
     viewedCount: 0,
@@ -209,7 +258,12 @@ export function createDailyPlan(adaptive, exercises, date) {
 export function ensureDailyPlan(adaptive, exercises, date) {
   const prepared = ensureMinimumFamiliar(adaptive, exercises);
   const saved = prepared.dailyPlans[date];
-  if (saved?.items?.length === 3) return { adaptive: prepared, plan: saved };
+  const activeIds = new Set(exercises.filter((exercise) => exercise.isActive).map((exercise) => exercise.id));
+  const validSaved =
+    saved?.items?.length === 3 &&
+    new Set(saved.items.map((item) => item.exerciseId)).size === 3 &&
+    saved.items.every((item) => activeIds.has(item.exerciseId));
+  if (validSaved) return { adaptive: prepared, plan: saved };
 
   const plan = createDailyPlan(prepared, exercises, date);
   return {

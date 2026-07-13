@@ -1,12 +1,11 @@
 import { adaptiveUi } from "./data/adaptive-ui.js";
 import {
-  assessmentAnswers,
   assessmentQuestions,
   reassessmentQuestions,
 } from "./data/assessment-questions.js";
 import { exerciseCategories, exerciseCategoryOrder } from "./data/exercise-localization.js";
 import { exercises, getExerciseById } from "./data/exercises.js";
-import { todayKey } from "./lib/adaptive-state.js";
+import { shiftDateKey, todayKey } from "./lib/adaptive-state.js";
 import {
   calculateSkillLevels,
   completeInitialAssessment,
@@ -34,11 +33,15 @@ const detailUi = {
     easier: "Қиын болса",
     harder: "Оңай болса",
     parentTip: "Ата-анаға ескерту",
+    preparation: "Дайындық",
+    parentWords: "Ата-ананың сөзі",
+    repeatPlan: "Үйде қайталау",
+    benefit: "Пайдасы",
+    stopRule: "Қауіпсіз тоқтау белгісі",
     duration: "Ұзақтығы",
     open: "Ашу",
     close: "Жаттығуларға қайту",
     diagnosisNote: "Диагноз профильде сақталады, бірақ жаттығулар баланың нақты жауабына қарай таңдалады.",
-    legacyNote: "Бұрынғы 12 сабақ та сақталған.",
     noData: "Көрсетілмеген",
     levelsReady: "Алғашқы деңгейлер анықталды",
     allDirections: "Барлық бағыт",
@@ -52,11 +55,15 @@ const detailUi = {
     easier: "Если сложно",
     harder: "Если легко",
     parentTip: "Подсказка родителю",
+    preparation: "Подготовка",
+    parentWords: "Слова родителя",
+    repeatPlan: "Повторение дома",
+    benefit: "Польза",
+    stopRule: "Когда безопасно остановиться",
     duration: "Длительность",
     open: "Открыть",
     close: "Вернуться к упражнениям",
     diagnosisNote: "Диагноз сохраняется в профиле, но упражнения выбираются по фактическим ответам ребёнка.",
-    legacyNote: "Прежняя программа из 12 занятий тоже сохранена.",
     noData: "Не указано",
     levelsReady: "Начальные уровни определены",
     allDirections: "Все направления",
@@ -72,6 +79,19 @@ function labels(language) {
 
 function categoryCopy(category, language) {
   return exerciseCategories[category]?.[language] || exerciseCategories[category]?.kk;
+}
+
+function categoryIconName(category) {
+  return {
+    joint_attention: "eye",
+    understanding: "ear",
+    imitation: "copy",
+    communication: "message-circle",
+    play_thinking: "puzzle",
+    fine_motor: "hand",
+    regulation: "heart-pulse",
+    daily_social: "house",
+  }[category] || "circle";
 }
 
 function exerciseCopy(exercise, language) {
@@ -98,14 +118,21 @@ function parseAnswer(value) {
   return numeric === 0 || numeric === 1 || numeric === 2 ? numeric : undefined;
 }
 
-function ensureTodayPlan(state, saveState) {
-  const date = todayKey();
+function ensurePlanForDate(state, saveState, date) {
   const result = ensureDailyPlan(state.adaptive, exercises, date);
   if (result.adaptive !== state.adaptive) {
     state.adaptive = result.adaptive;
     saveState(state);
   }
   return { date, plan: result.plan };
+}
+
+function ensureTodayPlan(state, saveState) {
+  return ensurePlanForDate(state, saveState, todayKey());
+}
+
+function ensureTomorrowPlan(state, saveState, date = todayKey()) {
+  return ensurePlanForDate(state, saveState, shiftDateKey(date, 1));
 }
 
 function progressHeader(current, total, language) {
@@ -137,7 +164,7 @@ function renderAssessmentIntro(context) {
 }
 
 function renderAssessmentQuestion(context, index, recheck = false) {
-  const { state, pageShell, escapeHtml } = context;
+  const { state, pageShell, escapeHtml, icon } = context;
   const ui = labels(state.language);
   const questions = recheck ? reassessmentQuestions : assessmentQuestions;
   const question = questions[index - 1];
@@ -155,7 +182,7 @@ function renderAssessmentQuestion(context, index, recheck = false) {
         <span class="adaptive-eyebrow">${escapeHtml(categoryCopy(question.category, state.language).title)}</span>
         <h1>${escapeHtml(question[state.language])}</h1>
         <div class="answer-stack">
-          ${assessmentAnswers
+          ${question.answers
             .map((answer) => {
               const value = answer.value === null ? "unknown" : String(answer.value);
               const isSelected = selected === answer.value;
@@ -164,7 +191,7 @@ function renderAssessmentQuestion(context, index, recheck = false) {
                   class="answer-button ${isSelected ? "selected" : ""}"
                   ${attribute}="${escapeHtml(question.id)}:${value}"
                   type="button"
-                >${escapeHtml(answer[state.language])}</button>
+                ><span>${escapeHtml(answer[state.language])}</span>${icon("chevron-right", "answer-icon")}</button>
               `;
             })
             .join("")}
@@ -177,16 +204,16 @@ function renderAssessmentQuestion(context, index, recheck = false) {
 }
 
 function renderPlanReady(context) {
-  const { state, pageShell } = context;
+  const { state, pageShell, icon } = context;
   const ui = labels(state.language);
   return pageShell(
     `
       <section class="adaptive-center plan-ready">
-        <div class="ready-mark" aria-hidden="true">✓</div>
+        <div class="ready-mark" aria-hidden="true">${icon("check")}</div>
         <span class="adaptive-eyebrow">${ui.levelsReady}</span>
         <h1>${ui.planReady}</h1>
         <p class="adaptive-lead">${ui.planReadyText}</p>
-        <button class="primary adaptive-primary" data-route="/today" type="button">${ui.openToday}</button>
+        <button class="primary adaptive-primary" data-route="/today" type="button"><span>${ui.openToday}</span>${icon("arrow-right")}</button>
         <p class="adaptive-disclaimer">${ui.planReason}</p>
       </section>
     `,
@@ -201,19 +228,65 @@ function nextDailyRoute(plan) {
   return unanswered === -1 ? "/daily-summary" : `/daily-results/${unanswered + 1}`;
 }
 
-function renderToday(context) {
-  const { state, pageShell, escapeHtml, saveState } = context;
+export function formatPlanDate(dateKey, language) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  const calendar = language === "ru"
+    ? {
+        months: ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"],
+        weekdays: ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"],
+      }
+    : {
+        months: ["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"],
+        weekdays: ["жексенбі", "дүйсенбі", "сейсенбі", "сәрсенбі", "бейсенбі", "жұма", "сенбі"],
+      };
+  return `${day} ${calendar.months[month - 1]}, ${calendar.weekdays[date.getDay()]}`;
+}
+
+function renderTomorrowPreview(context, date, plan) {
+  const { state, escapeHtml, icon } = context;
   const ui = labels(state.language);
-  const { plan } = ensureTodayPlan(state, saveState);
+  const childName = state.childProfile?.name || ui.childProfile;
+  return `
+    <section class="tomorrow-preview" aria-label="${ui.tomorrow}">
+      <header>
+        ${icon("calendar-check-2", "tomorrow-icon")}
+        <div>
+          <span class="adaptive-eyebrow">${ui.tomorrow} · ${escapeHtml(formatPlanDate(date, state.language))}</span>
+          <h2>${escapeHtml(childName)}: ${ui.tomorrowReady}</h2>
+          <p>${ui.tomorrowText}</p>
+        </div>
+      </header>
+      <div class="tomorrow-list">
+        ${plan.items.map((item, index) => {
+          const exercise = getExerciseById(item.exerciseId);
+          return `
+            <div>
+              <span>${index + 1}</span>
+              <p><strong>${escapeHtml(exerciseCopy(exercise, state.language).title)}</strong><small>${escapeHtml(categoryCopy(exercise.category, state.language).title)} · ${ui.basedOnResult}</small></p>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderToday(context) {
+  const { state, pageShell, escapeHtml, saveState, icon } = context;
+  const ui = labels(state.language);
+  const { date, plan } = ensureTodayPlan(state, saveState);
   const summary = weeklySummary(state.adaptive);
   const streak = completionStreak(state.adaptive);
   const done = Boolean(plan.completedAt);
+  const tomorrow = done ? ensureTomorrowPlan(state, saveState, date) : null;
+  const childName = state.childProfile?.name || ui.childProfile;
 
   return pageShell(`
     <section class="adaptive-page-head">
       <div>
         <span class="adaptive-eyebrow">${ui.today}</span>
-        <h1>${done ? ui.doneToday : ui.todayThree}</h1>
+        <h1>${escapeHtml(childName)}: ${done ? ui.doneToday : ui.todayThree}</h1>
         <p>${done ? ui.doneTodayText : ui.planReason}</p>
       </div>
       <div class="today-streak"><strong>${streak}</strong><span>${ui.streak}</span></div>
@@ -222,7 +295,7 @@ function renderToday(context) {
     ${isReassessmentDue(state.adaptive) ? `
       <section class="recheck-band">
         <div><strong>${ui.reassessment}</strong><p>${ui.reassessmentText}</p></div>
-        <button class="secondary" data-route="/recheck/1" type="button">${ui.startReassessment}</button>
+        <button class="secondary" data-route="/recheck/1" type="button">${icon("clipboard-check")}<span>${ui.startReassessment}</span></button>
       </section>
     ` : ""}
 
@@ -238,7 +311,7 @@ function renderToday(context) {
               <strong>${escapeHtml(copy.title)}</strong>
               <small>${escapeHtml(categoryCopy(exercise.category, state.language).title)}${item.isNew ? ` · ${ui.newExercise}` : ""}</small>
             </div>
-            <span class="daily-state">${outcome ? "✓" : ""}</span>
+            <span class="daily-state">${outcome ? icon("circle-check", "status-icon") : ""}</span>
           </article>
         `;
       }).join("")}
@@ -247,9 +320,11 @@ function renderToday(context) {
     <section class="today-action">
       <div><span>${ui.totalTime}</span><strong>${planDuration(plan, exercises)} ${ui.minutes}</strong></div>
       <button class="primary adaptive-primary" data-route="${done ? "/progress" : nextDailyRoute(plan)}" type="button">
-        ${done ? ui.openProgress : plan.viewedCount ? ui.continue : ui.start}
+        <span>${done ? ui.openProgress : plan.viewedCount ? ui.continue : ui.start}</span>${icon(done ? "chart-no-axes-column-increasing" : "arrow-right")}
       </button>
     </section>
+
+    ${tomorrow ? renderTomorrowPreview(context, tomorrow.date, tomorrow.plan) : ""}
 
     <section class="weekly-strip">
       <div><strong>${summary.completed}</strong><span>${ui.completedExercises}</span></div>
@@ -259,31 +334,87 @@ function renderToday(context) {
 }
 
 function renderDailyExercise(context, index) {
-  const { state, pageShell, escapeHtml, saveState } = context;
+  const { state, pageShell, escapeHtml, saveState, icon } = context;
   const ui = labels(state.language);
   const { plan } = ensureTodayPlan(state, saveState);
   const item = plan.items[index - 1];
   const exercise = item ? getExerciseById(item.exerciseId) : null;
   if (!exercise) return null;
   const copy = exerciseCopy(exercise, state.language);
+  const category = categoryCopy(exercise.category, state.language);
+  const adjustment = item.variant === "easier"
+    ? [ui.easier, copy.easierVersion]
+    : item.variant === "guided"
+      ? [ui.parentTip, copy.parentTip]
+      : item.variant === "progress"
+        ? [ui.harder, copy.harderVersion]
+        : item.variant === "alternative"
+          ? [ui.parentTip, copy.parentTip]
+          : null;
 
   return pageShell(
     `
       <section class="daily-exercise">
         ${progressHeader(index, 3, state.language)}
-        <h1>${escapeHtml(copy.title)}</h1>
-        <section class="needed-box">
-          <span>${ui.needed}</span>
-          <strong>${escapeHtml(copy.materials.join(", ") || ui.noMaterials)}</strong>
+        <header class="lesson-heading">
+          <span class="adaptive-eyebrow">${escapeHtml(category.title)} · ${exercise.durationMinutes} ${ui.minutes}${item.isNew ? ` · ${ui.newExercise}` : ""}</span>
+          <h1>${escapeHtml(copy.title)}</h1>
+          <p>${escapeHtml(copy.goal)}</p>
+        </header>
+
+        ${adjustment ? `
+          <section class="plan-adjustment">
+            ${icon(item.variant === "easier" ? "corner-down-left" : item.variant === "progress" ? "trending-up" : "hand-heart")}
+            <div><span>${escapeHtml(adjustment[0])}</span><strong>${escapeHtml(adjustment[1])}</strong></div>
+          </section>
+        ` : ""}
+
+        <section class="parent-script">
+          ${icon("message-circle", "instruction-icon")}
+          <div><span>${ui.sayThis}</span><blockquote>${escapeHtml(copy.parentWords || copy.title)}</blockquote></div>
         </section>
+
+        <section class="lesson-preparation">
+          <div>
+            ${icon("package-open")}
+            <span>${ui.needed}</span>
+            <strong>${escapeHtml(copy.materials.join(", ") || ui.noMaterials)}</strong>
+          </div>
+          <div>
+            ${icon("move-horizontal")}
+            <span>${ui.prepare}</span>
+            <strong>${escapeHtml(copy.preparation || copy.steps[0])}</strong>
+          </div>
+        </section>
+
         <section class="three-steps">
           <h2>${ui.howTo}</h2>
           <ol>
             ${copy.steps.map((step) => `<li><span>${escapeHtml(step)}</span></li>`).join("")}
           </ol>
         </section>
+
+        <section class="lesson-detail-grid">
+          <article>
+            ${icon("repeat-2")}
+            <div><strong>${ui.repeatPlan}</strong><p>${escapeHtml(copy.repeatPlan)}</p></div>
+          </article>
+          <article>
+            ${icon("badge-check")}
+            <div><strong>${ui.success}</strong><p>${escapeHtml(copy.successCriteria)}</p></div>
+          </article>
+          <article>
+            ${icon("sparkles")}
+            <div><strong>${ui.whyUseful}</strong><p>${escapeHtml(copy.benefit)}</p></div>
+          </article>
+          <article>
+            ${icon("octagon-pause")}
+            <div><strong>${ui.stopRule}</strong><p>${escapeHtml(copy.stopRule)}</p></div>
+          </article>
+        </section>
+
         <button class="primary adaptive-primary full" data-daily-next="${index}" type="button">
-          ${index === 3 ? ui.openSummary : ui.next}
+          <span>${index === 3 ? ui.openSummary : ui.next}</span>${icon("arrow-right")}
         </button>
       </section>
     `,
@@ -292,7 +423,7 @@ function renderDailyExercise(context, index) {
 }
 
 function renderDailyResult(context, index) {
-  const { state, pageShell, escapeHtml, saveState } = context;
+  const { state, pageShell, escapeHtml, saveState, icon } = context;
   const ui = labels(state.language);
   const { plan } = ensureTodayPlan(state, saveState);
   const item = plan.items[index - 1];
@@ -300,10 +431,10 @@ function renderDailyResult(context, index) {
   if (!exercise) return null;
   const copy = exerciseCopy(exercise, state.language);
   const outcomeButtons = [
-    ["independent", ui.independent],
-    ["assisted", ui.assisted],
-    ["unable", ui.unable],
-    ["refused", ui.refused],
+    ["independent", ui.independent, "circle-check"],
+    ["assisted", ui.assisted, "hand-helping"],
+    ["unable", ui.unable, "circle-minus"],
+    ["refused", ui.refused, "circle-pause"],
   ];
 
   return pageShell(
@@ -314,9 +445,9 @@ function renderDailyResult(context, index) {
         <h1>${escapeHtml(copy.title)}</h1>
         <p class="adaptive-lead">${ui.howWasIt}</p>
         <div class="answer-stack outcome-stack">
-          ${outcomeButtons.map(([value, title]) => `
+          ${outcomeButtons.map(([value, title, iconName]) => `
             <button class="answer-button" data-exercise-outcome="${index}:${value}" type="button">
-              ${title}
+              ${icon(iconName)}<span>${title}</span>
             </button>
           `).join("")}
         </div>
@@ -327,13 +458,14 @@ function renderDailyResult(context, index) {
 }
 
 function renderDailySummary(context) {
-  const { state, pageShell, escapeHtml, saveState } = context;
+  const { state, pageShell, escapeHtml, saveState, icon } = context;
   const ui = labels(state.language);
-  const { plan } = ensureTodayPlan(state, saveState);
+  const { date, plan } = ensureTodayPlan(state, saveState);
+  const tomorrow = ensureTomorrowPlan(state, saveState, date);
   return pageShell(
     `
       <section class="adaptive-center daily-summary">
-        <div class="ready-mark" aria-hidden="true">✓</div>
+        <div class="ready-mark" aria-hidden="true">${icon("check")}</div>
         <h1>${ui.summaryTitle}</h1>
         <p class="adaptive-lead">${ui.summaryText}</p>
         <div class="summary-results">
@@ -348,7 +480,8 @@ function renderDailySummary(context) {
             `;
           }).join("")}
         </div>
-        <button class="primary adaptive-primary" data-route="/today" type="button">${ui.backToday}</button>
+        ${renderTomorrowPreview(context, tomorrow.date, tomorrow.plan)}
+        <button class="primary adaptive-primary" data-route="/today" type="button">${icon("house")}<span>${ui.backToday}</span></button>
       </section>
     `,
     { nav: false },
@@ -356,7 +489,7 @@ function renderDailySummary(context) {
 }
 
 function renderLibraryCard(exercise, context) {
-  const { state, escapeHtml } = context;
+  const { state, escapeHtml, icon } = context;
   const ui = labels(state.language);
   const copy = exerciseCopy(exercise, state.language);
   const category = categoryCopy(exercise.category, state.language);
@@ -383,20 +516,20 @@ function renderLibraryCard(exercise, context) {
           type="button"
           aria-label="${favorite ? ui.favoriteRemove : ui.favoriteAdd}"
           title="${favorite ? ui.favoriteRemove : ui.favoriteAdd}"
-        >★</button>
-        <button class="secondary compact" data-route="/library/${exercise.id}" type="button">${ui.open}</button>
+        >${icon("heart")}</button>
+        <button class="secondary compact" data-route="/library/${exercise.id}" type="button">${icon("arrow-up-right")}<span>${ui.open}</span></button>
       </div>
     </article>
   `;
 }
 
 function renderLibrary(context) {
-  const { state, pageShell, escapeHtml } = context;
+  const { state, pageShell, escapeHtml, icon } = context;
   const ui = labels(state.language);
   return pageShell(`
     <section class="adaptive-page-head library-head">
       <div><span class="adaptive-eyebrow">${ui.library}</span><h1>${ui.allExercises}</h1><p>${ui.libraryIntro}</p></div>
-      <button class="secondary" data-library-favorites type="button">${ui.favorites}</button>
+      <button class="secondary" data-library-favorites type="button">${icon("heart")}<span>${ui.favorites}</span></button>
     </section>
 
     <section class="library-tools">
@@ -418,7 +551,7 @@ function renderLibrary(context) {
         const copy = categoryCopy(category, state.language);
         return `
           <button class="category-button ${libraryFilter.category === category ? "active" : ""}" data-library-category="${category}" type="button">
-            <strong>${escapeHtml(copy.title)}</strong><span>15</span>
+            ${icon(categoryIconName(category), "category-icon")}<strong>${escapeHtml(copy.title)}</strong><span>15</span>
           </button>
         `;
       }).join("")}
@@ -432,7 +565,7 @@ function renderLibrary(context) {
 }
 
 function renderExerciseDetail(context, exerciseId) {
-  const { state, pageShell, escapeHtml } = context;
+  const { state, pageShell, escapeHtml, icon } = context;
   const ui = labels(state.language);
   const exercise = getExerciseById(exerciseId);
   if (!exercise) return null;
@@ -442,29 +575,32 @@ function renderExerciseDetail(context, exerciseId) {
 
   return pageShell(`
     <section class="exercise-detail">
-      <button class="text-back" data-route="/library" type="button">← ${ui.close}</button>
+      <button class="text-back" data-route="/library" type="button">${icon("arrow-left")}<span>${ui.close}</span></button>
       <div class="exercise-detail-head">
         <div><span class="adaptive-eyebrow">${escapeHtml(category.title)} · ${levelLabel(exercise.level, state.language)}</span><h1>${escapeHtml(copy.title)}</h1></div>
-        <button class="favorite-button ${favorite ? "active" : ""}" data-favorite="${exercise.id}" type="button" aria-label="${favorite ? ui.favoriteRemove : ui.favoriteAdd}">★</button>
+        <button class="favorite-button ${favorite ? "active" : ""}" data-favorite="${exercise.id}" type="button" aria-label="${favorite ? ui.favoriteRemove : ui.favoriteAdd}">${icon("heart")}</button>
       </div>
       <div class="exercise-facts">
         <div><span>${ui.duration}</span><strong>${exercise.durationMinutes} ${ui.minutes}</strong></div>
         <div><span>${ui.goal}</span><strong>${escapeHtml(copy.goal)}</strong></div>
         <div><span>${ui.needed}</span><strong>${escapeHtml(copy.materials.join(", ") || ui.noMaterials)}</strong></div>
       </div>
+      <section class="parent-script detail-parent-script">${icon("message-circle", "instruction-icon")}<div><span>${ui.sayThis}</span><blockquote>${escapeHtml(copy.parentWords)}</blockquote></div></section>
       <section class="three-steps detail-steps"><h2>${ui.howTo}</h2><ol>${copy.steps.map((step) => `<li><span>${escapeHtml(step)}</span></li>`).join("")}</ol></section>
       <section class="detail-notes">
+        <article><strong>${ui.repeatPlan}</strong><p>${escapeHtml(copy.repeatPlan)}</p></article>
         <article><strong>${ui.success}</strong><p>${escapeHtml(copy.successCriteria)}</p></article>
         <article><strong>${ui.easier}</strong><p>${escapeHtml(copy.easierVersion)}</p></article>
         <article><strong>${ui.harder}</strong><p>${escapeHtml(copy.harderVersion)}</p></article>
-        <article><strong>${ui.parentTip}</strong><p>${escapeHtml(copy.parentTip)}</p></article>
+        <article><strong>${ui.whyUseful}</strong><p>${escapeHtml(copy.benefit)}</p></article>
+        <article><strong>${ui.stopRule}</strong><p>${escapeHtml(copy.stopRule)}</p></article>
       </section>
     </section>
   `);
 }
 
 function renderAdaptiveProgress(context) {
-  const { state, pageShell, escapeHtml } = context;
+  const { state, pageShell, escapeHtml, icon } = context;
   const ui = labels(state.language);
   const summary = weeklySummary(state.adaptive);
   const streak = completionStreak(state.adaptive);
@@ -493,7 +629,7 @@ function renderAdaptiveProgress(context) {
     ${isReassessmentDue(state.adaptive) ? `
       <section class="recheck-band">
         <div><strong>${ui.reassessment}</strong><p>${ui.reassessmentText}</p></div>
-        <button class="secondary" data-route="/recheck/1" type="button">${ui.startReassessment}</button>
+        <button class="secondary" data-route="/recheck/1" type="button">${icon("clipboard-check")}<span>${ui.startReassessment}</span></button>
       </section>
     ` : ""}
   `);
@@ -504,13 +640,13 @@ function profileFact(label, value, escapeHtml, fallback) {
 }
 
 function renderAdaptiveProfile(context) {
-  const { state, pageShell, escapeHtml } = context;
+  const { state, pageShell, escapeHtml, icon } = context;
   const ui = labels(state.language);
   const profile = state.childProfile || {};
   return pageShell(`
     <section class="adaptive-page-head">
       <div><span class="adaptive-eyebrow">${ui.profile}</span><h1>${escapeHtml(profile.name || ui.childProfile)}</h1></div>
-      <button class="secondary" data-route="/onboarding" type="button">${ui.editProfile}</button>
+      <button class="secondary" data-route="/onboarding" type="button">${icon("pencil")}<span>${ui.editProfile}</span></button>
     </section>
     <section class="adaptive-profile-grid">
       ${profileFact(ui.childAge, profile.age, escapeHtml, ui.noData)}
@@ -523,8 +659,7 @@ function renderAdaptiveProfile(context) {
     </section>
     <p class="profile-note">${ui.diagnosisNote}</p>
     <section class="profile-actions">
-      <button class="secondary" data-route="/lessons" type="button">${ui.legacyLessons}</button>
-      <button class="danger" data-reset-demo type="button">${ui.resetProfile}</button>
+      <button class="danger" data-reset-demo type="button">${icon("rotate-ccw")}<span>${ui.resetProfile}</span></button>
     </section>
   `);
 }
@@ -532,10 +667,10 @@ function renderAdaptiveProfile(context) {
 export function getAdaptiveNav(language) {
   const ui = labels(language);
   return [
-    ["/today", "home", ui.today],
-    ["/library", "list", ui.library],
-    ["/progress", "chart", ui.progress],
-    ["/profile", "user", ui.profile],
+    ["/today", "house", ui.today],
+    ["/library", "list-checks", ui.library],
+    ["/progress", "chart-no-axes-column-increasing", ui.progress],
+    ["/profile", "user-round", ui.profile],
   ];
 }
 
@@ -703,7 +838,11 @@ function saveOutcome(context, index, outcome) {
   };
 
   const allAnswered = currentPlan.items.every((planItem) => hasAnswer(results, planItem.exerciseId));
-  if (allAnswered) state.adaptive = markDayCompleted(state.adaptive, date);
+  if (allAnswered) {
+    state.adaptive = markDayCompleted(state.adaptive, date);
+    const tomorrow = ensureDailyPlan(state.adaptive, exercises, shiftDateKey(date, 1));
+    state.adaptive = tomorrow.adaptive;
+  }
   saveState(state);
   routeTo(allAnswered ? "/daily-summary" : `/daily-results/${index + 1}`);
 }

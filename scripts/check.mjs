@@ -1,4 +1,4 @@
-import { readdir, readFile } from "node:fs/promises";
+import { access, readdir, readFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -29,15 +29,49 @@ for (const sourceRoot of sourceRoots) {
 const index = await readFile(join(root, "index.html"), "utf8");
 const app = await readFile(join(root, "src", "app.js"), "utf8");
 const adaptiveFlow = await readFile(join(root, "src", "adaptive-flow.js"), "utf8");
+const styles = await readFile(join(root, "src", "styles.css"), "utf8");
+const build = await readFile(join(root, "scripts", "build.mjs"), "utf8");
+const readme = await readFile(join(root, "README.md"), "utf8");
+const manifest = JSON.parse(await readFile(join(root, "public", "manifest.webmanifest"), "utf8"));
+const packageJson = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
 const vercel = JSON.parse(await readFile(join(root, "vercel.json"), "utf8"));
+
+async function exists(filePath) {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 if (!index.includes('src="/src/app.js"')) failures.push("index.html must load /src/app.js");
 if (!index.includes('href="/src/styles.css"')) failures.push("index.html must load /src/styles.css");
+if (!index.includes('src="/public/vendor/lucide.min.js"')) failures.push("index.html must load the local Lucide bundle");
+if (!app.includes("globalThis.lucide.createIcons")) failures.push("app.js must mount Lucide icons after rendering");
 if (/raw\.githubusercontent\.com|qadam-initial-app|exercise-bank/.test(index + app)) {
   failures.push("production code must not load a remote or retired application version");
 }
 if (/\sstyle=/.test(app + adaptiveFlow)) {
   failures.push("inline style attributes are blocked by the production Content Security Policy");
+}
+if (/font-size:\s*clamp\(/.test(styles)) {
+  failures.push("font sizes must not scale continuously with viewport width");
+}
+if (/lesson\/(?:lesson|[0-9])|assessment\/lesson|legacyLessons|loadTimers/.test(app + adaptiveFlow + build)) {
+  failures.push("retired guided-lesson runtime code must not return");
+}
+for (const retiredFile of [join(root, "src", "data.js"), join(root, "src", "pathway.js")]) {
+  if (await exists(retiredFile)) failures.push(`${relative(root, retiredFile)} is retired and must stay removed`);
+}
+if (/existing 12|12 guided|original 12|src\/data\.js/.test(readme)) {
+  failures.push("README.md still describes the retired guided-lesson architecture");
+}
+if (/\b12\b/.test(manifest.description) || manifest.start_url !== "/today") {
+  failures.push("the installable app manifest still points at the retired lesson experience");
+}
+if (packageJson.scripts?.test !== "node --test tests/*.test.js") {
+  failures.push("the test command must stay scoped to the canonical tests directory");
 }
 if (vercel.outputDirectory !== "dist") failures.push("vercel.json outputDirectory must be dist");
 if (!Array.isArray(vercel.rewrites) || !vercel.rewrites.some((rule) => rule.destination === "/index.html")) {

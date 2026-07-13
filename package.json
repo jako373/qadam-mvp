@@ -2,13 +2,13 @@
   "name": "qadam-parent-mvp",
   "version": "0.1.0",
   "private": true,
-  "description": "Dependency-free bilingual MVP for parent-led speech and development lessons.",
+  "description": "Bilingual adaptive home-practice platform with 120 parent-guided exercises.",
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
     "check": "node scripts/check.mjs",
     "lint": "node scripts/check.mjs",
-    "test": "node --test",
+    "test": "node --test tests/*.test.js",
     "verify": "npm run build && npm run check && npm run test",
     "serve": "node scripts/serve.mjs"
   }
