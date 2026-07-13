@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { formatPlanDate, nextDailyRoute } from "../src/adaptive-flow.js";
+import {
+  formatPlanDate,
+  handleAdaptiveClick,
+  nextDailyRoute,
+  planDayNumber,
+} from "../src/adaptive-flow.js";
 import { assessmentQuestions } from "../src/data/assessment-questions.js";
 import { exerciseCategoryOrder } from "../src/data/exercise-localization.js";
 import { exercises } from "../src/data/exercises.js";
@@ -42,6 +47,12 @@ describe("bilingual plan dates", () => {
   it("formats tomorrow without relying on optional browser locales", () => {
     assert.equal(formatPlanDate("2026-07-14", "kk"), "14 шілде, сейсенбі");
     assert.equal(formatPlanDate("2026-07-14", "ru"), "14 июля, вторник");
+  });
+
+  it("numbers the prepared plan from completed days", () => {
+    const adaptive = createDefaultAdaptiveState();
+    adaptive.completedDates = ["2026-07-13"];
+    assert.equal(planDayNumber(adaptive, "2026-07-14"), 2);
   });
 });
 
@@ -108,6 +119,40 @@ describe("adaptive skill levels", () => {
 });
 
 describe("daily recommendation", () => {
+  it("opens the prepared second day without searching the library", () => {
+    const date = "2026-07-13";
+    const tomorrow = shiftDateKey(date, 1);
+    let adaptive = assessedAdaptive(1);
+    const first = ensureDailyPlan(adaptive, exercises, date);
+    adaptive = {
+      ...first.adaptive,
+      activePlanDate: date,
+      dailyPlans: {
+        ...first.adaptive.dailyPlans,
+        [date]: { ...first.plan, completedAt: new Date().toISOString() },
+      },
+      completedDates: [date],
+    };
+    const second = ensureDailyPlan(adaptive, exercises, tomorrow);
+    const state = { adaptive: second.adaptive };
+    let route = "";
+    const event = {
+      target: {
+        closest: (selector) => selector === "[data-open-plan-date]"
+          ? { dataset: { openPlanDate: tomorrow } }
+          : null,
+      },
+    };
+
+    assert.equal(handleAdaptiveClick(event, {
+      state,
+      saveState: () => {},
+      routeTo: (value) => { route = value; },
+    }), true);
+    assert.equal(state.adaptive.activePlanDate, tomorrow);
+    assert.equal(route, "/daily/1");
+  });
+
   it("asks for one result before opening the next exercise", () => {
     const plan = {
       items: ["first", "second", "third"].map((exerciseId) => ({ exerciseId })),

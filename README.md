@@ -9,8 +9,8 @@ Qadam is a dependency-free bilingual web platform that gives parents clear home 
 3. Qadam prepares exactly three exercises for the day, with no more than one new exercise.
 4. Every exercise shows what to prepare, the exact phrase to say, three actions, how often to repeat, the expected result, the benefit, and when to stop.
 5. After each exercise, the parent chooses one outcome: independent, assisted, unable, or refused. Qadam immediately selects and opens the next exercise from the 120-exercise catalogue using that result.
-6. As soon as the third result is saved, Qadam prepares tomorrow's three exercises using the completed outcomes.
-7. The Today and Summary screens show the child's name and tomorrow's exercise titles automatically.
+6. As soon as the third result is saved, Qadam prepares the next day's three exercises using the completed outcomes.
+7. The Summary screen shows the child's name, the next day number, all three prepared exercises, and one clear Open button. Parents never need to search the catalogue for the assigned plan.
 8. A short reassessment becomes available after 14 days.
 
 The diagnosis remains part of the child profile but is not used as a diagnosis engine. Qadam is educational support, not a diagnostic or medical service.

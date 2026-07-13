@@ -122,6 +122,42 @@ function parseAnswer(value) {
   return numeric === 0 || numeric === 1 || numeric === 2 ? numeric : undefined;
 }
 
+export function planDayNumber(adaptive, date) {
+  return adaptive.completedDates.filter((completedDate) => completedDate < date).length + 1;
+}
+
+function planDayLabel(adaptive, date, language) {
+  const number = planDayNumber(adaptive, date);
+  return language === "ru" ? `День ${number}` : `${number}-күн`;
+}
+
+function planHeading(childName, adaptive, date, language, completed = false) {
+  const number = planDayNumber(adaptive, date);
+  if (language === "ru") {
+    return completed
+      ? `${childName}: день ${number} завершён`
+      : `${childName}: день ${number} · 3 упражнения`;
+  }
+  return completed
+    ? `${childName}: ${number}-күн аяқталды`
+    : `${childName}: ${number}-күн · 3 жаттығу`;
+}
+
+function readyPlanHeading(childName, adaptive, date, language) {
+  const number = planDayNumber(adaptive, date);
+  return language === "ru"
+    ? `${childName}: план на день ${number} готов`
+    : `${childName}: ${number}-күн жоспары дайын`;
+}
+
+function activePlanDate(state) {
+  const today = todayKey();
+  const activeDate = state.adaptive.activePlanDate;
+  const activePlan = activeDate ? state.adaptive.dailyPlans[activeDate] : null;
+  if (activePlan && (!activePlan.completedAt || activeDate >= today)) return activeDate;
+  return today;
+}
+
 function ensurePlanForDate(state, saveState, date) {
   const result = ensureDailyPlan(state.adaptive, exercises, date);
   if (result.adaptive !== state.adaptive) {
@@ -132,10 +168,16 @@ function ensurePlanForDate(state, saveState, date) {
 }
 
 function ensureTodayPlan(state, saveState) {
-  return ensurePlanForDate(state, saveState, todayKey());
+  const date = activePlanDate(state);
+  const result = ensurePlanForDate(state, saveState, date);
+  if (state.adaptive.activePlanDate !== date) {
+    state.adaptive = { ...state.adaptive, activePlanDate: date };
+    saveState(state);
+  }
+  return result;
 }
 
-function ensureTomorrowPlan(state, saveState, date = todayKey()) {
+function ensureTomorrowPlan(state, saveState, date = activePlanDate(state)) {
   return ensurePlanForDate(state, saveState, shiftDateKey(date, 1));
 }
 
@@ -254,13 +296,14 @@ function renderTomorrowPreview(context, date, plan) {
   const { state, escapeHtml, icon } = context;
   const ui = labels(state.language);
   const childName = state.childProfile?.name || ui.childProfile;
+  const dayLabel = planDayLabel(state.adaptive, date, state.language);
   return `
-    <section class="tomorrow-preview" aria-label="${ui.tomorrow}">
+    <section class="tomorrow-preview" aria-label="${escapeHtml(dayLabel)}">
       <header>
         ${icon("calendar-check-2", "tomorrow-icon")}
         <div>
-          <span class="adaptive-eyebrow">${ui.tomorrow} · ${escapeHtml(formatPlanDate(date, state.language))}</span>
-          <h2>${escapeHtml(childName)}: ${ui.tomorrowReady}</h2>
+          <span class="adaptive-eyebrow">${escapeHtml(dayLabel)} · ${escapeHtml(formatPlanDate(date, state.language))}</span>
+          <h2>${escapeHtml(readyPlanHeading(childName, state.adaptive, date, state.language))}</h2>
           <p>${ui.tomorrowText}</p>
         </div>
       </header>
@@ -275,6 +318,11 @@ function renderTomorrowPreview(context, date, plan) {
           `;
         }).join("")}
       </div>
+      <div class="tomorrow-action">
+        <button class="primary adaptive-primary" data-open-plan-date="${escapeHtml(date)}" type="button">
+          ${icon("book-open")}<span>${ui.open}</span>
+        </button>
+      </div>
     </section>
   `;
 }
@@ -288,12 +336,13 @@ function renderToday(context) {
   const done = Boolean(plan.completedAt);
   const tomorrow = done ? ensureTomorrowPlan(state, saveState, date) : null;
   const childName = state.childProfile?.name || ui.childProfile;
+  const dayLabel = planDayLabel(state.adaptive, date, state.language);
 
   return pageShell(`
     <section class="adaptive-page-head">
       <div>
-        <span class="adaptive-eyebrow">${ui.today}</span>
-        <h1>${escapeHtml(childName)}: ${done ? ui.doneToday : ui.todayThree}</h1>
+        <span class="adaptive-eyebrow">${escapeHtml(dayLabel)}</span>
+        <h1>${escapeHtml(planHeading(childName, state.adaptive, date, state.language, done))}</h1>
         <p>${done ? ui.doneTodayText : ui.planReason}</p>
       </div>
       <div class="today-streak"><strong>${streak}</strong><span>${ui.streak}</span></div>
@@ -343,7 +392,7 @@ function renderToday(context) {
 function renderDailyExercise(context, index) {
   const { state, pageShell, escapeHtml, saveState, icon } = context;
   const ui = labels(state.language);
-  const { plan } = ensureTodayPlan(state, saveState);
+  const { date, plan } = ensureTodayPlan(state, saveState);
   const item = plan.items[index - 1];
   const exercise = item ? getExerciseById(item.exerciseId) : null;
   if (!exercise) return null;
@@ -364,7 +413,7 @@ function renderDailyExercise(context, index) {
       <section class="daily-exercise">
         ${progressHeader(index, 3, state.language)}
         <header class="lesson-heading">
-          <span class="adaptive-eyebrow">${escapeHtml(category.title)} · ${exercise.durationMinutes} ${ui.minutes}${item.isNew ? ` · ${ui.newExercise}` : ""}</span>
+          <span class="adaptive-eyebrow">${escapeHtml(planDayLabel(state.adaptive, date, state.language))} · ${escapeHtml(category.title)} · ${exercise.durationMinutes} ${ui.minutes}${item.isNew ? ` · ${ui.newExercise}` : ""}</span>
           <h1>${escapeHtml(copy.title)}</h1>
           <p>${escapeHtml(copy.goal)}</p>
         </header>
@@ -432,7 +481,7 @@ function renderDailyExercise(context, index) {
 function renderDailyResult(context, index) {
   const { state, pageShell, escapeHtml, saveState, icon } = context;
   const ui = labels(state.language);
-  const { plan } = ensureTodayPlan(state, saveState);
+  const { date, plan } = ensureTodayPlan(state, saveState);
   const item = plan.items[index - 1];
   const exercise = item ? getExerciseById(item.exerciseId) : null;
   if (!exercise) return null;
@@ -448,7 +497,7 @@ function renderDailyResult(context, index) {
     `
       <section class="adaptive-question outcome-question">
         ${progressHeader(index, 3, state.language)}
-        <span class="adaptive-eyebrow">${ui.resultOne}</span>
+        <span class="adaptive-eyebrow">${escapeHtml(planDayLabel(state.adaptive, date, state.language))} · ${ui.resultOne}</span>
         <h1>${escapeHtml(copy.title)}</h1>
         <p class="adaptive-lead">${ui.howWasIt}</p>
         <div class="answer-stack outcome-stack">
@@ -473,7 +522,7 @@ function renderDailySummary(context) {
     `
       <section class="adaptive-center daily-summary">
         <div class="ready-mark" aria-hidden="true">${icon("check")}</div>
-        <h1>${ui.summaryTitle}</h1>
+        <h1>${escapeHtml(planDayLabel(state.adaptive, date, state.language))} ${state.language === "ru" ? "завершён" : "аяқталды"}</h1>
         <p class="adaptive-lead">${ui.summaryText}</p>
         <div class="summary-results">
           ${plan.items.map((item) => {
@@ -704,7 +753,7 @@ export function guardAdaptiveRoute(path, state) {
   if (path === "/dashboard") return "/today";
   if (path === "/skill-check" || path.startsWith("/skill-check/")) return "/today";
 
-  const plan = state.adaptive.dailyPlans[todayKey()];
+  const plan = state.adaptive.dailyPlans[activePlanDate(state)];
   if (path.startsWith("/daily-results/") && plan) {
     const firstUnanswered = plan.items.findIndex(
       (item) => !hasAnswer(plan.results || {}, item.exerciseId),
@@ -887,6 +936,17 @@ export function handleAdaptiveClick(event, context) {
   if (outcome) {
     const [index, value] = outcome.dataset.exerciseOutcome.split(":");
     saveOutcome(context, Number(index), value);
+    return true;
+  }
+
+  const openPlan = event.target.closest("[data-open-plan-date]");
+  if (openPlan) {
+    const date = openPlan.dataset.openPlanDate;
+    const plan = context.state.adaptive.dailyPlans[date];
+    if (!plan) return true;
+    context.state.adaptive = { ...context.state.adaptive, activePlanDate: date };
+    context.saveState(context.state);
+    context.routeTo(nextDailyRoute(plan));
     return true;
   }
 

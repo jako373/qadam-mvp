@@ -31,6 +31,7 @@ export function createDefaultAdaptiveState() {
     exerciseHistory: [],
     introducedExerciseIds: [],
     favoriteExerciseIds: [],
+    activePlanDate: null,
     dailyPlans: {},
     completedDates: [],
     lastReassessmentAt: null,
@@ -147,6 +148,9 @@ export function normalizeAdaptiveState(value) {
 
   const exerciseProgress = normalizeExerciseProgress(value.exerciseProgress);
   const dailyPlans = normalizeDailyPlans(value.dailyPlans);
+  const activePlanDate = isDateKey(value.activePlanDate) && dailyPlans[value.activePlanDate]
+    ? value.activePlanDate
+    : null;
   const history = Array.isArray(value.exerciseHistory)
     ? value.exerciseHistory
         .filter((item) =>
@@ -181,6 +185,7 @@ export function normalizeAdaptiveState(value) {
     exerciseHistory: history.slice(-500),
     introducedExerciseIds: uniqueStrings(value.introducedExerciseIds),
     favoriteExerciseIds: uniqueStrings(value.favoriteExerciseIds),
+    activePlanDate,
     dailyPlans,
     completedDates: uniqueStrings(value.completedDates).filter(isDateKey).sort(),
     lastReassessmentAt: validTimestamp(value.lastReassessmentAt),

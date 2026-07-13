@@ -69,6 +69,7 @@ describe("storage", () => {
     saveState({
       ...createDefaultState(),
       adaptive: {
+        activePlanDate: "invalid",
         initialAssessment: {
           answers: { valid: 2, unknown: null, invalid: "2" },
           completedAt: "not-a-date",
@@ -99,6 +100,7 @@ describe("storage", () => {
     assert.deepEqual(adaptive.initialAssessment.answers, { valid: 2, unknown: null });
     assert.equal(adaptive.initialAssessment.completedAt, null);
     assert.deepEqual(adaptive.completedDates, ["2026-07-13"]);
+    assert.equal(adaptive.activePlanDate, null);
     assert.equal(adaptive.exerciseProgress["understanding-01"].independentCount, 0);
     assert.equal(adaptive.exerciseProgress["understanding-01"].unableStreak, 2);
     assert.equal(adaptive.exerciseProgress["understanding-01"].attempts, 10000);
