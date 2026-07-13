@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { formatPlanDate } from "../src/adaptive-flow.js";
+import { formatPlanDate, nextDailyRoute } from "../src/adaptive-flow.js";
 import { assessmentQuestions } from "../src/data/assessment-questions.js";
 import { exerciseCategoryOrder } from "../src/data/exercise-localization.js";
 import { exercises } from "../src/data/exercises.js";
@@ -14,6 +14,7 @@ import {
   recordExerciseOutcome,
 } from "../src/lib/progress-engine.js";
 import {
+  adaptNextPlanItem,
   createDailyPlan,
   ensureDailyPlan,
   planDuration,
@@ -107,6 +108,67 @@ describe("adaptive skill levels", () => {
 });
 
 describe("daily recommendation", () => {
+  it("asks for one result before opening the next exercise", () => {
+    const plan = {
+      items: ["first", "second", "third"].map((exerciseId) => ({ exerciseId })),
+      results: {},
+      viewedCount: 0,
+      completedAt: null,
+    };
+    assert.equal(nextDailyRoute(plan), "/daily/1");
+    plan.viewedCount = 1;
+    assert.equal(nextDailyRoute(plan), "/daily-results/1");
+    plan.results.first = "assisted";
+    assert.equal(nextDailyRoute(plan), "/daily/2");
+  });
+
+  it("selects the next exercise immediately from the latest result", () => {
+    const date = "2026-07-13";
+    const catalogue = [
+      { id: "source-level-2", category: "understanding", level: 2, isActive: true },
+      { id: "easier-level-1", category: "understanding", level: 1, isActive: true },
+      { id: "guided-level-2", category: "understanding", level: 2, isActive: true },
+      { id: "progress-level-3", category: "understanding", level: 3, isActive: true },
+      { id: "alternative-level-2", category: "communication", level: 2, isActive: true },
+      { id: "reserved-level-2", category: "regulation", level: 2, isActive: true },
+    ];
+    const expected = {
+      unable: ["easier-level-1", "easier"],
+      assisted: ["guided-level-2", "guided"],
+      independent: ["progress-level-3", "progress"],
+      refused: ["alternative-level-2", "alternative"],
+    };
+
+    for (const [outcome, [exerciseId, variant]] of Object.entries(expected)) {
+      const source = catalogue[0];
+      let adaptive = createDefaultAdaptiveState();
+      adaptive.skillLevels = Object.fromEntries(exerciseCategoryOrder.map((category) => [category, 2]));
+      adaptive.introducedExerciseIds = catalogue.map((exercise) => exercise.id);
+      adaptive.dailyPlans[date] = {
+        date,
+        basedOnDate: null,
+        items: [source, catalogue[4], catalogue[5]].map((exercise) => ({
+          exerciseId: exercise.id,
+          isNew: false,
+          variant: "balanced",
+        })),
+        results: {},
+        viewedCount: 1,
+        completedAt: null,
+      };
+      adaptive = recordExerciseOutcome(adaptive, source, outcome, date, catalogue);
+      adaptive.dailyPlans[date] = {
+        ...adaptive.dailyPlans[date],
+        results: { [source.id]: outcome },
+      };
+
+      const adapted = adaptNextPlanItem(adaptive, catalogue, date, 1);
+      assert.equal(adapted.plan.items[1].exerciseId, exerciseId, outcome);
+      assert.equal(adapted.plan.items[1].variant, variant, outcome);
+      assert.notEqual(adapted.plan.items[1].exerciseId, source.id, outcome);
+    }
+  });
+
   it("creates exactly three unique exercises, at most one new, within 15 minutes", () => {
     const adaptive = assessedAdaptive(1);
     const plan = createDailyPlan(adaptive, exercises, "2026-07-13");

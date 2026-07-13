@@ -17,7 +17,11 @@ import {
   skillStatus,
   weeklySummary,
 } from "./lib/progress-engine.js";
-import { ensureDailyPlan, planDuration } from "./lib/recommendation-engine.js";
+import {
+  adaptNextPlanItem,
+  ensureDailyPlan,
+  planDuration,
+} from "./lib/recommendation-engine.js";
 
 const libraryFilter = {
   category: "",
@@ -221,11 +225,14 @@ function renderPlanReady(context) {
   );
 }
 
-function nextDailyRoute(plan) {
+export function nextDailyRoute(plan) {
   if (plan.completedAt) return "/daily-summary";
-  if (plan.viewedCount < 3) return `/daily/${Math.max(1, plan.viewedCount + 1)}`;
   const unanswered = plan.items.findIndex((item) => !hasAnswer(plan.results, item.exerciseId));
-  return unanswered === -1 ? "/daily-summary" : `/daily-results/${unanswered + 1}`;
+  if (unanswered === -1) return "/daily-summary";
+  const index = unanswered + 1;
+  return Number(plan.viewedCount || 0) >= index
+    ? `/daily-results/${index}`
+    : `/daily/${index}`;
 }
 
 export function formatPlanDate(dateKey, language) {
@@ -414,7 +421,7 @@ function renderDailyExercise(context, index) {
         </section>
 
         <button class="primary adaptive-primary full" data-daily-next="${index}" type="button">
-          <span>${index === 3 ? ui.openSummary : ui.next}</span>${icon("arrow-right")}
+          <span>${ui.markResult}</span>${icon("arrow-right")}
         </button>
       </section>
     `,
@@ -698,18 +705,20 @@ export function guardAdaptiveRoute(path, state) {
   if (path === "/skill-check" || path.startsWith("/skill-check/")) return "/today";
 
   const plan = state.adaptive.dailyPlans[todayKey()];
-  if (path.startsWith("/daily-results/") && plan && Number(plan.viewedCount || 0) < 3) {
-    return `/daily/${Math.max(1, Number(plan.viewedCount || 0) + 1)}`;
-  }
   if (path.startsWith("/daily-results/") && plan) {
     const firstUnanswered = plan.items.findIndex(
       (item) => !hasAnswer(plan.results || {}, item.exerciseId),
     );
     if (firstUnanswered === -1) return "/daily-summary";
     const requested = routeNumber(path);
-    if (requested !== firstUnanswered + 1) return `/daily-results/${firstUnanswered + 1}`;
+    const expected = firstUnanswered + 1;
+    if (requested !== expected) return nextDailyRoute(plan);
+    if (Number(plan.viewedCount || 0) < expected) return `/daily/${expected}`;
   }
-  if (path.startsWith("/daily/") && plan?.completedAt) return "/daily-summary";
+  if (path.startsWith("/daily/") && plan) {
+    const expected = nextDailyRoute(plan);
+    if (expected !== path) return expected;
+  }
   if (path === "/daily-summary" && !plan?.completedAt) return "/today";
   if (path.startsWith("/recheck/")) {
     const number = routeNumber(path);
@@ -812,7 +821,7 @@ function completeDailyStep(context, index) {
     },
   };
   saveState(state);
-  routeTo(index >= 3 ? "/daily-results/1" : `/daily/${index + 1}`);
+  routeTo(`/daily-results/${index}`);
 }
 
 function saveOutcome(context, index, outcome) {
@@ -822,7 +831,11 @@ function saveOutcome(context, index, outcome) {
   const exercise = item ? getExerciseById(item.exerciseId) : null;
   if (!exercise || !["independent", "assisted", "unable", "refused"].includes(outcome)) return;
   if (hasAnswer(plan.results, exercise.id)) {
-    routeTo(index >= 3 ? "/daily-summary" : `/daily-results/${index + 1}`);
+    if (index < plan.items.length) {
+      state.adaptive = adaptNextPlanItem(state.adaptive, exercises, date, index).adaptive;
+      saveState(state);
+    }
+    routeTo(index >= plan.items.length ? "/daily-summary" : `/daily/${index + 1}`);
     return;
   }
 
@@ -842,9 +855,11 @@ function saveOutcome(context, index, outcome) {
     state.adaptive = markDayCompleted(state.adaptive, date);
     const tomorrow = ensureDailyPlan(state.adaptive, exercises, shiftDateKey(date, 1));
     state.adaptive = tomorrow.adaptive;
+  } else {
+    state.adaptive = adaptNextPlanItem(state.adaptive, exercises, date, index).adaptive;
   }
   saveState(state);
-  routeTo(allAnswered ? "/daily-summary" : `/daily-results/${index + 1}`);
+  routeTo(allAnswered ? "/daily-summary" : `/daily/${index + 1}`);
 }
 
 export function handleAdaptiveClick(event, context) {

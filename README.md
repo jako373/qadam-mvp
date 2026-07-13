@@ -8,8 +8,8 @@ Qadam is a dependency-free bilingual web platform that gives parents clear home 
 2. Sixteen short questions establish a separate starting level for eight skill areas. Every question has its own relevant answer choices.
 3. Qadam prepares exactly three exercises for the day, with no more than one new exercise.
 4. Every exercise shows what to prepare, the exact phrase to say, three actions, how often to repeat, the expected result, the benefit, and when to stop.
-5. After each exercise, the parent chooses one outcome: independent, assisted, unable, or refused.
-6. As soon as the day is complete, Qadam prepares tomorrow's three exercises from the 120-exercise catalogue using those outcomes.
+5. After each exercise, the parent chooses one outcome: independent, assisted, unable, or refused. Qadam immediately selects and opens the next exercise from the 120-exercise catalogue using that result.
+6. As soon as the third result is saved, Qadam prepares tomorrow's three exercises using the completed outcomes.
 7. The Today and Summary screens show the child's name and tomorrow's exercise titles automatically.
 8. A short reassessment becomes available after 14 days.
 
@@ -30,7 +30,7 @@ The source catalogue is `src/data/exercises.ts`. `scripts/compile-exercises.mjs`
 - `index.html` is the browser entry point and loads the locally bundled Lucide icon library.
 - `src/app.js` owns the small router, landing page, language choice, child profile, and application shell.
 - `src/adaptive-flow.js` owns assessment, daily plans, outcomes, catalogue, progress, and profile screens.
-- `src/lib/recommendation-engine.js` selects three daily exercises and adapts the next day to the latest completed results.
+- `src/lib/recommendation-engine.js` selects the daily sequence, adapts each upcoming exercise immediately to the latest result, and prepares the next day.
 - `src/lib/progress-engine.js` calculates skill levels and applies parent outcomes.
 - `src/lib/adaptive-state.js` validates stored adaptive progress and date keys.
 - `src/storage.js` is the local persistence adapter and removes obsolete state during migration.

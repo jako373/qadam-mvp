@@ -104,7 +104,7 @@ function resultPriorityCategories(adaptive, exercises, date) {
 }
 
 function candidatesFor(adaptive, exercises, category, selected, date, options = {}) {
-  const targetLevel = targetLevelFor(adaptive, category);
+  const targetLevel = Number(options.targetLevel || targetLevelFor(adaptive, category));
   const introduced = new Set(adaptive.introducedExerciseIds);
   let candidates = exercises.filter((exercise) => {
     if (!exercise.isActive || exercise.category !== category || selected.has(exercise.id)) return false;
@@ -125,6 +125,118 @@ function candidatesFor(adaptive, exercises, category, selected, date, options = 
     return exactLevel || attempts || independent || tieBreak || left.id.localeCompare(right.id);
   });
   return candidates;
+}
+
+function nextVariant(outcome) {
+  return {
+    unable: "easier",
+    assisted: "guided",
+    independent: "progress",
+    refused: "alternative",
+  }[outcome] || "balanced";
+}
+
+function nextTargetLevel(adaptive, source, category, outcome) {
+  const currentLevel = Number(adaptive.skillLevels[category] || 1);
+  if (category !== source.category) return currentLevel;
+  if (outcome === "unable") return Math.max(1, Number(source.level || currentLevel) - 1);
+  if (outcome === "assisted") return Math.max(1, Math.min(currentLevel, Number(source.level || currentLevel)));
+  if (outcome === "independent") {
+    return Math.min(3, Math.max(currentLevel, Number(source.level || currentLevel) + 1));
+  }
+  return currentLevel;
+}
+
+function adaptiveCandidate(adaptive, exercises, categories, selected, date, source, outcome, options) {
+  for (const category of categories) {
+    const candidate = candidatesFor(adaptive, exercises, category, selected, date, {
+      ...options,
+      targetLevel: nextTargetLevel(adaptive, source, category, outcome),
+    })[0];
+    if (candidate) return candidate;
+  }
+  return null;
+}
+
+export function adaptNextPlanItem(adaptive, exercises, date, completedIndex) {
+  const plan = adaptive.dailyPlans[date];
+  const nextIndex = Number(completedIndex);
+  if (!plan?.items?.[nextIndex] || nextIndex < 1 || nextIndex >= plan.items.length) {
+    return { adaptive, plan };
+  }
+
+  const sourceItem = plan.items[nextIndex - 1];
+  const source = exercises.find((exercise) => exercise.id === sourceItem.exerciseId);
+  const outcome = plan.results?.[sourceItem.exerciseId];
+  if (!source || !["independent", "assisted", "unable", "refused"].includes(outcome)) {
+    return { adaptive, plan };
+  }
+
+  const weakCategories = categoryRank(adaptive, "weak");
+  const strongCategories = categoryRank(adaptive, "strong");
+  const categories = outcome === "refused"
+    ? [...weakCategories.filter((category) => category !== source.category), source.category]
+    : outcome === "independent"
+      ? [source.category, ...strongCategories, ...weakCategories]
+      : [source.category, ...weakCategories];
+  const uniqueCategories = [...new Set(categories)];
+  const selected = new Set(
+    plan.items
+      .filter((_, index) => index !== nextIndex)
+      .map((item) => item.exerciseId),
+  );
+  const priorNewCount = plan.items
+    .slice(0, nextIndex)
+    .filter((item) => item.isNew).length;
+
+  let exercise = adaptiveCandidate(
+    adaptive,
+    exercises,
+    uniqueCategories,
+    selected,
+    date,
+    source,
+    outcome,
+    { familiarOnly: true },
+  );
+  if (!exercise && priorNewCount === 0) {
+    exercise = adaptiveCandidate(
+      adaptive,
+      exercises,
+      uniqueCategories,
+      selected,
+      date,
+      source,
+      outcome,
+      { newOnly: true },
+    );
+  }
+  if (!exercise) {
+    exercise = firstAvailable(adaptive, exercises, exerciseCategoryOrder, selected, date, { familiarOnly: true });
+  }
+  if (!exercise && priorNewCount === 0) {
+    exercise = firstAvailable(adaptive, exercises, exerciseCategoryOrder, selected, date, { newOnly: true });
+  }
+  if (!exercise) {
+    exercise = exercises.find((item) => item.isActive && !selected.has(item.id));
+  }
+  if (!exercise) return { adaptive, plan };
+
+  const isNew = !adaptive.introducedExerciseIds.includes(exercise.id);
+  const items = plan.items.map((item, index) =>
+    index === nextIndex
+      ? { exerciseId: exercise.id, isNew, variant: nextVariant(outcome) }
+      : item,
+  );
+  const nextPlan = { ...plan, items };
+  return {
+    adaptive: {
+      ...adaptive,
+      introducedExerciseIds: [...new Set([...adaptive.introducedExerciseIds, exercise.id])],
+      dailyPlans: { ...adaptive.dailyPlans, [date]: nextPlan },
+    },
+    plan: nextPlan,
+  };
 }
 
 function firstAvailable(adaptive, exercises, categories, selected, date, options) {
