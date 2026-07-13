@@ -280,7 +280,7 @@ function decorateApp(session) {
     if (app.querySelector("[data-account-controls]")) return;
     const shell = app.querySelector(".app-shell"); if (!shell) return;
     const controls = document.createElement("div"); controls.dataset.accountControls = "true"; controls.className = "account-controls";
-    if (!session) controls.innerHTML = `<a href="/login">Войти</a><a class="account-register" href="/register">Регистрация</a>`;
+    if (!session) controls.innerHTML = `<a href="/login">Кіру</a><a class="account-register" href="/register">Тіркелу</a>`;
     else controls.innerHTML = `${isSuperadmin(session) ? `<a class="admin-badge" href="/admin">Суперадмин</a>` : ""}<span>${escapeHtml(session.user?.email || "")}</span><button type="button" data-account-logout>Выйти</button>`;
     shell.append(controls);
     controls.querySelector("[data-account-logout]")?.addEventListener("click", async () => { await signOut(); location.replace("/"); });
