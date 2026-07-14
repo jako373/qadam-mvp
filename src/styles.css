@@ -2285,8 +2285,9 @@ button:not(:disabled):active {
 }
 
 .how-visual {
+  width: min(100%, 760px);
   aspect-ratio: 3 / 1;
-  margin-bottom: 20px;
+  margin: 0 0 24px;
   border: 1px solid #bcded5;
   box-shadow: 0 22px 55px rgba(27, 91, 84, 0.12);
 }
