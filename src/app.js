@@ -5,6 +5,7 @@ import {
   homeLanguageOptions,
   wordOptions,
 } from "./data/app-data.js";
+import { landingImages } from "./landing-images.js";
 import { adaptiveUi } from "./data/adaptive-ui.js";
 import {
   applyLibraryFilters,
@@ -134,6 +135,12 @@ function renderLanding() {
   const labels = t();
   const landing = labels.landing;
   const hasProfile = Boolean(state.progress.onboardingCompleted);
+  const heroImageAlt = state.language === "kk"
+    ? "Ата-анасымен бірге үйде ойын жаттығуын орындап отырған бала"
+    : "Ребёнок выполняет игровое упражнение дома вместе с родителем";
+  const activityImageAlt = state.language === "kk"
+    ? "Ата-ана мен бала түрлі түсті бөлшектермен бірге ойнап отыр"
+    : "Родитель и ребёнок вместе играют с цветными деталями";
   return pageShell(
     `
       <div class="landing-page">
@@ -161,6 +168,9 @@ function renderLanding() {
             </div>
             <div class="landing-preview" aria-label="${landing.previewLabel}">
               <div class="preview-glow" aria-hidden="true"></div>
+              <figure class="landing-family-visual">
+                <img src="${landingImages.hero}" alt="${heroImageAlt}" width="800" height="1000" fetchpriority="high" decoding="async">
+              </figure>
               <article class="plan-preview-card">
                 <header>
                   <div><span>${landing.previewLabel}</span><h2>${landing.previewTitle}</h2></div>
@@ -189,8 +199,13 @@ function renderLanding() {
               <h2>${landing.painTitle}</h2>
               <p>${landing.painText}</p>
             </div>
-            <div class="contrast-cards">
-              ${landing.painCards.map(([title, text], index) => `<article class="contrast-card ${index === 1 ? "is-after" : ""}">${icon(index === 0 ? "circle-help" : "sparkles", "contrast-icon")}<div><span>${title}</span><p>${text}</p></div></article>`).join("")}
+            <div class="contrast-visual-stack">
+              <figure class="landing-activity-visual">
+                <img src="${landingImages.activity}" alt="${activityImageAlt}" width="900" height="600" loading="lazy" decoding="async">
+              </figure>
+              <div class="contrast-cards">
+                ${landing.painCards.map(([title, text], index) => `<article class="contrast-card ${index === 1 ? "is-after" : ""}">${icon(index === 0 ? "circle-help" : "sparkles", "contrast-icon")}<div><span>${title}</span><p>${text}</p></div></article>`).join("")}
+              </div>
             </div>
           </div>
         </section>
