@@ -181,7 +181,7 @@ function renderLanding() {
             <div class="landing-preview" aria-label="${landing.previewLabel}">
               <div class="preview-glow" aria-hidden="true"></div>
               <figure class="landing-family-visual">
-                <img src="${landingImages.hero}" alt="${heroImageAlt}" width="800" height="1000" fetchpriority="high" decoding="async">
+                <img src="${landingImages.hero}" alt="${heroImageAlt}" width="1122" height="1402" fetchpriority="high" decoding="async">
               </figure>
               <article class="plan-preview-card">
                 <header>
@@ -213,7 +213,7 @@ function renderLanding() {
             </div>
             <div class="contrast-visual-stack">
               <figure class="landing-activity-visual">
-                <img src="${landingImages.activity}" alt="${activityImageAlt}" width="900" height="600" loading="lazy" decoding="async">
+                <img src="${landingImages.activity}" alt="${activityImageAlt}" width="1536" height="1024" loading="lazy" decoding="async">
               </figure>
               <div class="contrast-cards">
                 ${landing.painCards.map(([title, text], index) => `<article class="contrast-card ${index === 1 ? "is-after" : ""}">${icon(index === 0 ? "circle-help" : "sparkles", "contrast-icon")}<div><span>${title}</span><p>${text}</p></div></article>`).join("")}
@@ -226,7 +226,7 @@ function renderLanding() {
           <div class="landing-container">
             <div class="landing-section-head"><span class="landing-kicker">${landing.howEyebrow}</span><h2 id="how-title">${landing.howTitle}</h2></div>
             <figure class="landing-wide-visual how-visual">
-              <img src="${landingImages.how}" alt="${howImageAlt}" width="960" height="640" loading="lazy" decoding="async">
+              <img src="${landingImages.how}" alt="${howImageAlt}" width="1536" height="1024" loading="lazy" decoding="async">
             </figure>
             <div class="landing-steps">
               ${landing.steps.map(([number, title, text]) => `<article><span class="step-number">${number}</span><h3>${title}</h3><p>${text}</p></article>`).join("")}
@@ -244,7 +244,7 @@ function renderLanding() {
             </div>
             <div class="value-visual-stack">
               <figure class="landing-wide-visual progress-visual">
-                <img src="${landingImages.progress}" alt="${progressImageAlt}" width="960" height="640" loading="lazy" decoding="async">
+                <img src="${landingImages.progress}" alt="${progressImageAlt}" width="1536" height="1024" loading="lazy" decoding="async">
               </figure>
               <div class="value-cards">
                 ${landing.values.map(([iconName, title, text]) => `<article>${icon(iconName, "value-icon")}<div><h3>${title}</h3><p>${text}</p></div></article>`).join("")}
@@ -256,7 +256,7 @@ function renderLanding() {
         <section class="landing-trust landing-reveal">
           <div class="landing-container trust-card">
             <figure class="trust-visual">
-              <img src="${landingImages.trust}" alt="${trustImageAlt}" width="960" height="640" loading="lazy" decoding="async">
+              <img src="${landingImages.trust}" alt="${trustImageAlt}" width="1536" height="1024" loading="lazy" decoding="async">
             </figure>
             <div class="trust-copy"><div class="trust-icon-wrap">${icon("shield-plus", "trust-icon")}</div><div><h2>${landing.trustTitle}</h2><p>${landing.trustText}</p></div></div>
           </div>
@@ -274,7 +274,7 @@ function renderLanding() {
         <section class="landing-final landing-reveal">
           <div class="landing-container final-card">
             <figure class="final-visual">
-              <img src="${landingImages.cta}" alt="${ctaImageAlt}" width="1119" height="630" loading="lazy" decoding="async">
+              <img src="${landingImages.cta}" alt="${ctaImageAlt}" width="1672" height="941" loading="lazy" decoding="async">
             </figure>
             <div class="final-copy"><span class="landing-kicker">${landing.finalEyebrow}</span><h2>${landing.finalTitle}</h2><p>${landing.finalText}</p><div class="landing-final-actions"><a class="landing-primary landing-primary-light" href="/register"><span>${landing.finalCta}</span>${icon("arrow-right")}</a><span>${landing.noCard}</span></div></div>
           </div>
