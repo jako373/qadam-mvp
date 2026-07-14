@@ -6486,6 +6486,12 @@ export const exercises = [
 
 const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]));
 
+export function replaceExercises(nextExercises) {
+  exercises.splice(0, exercises.length, ...nextExercises);
+  exerciseById.clear();
+  for (const exercise of exercises) exerciseById.set(exercise.id, exercise);
+}
+
 export function getExerciseById(id) {
   return exerciseById.get(id) || null;
 }

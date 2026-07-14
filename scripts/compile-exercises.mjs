@@ -40,6 +40,7 @@ const output = `// Generated from src/data/exercises.ts by scripts/compile-exerc
   `// Edit the TypeScript source or localization map, then regenerate this file.\n\n` +
   `export const exercises = ${JSON.stringify(localized, null, 2)};\n\n` +
   `const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]));\n\n` +
+  `export function replaceExercises(nextExercises) {\n  exercises.splice(0, exercises.length, ...nextExercises);\n  exerciseById.clear();\n  for (const exercise of exercises) exerciseById.set(exercise.id, exercise);\n}\n\n` +
   `export function getExerciseById(id) {\n  return exerciseById.get(id) || null;\n}\n`;
 
 await writeFile(outputPath, output, "utf8");
