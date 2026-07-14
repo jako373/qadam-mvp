@@ -132,47 +132,137 @@ function normalizePath(path) {
 
 function renderLanding() {
   const labels = t();
+  const landing = labels.landing;
   const hasProfile = Boolean(state.progress.onboardingCompleted);
   return pageShell(
     `
-      <section class="hero">
-        <img class="hero-image" src="/public/images/parent-child-lesson.svg" alt="" />
-        <div class="hero-scrim"></div>
-        <div class="hero-content">
-          <div class="hero-topline">
-            <span class="text-logo">${labels.brand}</span>
-            <span>${labels.tagline}</span>
+      <div class="landing-page">
+        <section class="landing-hero" aria-labelledby="landing-title">
+          <div class="landing-orb landing-orb-one" aria-hidden="true"></div>
+          <div class="landing-orb landing-orb-two" aria-hidden="true"></div>
+          <div class="landing-container landing-hero-grid">
+            <div class="landing-hero-copy">
+              <div class="landing-brand-row">
+                <a class="landing-brand" href="/" aria-label="${labels.homeAria}"><span>Q</span><strong>${labels.brand}</strong></a>
+                ${renderLanguageSwitcher(true)}
+              </div>
+              <div class="landing-eyebrow">${icon("heart-handshake", "landing-eyebrow-icon")}<span>${landing.eyebrow}</span></div>
+              <div class="landing-proof-badge">${icon("badge-check", "landing-proof-icon")}<span>${landing.proofBadge}</span></div>
+              <h1 id="landing-title">${labels.landingTitle}</h1>
+              <p class="landing-lead">${labels.landingText}</p>
+              <div class="landing-hero-actions">
+                <a class="landing-primary" href="${hasProfile ? "/today" : "/register"}"><span>${hasProfile ? labels.continue : labels.start}</span>${icon("arrow-right")}</a>
+                <a class="landing-secondary" href="#how-it-works">${landing.secondaryCta}${icon("arrow-down", "landing-link-icon")}</a>
+              </div>
+              <div class="landing-reassurance" aria-label="${landing.noCard}. ${landing.calmStart}">
+                <span>${icon("shield-check", "landing-check-icon")}${landing.noCard}</span>
+                <span>${icon("clock-3", "landing-check-icon")}${landing.calmStart}</span>
+              </div>
+            </div>
+            <div class="landing-preview" aria-label="${landing.previewLabel}">
+              <div class="preview-glow" aria-hidden="true"></div>
+              <article class="plan-preview-card">
+                <header>
+                  <div><span>${landing.previewLabel}</span><h2>${landing.previewTitle}</h2></div>
+                  <div class="preview-day">1</div>
+                </header>
+                <div class="preview-progress"><i></i></div>
+                <ol>
+                  ${landing.previewItems.map((item, index) => `<li><span>${index + 1}</span><div><strong>${item}</strong><small>${landing.previewMeta[index]}</small></div>${icon(index === 0 ? "play" : "lock-keyhole", "preview-row-icon")}</li>`).join("")}
+                </ol>
+                <div class="preview-parent-note">${icon("message-circle-heart", "preview-note-icon")}<span>${labels.benefits[1][1]}</span></div>
+              </article>
+            </div>
           </div>
-          <h1>${labels.landingTitle}</h1>
-          <p>${labels.landingText}</p>
-          <div class="hero-actions">
-            <button class="primary" data-route="${hasProfile ? "/today" : "/language"}" type="button">
-              <span>${hasProfile ? labels.continue : labels.start}</span>${icon("arrow-right")}
-            </button>
-            ${hasProfile ? `
-              <button class="secondary" data-new-profile type="button">
-                ${icon("rotate-ccw")}<span>${labels.resetProfile}</span>
-              </button>
-            ` : ""}
-            ${renderLanguageSwitcher(true)}
+        </section>
+
+        <section class="landing-stats" aria-label="${landing.proofBadge}">
+          <div class="landing-container landing-stats-grid">
+            ${landing.stats.map(([value, label]) => `<div><strong>${value}</strong><span>${label}</span></div>`).join("")}
           </div>
-        </div>
-      </section>
-      <section class="band benefits-band" aria-label="${labels.benefitsAria}">
-        <div class="content-grid three">
-          ${labels.benefits.map(([title, text], index) => `
-            <article class="benefit-card">
-              ${icon(["target", "list-checks", "heart-handshake"][index], "benefit-icon")}
-              <strong>${title}</strong>
-              <p>${text}</p>
-            </article>
-          `).join("")}
-        </div>
-        <p class="disclaimer inline">${labels.disclaimer}</p>
-      </section>
+        </section>
+
+        <section class="landing-section landing-reveal">
+          <div class="landing-container pain-grid">
+            <div class="landing-section-copy">
+              <span class="landing-kicker">${landing.painEyebrow}</span>
+              <h2>${landing.painTitle}</h2>
+              <p>${landing.painText}</p>
+            </div>
+            <div class="contrast-cards">
+              ${landing.painCards.map(([title, text], index) => `<article class="contrast-card ${index === 1 ? "is-after" : ""}">${icon(index === 0 ? "circle-help" : "sparkles", "contrast-icon")}<div><span>${title}</span><p>${text}</p></div></article>`).join("")}
+            </div>
+          </div>
+        </section>
+
+        <section id="how-it-works" class="landing-section landing-section-tint landing-reveal" aria-labelledby="how-title">
+          <div class="landing-container">
+            <div class="landing-section-head"><span class="landing-kicker">${landing.howEyebrow}</span><h2 id="how-title">${landing.howTitle}</h2></div>
+            <div class="landing-steps">
+              ${landing.steps.map(([number, title, text]) => `<article><span class="step-number">${number}</span><h3>${title}</h3><p>${text}</p></article>`).join("")}
+            </div>
+          </div>
+        </section>
+
+        <section class="landing-section landing-reveal">
+          <div class="landing-container value-layout">
+            <div class="landing-section-copy">
+              <span class="landing-kicker">${landing.valueEyebrow}</span>
+              <h2>${landing.valueTitle}</h2>
+              <p>${landing.valueText}</p>
+              <a class="landing-text-link" href="/register">${landing.finalCta}${icon("arrow-up-right", "landing-link-icon")}</a>
+            </div>
+            <div class="value-cards">
+              ${landing.values.map(([iconName, title, text]) => `<article>${icon(iconName, "value-icon")}<div><h3>${title}</h3><p>${text}</p></div></article>`).join("")}
+            </div>
+          </div>
+        </section>
+
+        <section class="landing-trust landing-reveal">
+          <div class="landing-container trust-card">
+            <div class="trust-icon-wrap">${icon("shield-plus", "trust-icon")}</div>
+            <div><h2>${landing.trustTitle}</h2><p>${landing.trustText}</p></div>
+          </div>
+        </section>
+
+        <section class="landing-section landing-reveal" aria-labelledby="faq-title">
+          <div class="landing-container faq-layout">
+            <div class="landing-section-copy"><span class="landing-kicker">${landing.faqEyebrow}</span><h2 id="faq-title">${landing.faqTitle}</h2><p>${labels.disclaimer}</p></div>
+            <div class="faq-list">
+              ${landing.faq.map(([question, answer]) => `<details><summary><span>${question}</span>${icon("plus", "faq-icon")}</summary><p>${answer}</p></details>`).join("")}
+            </div>
+          </div>
+        </section>
+
+        <section class="landing-final landing-reveal">
+          <div class="landing-container final-card">
+            <span class="landing-kicker">${landing.finalEyebrow}</span>
+            <h2>${landing.finalTitle}</h2>
+            <p>${landing.finalText}</p>
+            <div class="landing-final-actions"><a class="landing-primary landing-primary-light" href="/register"><span>${landing.finalCta}</span>${icon("arrow-right")}</a><span>${landing.noCard}</span></div>
+          </div>
+        </section>
+      </div>
     `,
     { nav: false },
   );
+}
+
+function mountLandingMotion() {
+  const items = [...document.querySelectorAll(".landing-reveal")];
+  if (!items.length) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) {
+    items.forEach((item) => item.classList.add("is-visible"));
+    return;
+  }
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add("is-visible");
+      observer.unobserve(entry.target);
+    });
+  }, { threshold: 0.12 });
+  items.forEach((item) => observer.observe(item));
 }
 
 function renderLanguagePage() {
@@ -298,6 +388,7 @@ function render() {
   mountProfileForm();
   applyLibraryFilters();
   mountIcons();
+  mountLandingMotion();
 }
 
 function mountProfileForm() {
