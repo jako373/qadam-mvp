@@ -19,15 +19,15 @@ const end = arrayEnd?.index ?? -1;
 if (start < 0 || end < 0) throw new Error("Could not find the exercises array in exercises.ts");
 
 const rawExercises = JSON.parse(source.slice(start + marker.length, end + 1));
-if (rawExercises.length !== 120) throw new Error(`Expected 120 exercises, received ${rawExercises.length}`);
+if (!rawExercises.length) throw new Error("The exercise catalogue must not be empty");
 
 const localized = [];
 for (const category of exerciseCategoryOrder) {
   const categoryExercises = rawExercises.filter((exercise) => exercise.category === category);
-  if (categoryExercises.length !== 15) throw new Error(`${category} must contain 15 exercises`);
+  if (!categoryExercises.length) throw new Error(`${category} must contain exercises`);
   for (const level of [1, 2, 3]) {
-    if (categoryExercises.filter((exercise) => exercise.level === level).length !== 5) {
-      throw new Error(`${category} level ${level} must contain 5 exercises`);
+    if (!categoryExercises.some((exercise) => exercise.level === level)) {
+      throw new Error(`${category} level ${level} must contain at least one exercise`);
     }
   }
   categoryExercises.forEach((exercise, index) => localized.push(localizeExercise(exercise, index)));

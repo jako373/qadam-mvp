@@ -90,7 +90,7 @@ create table if not exists public.child_exercise_progress (
   parent_id uuid not null references auth.users(id) on delete cascade,
   child_id uuid not null,
   exercise_id text not null check (
-    exercise_id ~ '^(joint_attention|understanding|imitation|communication|play_thinking|fine_motor|regulation|daily_social)-(0[1-9]|1[0-5])$'
+    exercise_id ~ '^[a-z_]+-[0-9]{2,}$'
   ),
   independent_count integer not null default 0 check (independent_count >= 0),
   unable_streak integer not null default 0 check (unable_streak >= 0),
@@ -131,7 +131,7 @@ create table if not exists public.exercise_attempts (
   parent_id uuid not null references auth.users(id) on delete cascade,
   child_id uuid not null,
   exercise_id text not null check (
-    exercise_id ~ '^(joint_attention|understanding|imitation|communication|play_thinking|fine_motor|regulation|daily_social)-(0[1-9]|1[0-5])$'
+    exercise_id ~ '^[a-z_]+-[0-9]{2,}$'
   ),
   category text not null check (
     category in (
