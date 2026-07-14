@@ -291,7 +291,7 @@ async function hydrateExerciseCatalogue(session) {
     const rows = await rpc("active_exercises", session);
     const catalogue = Array.isArray(rows) ? rows.map((row) => row.content).filter(Boolean) : [];
     if (!catalogue.length) return;
-    const module = await import("./data/exercises.js");
+    const module = await import("./data/exercises.js?v=20260715-superadmin-library");
     module.replaceExercises(catalogue);
   } catch (error) { console.warn("Qadam catalogue:", error.message); }
 }
@@ -423,4 +423,4 @@ else if (path === "/register") mountRegister();
 else if (path === "/account-mode") renderAccountMode(session);
 else if (path === "/admin") await renderAdmin();
 else if (!publicRoutes.has(path) && !session) location.replace(`/login?next=${encodeURIComponent(path)}`);
-else { if (session) { await Promise.all([hydrateState(session), hydrateExerciseCatalogue(session)]); } await import("./app.js"); decorateApp(session); }
+else { if (session) { await Promise.all([hydrateState(session), hydrateExerciseCatalogue(session)]); } await import("./app.js?v=20260715-superadmin-library"); decorateApp(session); }
