@@ -5,6 +5,7 @@ import {
   homeLanguageOptions,
   wordOptions,
 } from "./data/app-data.js";
+import { landingImages } from "./landing-images.js";
 import { adaptiveUi } from "./data/adaptive-ui.js";
 import {
   applyLibraryFilters,
@@ -140,6 +141,18 @@ function renderLanding() {
   const activityImageAlt = state.language === "kk"
     ? "Ата-ана мен бала түрлі түсті бөлшектермен бірге ойнап отыр"
     : "Родитель и ребёнок вместе играют с цветными деталями";
+  const howImageAlt = state.language === "kk"
+    ? "Әкесі мен баласы үйдегі ойынға керек заттарды бірге дайындап отыр"
+    : "Отец и ребёнок вместе готовят материалы для домашней игры";
+  const progressImageAlt = state.language === "kk"
+    ? "Бала ата-анасымен бірге шағын жетістігін белгілеп отыр"
+    : "Ребёнок вместе с родителем отмечает небольшой прогресс";
+  const trustImageAlt = state.language === "kk"
+    ? "Анасы баласын оның көз деңгейінде мұқият тыңдап отыр"
+    : "Мама внимательно слушает ребёнка на уровне его глаз";
+  const ctaImageAlt = state.language === "kk"
+    ? "Отбасы үйде бірге қысқа ойын жаттығуын орындап отыр"
+    : "Семья вместе выполняет короткое игровое упражнение дома";
   return pageShell(
     `
       <div class="landing-page">
@@ -168,7 +181,7 @@ function renderLanding() {
             <div class="landing-preview" aria-label="${landing.previewLabel}">
               <div class="preview-glow" aria-hidden="true"></div>
               <figure class="landing-family-visual">
-                <img src="/images/qadam-parent-child.webp" alt="${heroImageAlt}" width="1122" height="1402" fetchpriority="high" decoding="async">
+                <img src="${landingImages.hero}" alt="${heroImageAlt}" width="1122" height="1402" fetchpriority="high" decoding="async">
               </figure>
               <article class="plan-preview-card">
                 <header>
@@ -200,7 +213,7 @@ function renderLanding() {
             </div>
             <div class="contrast-visual-stack">
               <figure class="landing-activity-visual">
-                <img src="/images/qadam-shared-activity.webp" alt="${activityImageAlt}" width="1536" height="1024" loading="lazy" decoding="async">
+                <img src="${landingImages.activity}" alt="${activityImageAlt}" width="1536" height="1024" loading="lazy" decoding="async">
               </figure>
               <div class="contrast-cards">
                 ${landing.painCards.map(([title, text], index) => `<article class="contrast-card ${index === 1 ? "is-after" : ""}">${icon(index === 0 ? "circle-help" : "sparkles", "contrast-icon")}<div><span>${title}</span><p>${text}</p></div></article>`).join("")}
@@ -212,6 +225,9 @@ function renderLanding() {
         <section id="how-it-works" class="landing-section landing-section-tint landing-reveal" aria-labelledby="how-title">
           <div class="landing-container">
             <div class="landing-section-head"><span class="landing-kicker">${landing.howEyebrow}</span><h2 id="how-title">${landing.howTitle}</h2></div>
+            <figure class="landing-wide-visual how-visual">
+              <img src="${landingImages.how}" alt="${howImageAlt}" width="1536" height="1024" loading="lazy" decoding="async">
+            </figure>
             <div class="landing-steps">
               ${landing.steps.map(([number, title, text]) => `<article><span class="step-number">${number}</span><h3>${title}</h3><p>${text}</p></article>`).join("")}
             </div>
@@ -226,16 +242,23 @@ function renderLanding() {
               <p>${landing.valueText}</p>
               <a class="landing-text-link" href="/register">${landing.finalCta}${icon("arrow-up-right", "landing-link-icon")}</a>
             </div>
-            <div class="value-cards">
-              ${landing.values.map(([iconName, title, text]) => `<article>${icon(iconName, "value-icon")}<div><h3>${title}</h3><p>${text}</p></div></article>`).join("")}
+            <div class="value-visual-stack">
+              <figure class="landing-wide-visual progress-visual">
+                <img src="${landingImages.progress}" alt="${progressImageAlt}" width="1536" height="1024" loading="lazy" decoding="async">
+              </figure>
+              <div class="value-cards">
+                ${landing.values.map(([iconName, title, text]) => `<article>${icon(iconName, "value-icon")}<div><h3>${title}</h3><p>${text}</p></div></article>`).join("")}
+              </div>
             </div>
           </div>
         </section>
 
         <section class="landing-trust landing-reveal">
           <div class="landing-container trust-card">
-            <div class="trust-icon-wrap">${icon("shield-plus", "trust-icon")}</div>
-            <div><h2>${landing.trustTitle}</h2><p>${landing.trustText}</p></div>
+            <figure class="trust-visual">
+              <img src="${landingImages.trust}" alt="${trustImageAlt}" width="1536" height="1024" loading="lazy" decoding="async">
+            </figure>
+            <div class="trust-copy"><div class="trust-icon-wrap">${icon("shield-plus", "trust-icon")}</div><div><h2>${landing.trustTitle}</h2><p>${landing.trustText}</p></div></div>
           </div>
         </section>
 
@@ -250,10 +273,10 @@ function renderLanding() {
 
         <section class="landing-final landing-reveal">
           <div class="landing-container final-card">
-            <span class="landing-kicker">${landing.finalEyebrow}</span>
-            <h2>${landing.finalTitle}</h2>
-            <p>${landing.finalText}</p>
-            <div class="landing-final-actions"><a class="landing-primary landing-primary-light" href="/register"><span>${landing.finalCta}</span>${icon("arrow-right")}</a><span>${landing.noCard}</span></div>
+            <figure class="final-visual">
+              <img src="${landingImages.cta}" alt="${ctaImageAlt}" width="1672" height="941" loading="lazy" decoding="async">
+            </figure>
+            <div class="final-copy"><span class="landing-kicker">${landing.finalEyebrow}</span><h2>${landing.finalTitle}</h2><p>${landing.finalText}</p><div class="landing-final-actions"><a class="landing-primary landing-primary-light" href="/register"><span>${landing.finalCta}</span>${icon("arrow-right")}</a><span>${landing.noCard}</span></div></div>
           </div>
         </section>
       </div>

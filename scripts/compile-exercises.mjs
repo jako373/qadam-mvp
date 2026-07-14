@@ -13,7 +13,8 @@ const outputPath = join(root, "src", "data", "exercises.js");
 const marker = "export const exercises: Exercise[] = ";
 const source = await readFile(sourcePath, "utf8");
 const start = source.indexOf(marker);
-const end = source.lastIndexOf("];\n");
+const arrayEnd = source.match(/\];\s*$/);
+const end = arrayEnd?.index ?? -1;
 
 if (start < 0 || end < 0) throw new Error("Could not find the exercises array in exercises.ts");
 
