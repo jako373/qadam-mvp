@@ -1916,9 +1916,8 @@ button:not(:disabled):active {
 
 .landing-preview {
   position: relative;
-  min-height: 650px;
   display: grid;
-  align-items: end;
+  gap: 0;
   isolation: isolate;
 }
 
@@ -1941,9 +1940,9 @@ button:not(:disabled):active {
 }
 
 .landing-family-visual {
-  position: absolute;
-  inset: 0 36px 84px 0;
-  z-index: -1;
+  position: relative;
+  aspect-ratio: 4 / 3;
+  z-index: 0;
   border-radius: 34px;
 }
 
@@ -1965,10 +1964,15 @@ button:not(:disabled):active {
   object-fit: cover;
 }
 
+.landing-family-visual img {
+  object-position: center 42%;
+}
+
 .plan-preview-card {
   position: relative;
-  width: min(94%, 440px);
-  margin: 0 0 0 auto;
+  z-index: 1;
+  width: calc(100% - 48px);
+  margin: -42px auto 0;
   padding: 26px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.94);
@@ -2261,6 +2265,36 @@ button:not(:disabled):active {
   margin-bottom: 50px;
 }
 
+.landing-wide-visual,
+.trust-visual,
+.final-visual {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  background: #dfeee9;
+  border-radius: 26px;
+}
+
+.landing-wide-visual img,
+.trust-visual img,
+.final-visual img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.how-visual {
+  aspect-ratio: 3 / 1;
+  margin-bottom: 20px;
+  border: 1px solid #bcded5;
+  box-shadow: 0 22px 55px rgba(27, 91, 84, 0.12);
+}
+
+.how-visual img {
+  object-position: center 46%;
+}
+
 .landing-steps {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2309,6 +2343,16 @@ button:not(:disabled):active {
   color: var(--landing-primary-dark);
 }
 
+.value-visual-stack {
+  display: grid;
+  gap: 22px;
+}
+
+.progress-visual {
+  aspect-ratio: 3 / 2;
+  border: 1px solid var(--landing-line);
+}
+
 .value-cards article {
   display: grid;
   grid-template-columns: 54px minmax(0, 1fr);
@@ -2341,13 +2385,24 @@ button:not(:disabled):active {
 
 .trust-card {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: minmax(300px, 0.78fr) minmax(0, 1.22fr);
   align-items: center;
-  gap: 26px;
-  padding: clamp(28px, 5vw, 52px);
+  gap: clamp(28px, 5vw, 54px);
+  padding: 18px clamp(28px, 5vw, 52px) 18px 18px;
   background: var(--landing-cream);
   border: 1px solid #eadfcf;
   border-radius: 28px;
+}
+
+.trust-visual {
+  aspect-ratio: 3 / 2;
+}
+
+.trust-copy {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
 }
 
 .trust-icon-wrap {
@@ -2428,7 +2483,11 @@ button:not(:disabled):active {
 
 .final-card {
   position: relative;
-  padding: clamp(40px, 7vw, 76px);
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: clamp(32px, 5vw, 64px);
+  padding: 18px clamp(34px, 6vw, 68px) 18px 18px;
   overflow: hidden;
   color: white;
   background:
@@ -2436,6 +2495,15 @@ button:not(:disabled):active {
     linear-gradient(135deg, #075e59, #0a857a);
   border-radius: 32px;
   box-shadow: 0 28px 70px rgba(7, 94, 89, 0.22);
+}
+
+.final-visual {
+  aspect-ratio: 16 / 11;
+  border-radius: 22px;
+}
+
+.final-copy {
+  padding: 26px 0;
 }
 
 .final-card .landing-kicker,
@@ -2522,6 +2590,27 @@ button:not(:disabled):active {
     margin-inline: auto;
   }
 
+  .how-visual {
+    aspect-ratio: 3 / 2;
+  }
+
+  .trust-card,
+  .final-card {
+    grid-template-columns: 1fr;
+  }
+
+  .trust-card {
+    padding: 18px 18px 32px;
+  }
+
+  .final-card {
+    padding: 18px 18px 36px;
+  }
+
+  .final-copy {
+    padding: 8px 18px 0;
+  }
+
   .landing-steps {
     grid-template-columns: 1fr;
   }
@@ -2585,19 +2674,11 @@ button:not(:disabled):active {
     border-radius: 22px;
   }
 
-  .landing-preview {
-    min-height: 590px;
-  }
-
-  .landing-family-visual {
-    inset: 0 20px 102px 0;
-  }
-
   .landing-section {
     padding: 78px 0;
   }
 
-  .trust-card {
+  .trust-copy {
     grid-template-columns: 1fr;
   }
 
@@ -2625,21 +2706,22 @@ button:not(:disabled):active {
     grid-template-columns: 32px minmax(0, 1fr) 30px;
   }
 
-  .landing-preview {
-    min-height: auto;
-    display: block;
-  }
-
   .landing-family-visual {
-    position: relative;
-    inset: auto;
-    aspect-ratio: 4 / 5;
-    margin-bottom: -72px;
+    aspect-ratio: 4 / 3;
     border-radius: 24px;
   }
 
   .plan-preview-card {
-    width: calc(100% - 22px);
+    width: calc(100% - 20px);
+    margin-top: -24px;
+  }
+
+  .how-visual,
+  .progress-visual,
+  .trust-visual,
+  .final-visual {
+    aspect-ratio: 4 / 3;
+    border-radius: 20px;
   }
 
   .landing-stats-grid > div {
