@@ -210,7 +210,12 @@ function scheduleSync(state) {
   syncTimer = setTimeout(() => syncState(state).catch((error) => console.warn("Qadam sync:", error.message)), 650);
 }
 
-globalThis.qadamAuth = { getSession, scheduleSync, signOut };
+globalThis.qadamAuth = {
+  getSession,
+  scheduleSync,
+  signOut,
+  canBrowseCatalogWithoutOnboarding: () => isSuperadmin(readSession()),
+};
 
 function userDestination() {
   const state = readJson(STATE_KEY, {});
@@ -391,7 +396,7 @@ async function renderAdmin() {
 function renderAccountMode(session) {
   if (!session) { location.replace("/login"); return; }
   if (!isSuperadmin(session)) { location.replace(isAdmin(session) ? "/admin" : userDestination()); return; }
-  app.innerHTML = `<main class="auth-page mode-page"><section class="mode-card"><a class="auth-brand" href="/"><span>Q</span><strong>Qadam</strong></a><div class="auth-kicker">Выберите режим</div><h1>Как хотите войти?</h1><p>Один аккаунт — два независимых рабочих пространства. Родительский прогресс вашего ребёнка сохраняется отдельно от CRM.</p><div class="mode-options"><a class="mode-option parent-mode" href="${userDestination()}"><span class="mode-icon">♡</span><strong>Как родитель</strong><small>Профиль ребёнка, ежедневный план, все упражнения и прогресс</small><b>Открыть упражнения →</b></a><a class="mode-option admin-mode" href="/admin"><span class="mode-icon">⌘</span><strong>Как суперадмин</strong><small>Пользователи, аналитика, роли, доступы и общий прогресс</small><b>Открыть CRM →</b></a></div><small class="mode-account">${escapeHtml(session.user?.email || "")}</small></section></main>`;
+  app.innerHTML = `<main class="auth-page mode-page"><section class="mode-card"><a class="auth-brand" href="/"><span>Q</span><strong>Qadam</strong></a><div class="auth-kicker">Выберите режим</div><h1>Как хотите войти?</h1><p>Один аккаунт — два независимых рабочих пространства. Родительский прогресс вашего ребёнка сохраняется отдельно от CRM.</p><div class="mode-options"><a class="mode-option parent-mode" href="/library"><span class="mode-icon">♡</span><strong>Как родитель</strong><small>Все упражнения доступны суперадмину сразу, без обязательного заполнения анкеты</small><b>Открыть упражнения →</b></a><a class="mode-option admin-mode" href="/admin"><span class="mode-icon">⌘</span><strong>Как суперадмин</strong><small>Пользователи, аналитика, роли, доступы и общий прогресс</small><b>Открыть CRM →</b></a></div><small class="mode-account">${escapeHtml(session.user?.email || "")}</small></section></main>`;
 }
 
 function decorateApp(session) {

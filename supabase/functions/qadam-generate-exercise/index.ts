@@ -19,8 +19,8 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json(req, { error: "Метод не поддерживается" }, 405);
   try {
     const { user, url, serviceKey } = await requireSuperadmin(req);
-    const apiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!apiKey) return json(req, { error: "ИИ не настроен: добавьте OPENAI_API_KEY в Secrets Supabase" }, 503);
+    const apiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!apiKey) return json(req, { error: "ИИ не настроен: добавьте GEMINI_API_KEY в Secrets Supabase" }, 503);
     const body = await req.json();
     const category = categories.includes(body.category) ? body.category : "communication";
     const level = Math.min(3, Math.max(1, Number(body.level || 1)));
@@ -33,19 +33,26 @@ Deno.serve(async (req) => {
     const titles = existing.slice(-40).map((row: { content?: { ru?: { title?: string } } }) => row.content?.ru?.title).filter(Boolean);
 
     const prompt = `Создай безопасное домашнее игровое упражнение для ребёнка 2–7 лет. Направление: ${category}. Уровень: ${level}. Дополнительный фокус: ${focus || "нет"}. Не повторяй эти названия и механики: ${titles.join("; ")}. Длительность 3–5 минут. Не ставь диагноз, не обещай лечение, не используй принуждение, удерживание, наказание, опасные мелкие предметы или сенсорную перегрузку. Казахский текст должен быть естественным, русский — естественным. Шагов ровно три.`;
-    const aiResponse = await fetch("https://api.openai.com/v1/responses", {
+    const model = Deno.env.get("GEMINI_MODEL") || "gemini-3.5-flash";
+    const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: Deno.env.get("OPENAI_MODEL") || "gpt-5.6-luna",
-        store: false,
-        input: [{ role: "system", content: "Ты редактор безопасных двуязычных домашних упражнений Qadam. Возвращай только данные по схеме." }, { role: "user", content: prompt }],
-        text: { format: { type: "json_schema", name: "qadam_exercise", strict: true, schema: { type: "object", additionalProperties: false, properties: { durationMinutes: { type: "integer", minimum: 3, maximum: 5 }, kk: languageShape, ru: languageShape }, required: ["durationMinutes","kk","ru"] } } }
+        systemInstruction: { parts: [{ text: "Ты редактор безопасных двуязычных домашних упражнений Qadam. Возвращай только данные по схеме." }] },
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseFormat: {
+            text: {
+              mimeType: "application/json",
+              schema: { type: "object", additionalProperties: false, properties: { durationMinutes: { type: "integer", minimum: 3, maximum: 5 }, kk: languageShape, ru: languageShape }, required: ["durationMinutes","kk","ru"] }
+            }
+          }
+        }
       }),
     });
     const ai = await aiResponse.json();
     if (!aiResponse.ok) return json(req, { error: ai.error?.message || "ИИ не смог создать упражнение" }, 502);
-    const text = ai.output?.flatMap((item: { content?: unknown[] }) => item.content || []).find((item: { type?: string }) => item.type === "output_text")?.text;
+    const text = ai.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || "").join("");
     if (!text) return json(req, { error: "ИИ вернул пустой результат" }, 502);
     const generated = JSON.parse(text);
     const content = { id, category, level, durationMinutes: generated.durationMinutes, isActive: false, kk: generated.kk, ru: generated.ru };
