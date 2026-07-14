@@ -1916,6 +1916,10 @@ button:not(:disabled):active {
 
 .landing-preview {
   position: relative;
+  min-height: 650px;
+  display: grid;
+  align-items: end;
+  isolation: isolate;
 }
 
 .preview-glow {
@@ -1927,8 +1931,44 @@ button:not(:disabled):active {
   filter: blur(36px);
 }
 
+.landing-family-visual,
+.landing-activity-visual {
+  margin: 0;
+  overflow: hidden;
+  background: #dfeee9;
+  border: 1px solid rgba(176, 215, 206, 0.9);
+  box-shadow: 0 28px 72px rgba(28, 76, 72, 0.16);
+}
+
+.landing-family-visual {
+  position: absolute;
+  inset: 0 36px 84px 0;
+  z-index: -1;
+  border-radius: 34px;
+}
+
+.landing-family-visual::after,
+.landing-activity-visual::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.34);
+  border-radius: inherit;
+}
+
+.landing-family-visual img,
+.landing-activity-visual img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
 .plan-preview-card {
   position: relative;
+  width: min(94%, 440px);
+  margin: 0 0 0 auto;
   padding: 26px;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.94);
@@ -2152,6 +2192,17 @@ button:not(:disabled):active {
 .faq-list {
   display: grid;
   gap: 14px;
+}
+
+.contrast-visual-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.landing-activity-visual {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  border-radius: 24px;
 }
 
 .contrast-card {
@@ -2534,6 +2585,14 @@ button:not(:disabled):active {
     border-radius: 22px;
   }
 
+  .landing-preview {
+    min-height: 590px;
+  }
+
+  .landing-family-visual {
+    inset: 0 20px 102px 0;
+  }
+
   .landing-section {
     padding: 78px 0;
   }
@@ -2564,6 +2623,23 @@ button:not(:disabled):active {
 
   .plan-preview-card li {
     grid-template-columns: 32px minmax(0, 1fr) 30px;
+  }
+
+  .landing-preview {
+    min-height: auto;
+    display: block;
+  }
+
+  .landing-family-visual {
+    position: relative;
+    inset: auto;
+    aspect-ratio: 4 / 5;
+    margin-bottom: -72px;
+    border-radius: 24px;
+  }
+
+  .plan-preview-card {
+    width: calc(100% - 22px);
   }
 
   .landing-stats-grid > div {
