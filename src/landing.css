@@ -1,0 +1,39 @@
+.app-shell:has(.landing-page) .account-controls {
+  top: 24px;
+  right: max(24px, calc((100vw - 1160px) / 2));
+  padding: 5px;
+  border-color: rgba(183, 216, 208, 0.94);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 28px rgba(20, 73, 69, 0.1);
+}
+
+.app-shell:has(.landing-page) .account-controls a,
+.app-shell:has(.landing-page) .account-controls button {
+  min-height: 40px;
+  padding: 9px 14px;
+  color: #075e59;
+  border-radius: 9px;
+  font-size: 0.8rem;
+}
+
+.app-shell:has(.landing-page) .account-controls .account-register {
+  color: white;
+  background: #087f77;
+}
+
+.app-shell:has(.landing-page) .account-controls .account-register:hover {
+  background: #075e59;
+}
+
+@media (max-width: 680px) {
+  .app-shell:has(.landing-page) .account-controls {
+    top: 18px;
+    right: 16px;
+  }
+
+  .app-shell:has(.landing-page) .account-controls a,
+  .app-shell:has(.landing-page) .account-controls button {
+    padding-inline: 11px;
+  }
+}
