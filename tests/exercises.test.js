@@ -4,23 +4,19 @@ import { describe, it } from "node:test";
 import { exerciseCategoryOrder } from "../src/data/exercise-localization.js";
 import { exercises, getExerciseById } from "../src/data/exercises.js";
 
-describe("120 exercise catalogue", () => {
-  it("contains 120 unique active exercises", () => {
-    assert.equal(exercises.length, 120);
-    assert.equal(new Set(exercises.map((exercise) => exercise.id)).size, 120);
+describe("growing exercise catalogue", () => {
+  it("contains unique active exercises", () => {
+    assert.ok(exercises.length > 0);
+    assert.equal(new Set(exercises.map((exercise) => exercise.id)).size, exercises.length);
     assert.ok(exercises.every((exercise) => exercise.isActive));
   });
 
-  it("contains 15 exercises and five exercises per level in every category", () => {
+  it("contains exercises at every level in every category", () => {
     for (const category of exerciseCategoryOrder) {
       const categoryExercises = exercises.filter((exercise) => exercise.category === category);
-      assert.equal(categoryExercises.length, 15, category);
+      assert.ok(categoryExercises.length > 0, category);
       for (const level of [1, 2, 3]) {
-        assert.equal(
-          categoryExercises.filter((exercise) => exercise.level === level).length,
-          5,
-          `${category} level ${level}`,
-        );
+        assert.ok(categoryExercises.some((exercise) => exercise.level === level), `${category} level ${level}`);
       }
     }
   });
@@ -59,7 +55,7 @@ describe("120 exercise catalogue", () => {
     for (const category of exerciseCategoryOrder) {
       const categoryExercises = exercises.filter((exercise) => exercise.category === category);
       for (const language of ["kk", "ru"]) {
-        assert.equal(new Set(categoryExercises.map((exercise) => exercise[language].parentWords)).size, 15, `${category}.${language}`);
+        assert.equal(new Set(categoryExercises.map((exercise) => exercise[language].parentWords)).size, categoryExercises.length, `${category}.${language}`);
       }
     }
   });

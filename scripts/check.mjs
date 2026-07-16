@@ -40,11 +40,11 @@ async function exists(filePath) {
   try { await access(filePath); return true; } catch { return false; }
 }
 
-if (!index.includes('src="/src/auth-entry.js"')) failures.push("index.html must load /src/auth-entry.js");
+if (!/src="\/src\/auth-entry\.js(?:\?[^\"]+)?"/.test(index)) failures.push("index.html must load /src/auth-entry.js");
 if (!index.includes('href="/src/styles.css"')) failures.push("index.html must load /src/styles.css");
 if (!index.includes('href="/src/auth.css"')) failures.push("index.html must load /src/auth.css");
 if (!index.includes('src="/public/vendor/lucide.min.js"')) failures.push("index.html must load the local Lucide bundle");
-if (!authEntry.includes('import("./app.js")')) failures.push("auth entry must load the application on non-auth routes");
+if (!/import\("\.\/app\.js(?:\?[^\"]+)?"\)/.test(authEntry)) failures.push("auth entry must load the application on non-auth routes");
 if (!app.includes("globalThis.lucide.createIcons")) failures.push("app.js must mount Lucide icons after rendering");
 if (/raw\.githubusercontent\.com|qadam-initial-app|exercise-bank/.test(index + app + authEntry)) failures.push("production code must not load a remote or retired application version");
 if (/\sstyle=/.test(app + adaptiveFlow + authEntry)) failures.push("inline style attributes are blocked by the production Content Security Policy");

@@ -425,11 +425,16 @@ function renderNotFound() {
 }
 
 function guardRoute(pathname) {
+  const superadminCatalogAccess = Boolean(
+    globalThis.qadamAuth?.canBrowseCatalogWithoutOnboarding?.()
+      && (pathname === "/library" || pathname.startsWith("/library/")),
+  );
   if (["/lessons", "/intro", "/result"].includes(pathname) || pathname.startsWith("/lesson/") || pathname.startsWith("/assessment/")) {
     return state.progress.onboardingCompleted ? "/library" : "/language";
   }
   if (pathname === "/dashboard") return state.progress.onboardingCompleted ? "/today" : "/language";
   if (["/", "/language", "/onboarding"].includes(pathname)) return pathname;
+  if (superadminCatalogAccess) return pathname;
   if (!state.progress.onboardingCompleted) return "/language";
   return guardAdaptiveRoute(pathname, state) || pathname;
 }

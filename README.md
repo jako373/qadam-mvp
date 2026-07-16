@@ -1,6 +1,6 @@
 # Qadam Parent MVP
 
-Qadam is a dependency-free bilingual web platform that gives parents clear home exercises matched to their child's current skills. The active product contains one adaptive catalogue of 120 exercises in Kazakh and Russian.
+Qadam is a dependency-free bilingual web platform that gives parents clear home exercises matched to their child's current skills. The product uses a growing adaptive catalogue in Kazakh and Russian.
 
 ## Parent Flow
 
@@ -8,7 +8,7 @@ Qadam is a dependency-free bilingual web platform that gives parents clear home 
 2. Sixteen short questions establish a separate starting level for eight skill areas. Every question has its own relevant answer choices.
 3. Qadam prepares exactly three exercises for the day, with no more than one new exercise.
 4. Every exercise shows what to prepare, the exact phrase to say, three actions, how often to repeat, the expected result, the benefit, and when to stop.
-5. After each exercise, the parent chooses one outcome: independent, assisted, unable, or refused. Qadam immediately selects and opens the next exercise from the 120-exercise catalogue using that result.
+5. After each exercise, the parent chooses one outcome: independent, assisted, unable, or refused. Qadam immediately selects and opens the next exercise from the adaptive catalogue using that result.
 6. As soon as the third result is saved, Qadam prepares the next day's three exercises using the completed outcomes.
 7. The Summary screen shows the child's name, the next day number, all three prepared exercises, and one clear Open button. Parents never need to search the catalogue for the assigned plan.
 8. A short reassessment becomes available after 14 days.
@@ -17,7 +17,7 @@ The diagnosis remains part of the child profile but is not used as a diagnosis e
 
 ## Exercise Catalogue
 
-- 120 exercises across eight categories
+- A growing exercise library across key development areas
 - 15 exercises per category
 - Five exercises at each of levels 1, 2, and 3
 - Complete Kazakh and Russian parent instructions
