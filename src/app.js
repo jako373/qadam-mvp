@@ -93,6 +93,29 @@ function renderLanguageSwitcher(compact = false) {
   `;
 }
 
+function renderHeaderActions(scope = "app") {
+  const labels = t();
+  const menuId = `${scope}-mobile-menu`;
+  return `
+    <div class="header-actions-desktop">
+      ${renderLanguageSwitcher(true)}
+      <div data-account-controls-mount></div>
+    </div>
+    <button
+      class="header-menu-toggle"
+      data-header-menu-toggle
+      type="button"
+      aria-expanded="false"
+      aria-controls="${menuId}"
+      aria-label="${escapeHtml(labels.mobileNavigation)}"
+    >${icon("menu", "header-menu-icon")}</button>
+    <div id="${menuId}" class="header-mobile-menu" data-header-menu-panel hidden>
+      ${renderLanguageSwitcher(true)}
+      <div data-account-controls-mount></div>
+    </div>
+  `;
+}
+
 function navButton(path, iconName, label) {
   const active = normalizePath(location.pathname) === path;
   return `
@@ -114,7 +137,7 @@ function renderTopNav() {
       <nav aria-label="${labels.primaryNavigation}">
         ${getAdaptiveNav(state.language).map(([path, iconName, label]) => navButton(path, iconName, label)).join("")}
       </nav>
-      ${renderLanguageSwitcher(true)}
+      ${renderHeaderActions("app")}
     </header>
   `;
 }
@@ -159,12 +182,13 @@ function renderLanding() {
         <section class="landing-hero" aria-labelledby="landing-title">
           <div class="landing-orb landing-orb-one" aria-hidden="true"></div>
           <div class="landing-orb landing-orb-two" aria-hidden="true"></div>
-          <div class="landing-container landing-hero-grid">
-            <div class="landing-hero-copy">
-              <div class="landing-brand-row">
-                <a class="landing-brand" href="/" aria-label="${labels.homeAria}"><span>Q</span><strong>${labels.brand}</strong></a>
-                ${renderLanguageSwitcher(true)}
-              </div>
+          <div class="landing-container">
+            <header class="landing-brand-row">
+              <a class="landing-brand" href="/" aria-label="${labels.homeAria}"><span>Q</span><strong>${labels.brand}</strong></a>
+              ${renderHeaderActions("landing")}
+            </header>
+            <div class="landing-hero-grid">
+              <div class="landing-hero-copy">
               <div class="landing-eyebrow">${icon("heart-handshake", "landing-eyebrow-icon")}<span>${landing.eyebrow}</span></div>
               <div class="landing-proof-badge">${icon("badge-check", "landing-proof-icon")}<span>${landing.proofBadge}</span></div>
               <h1 id="landing-title">${labels.landingTitle}</h1>
@@ -195,6 +219,7 @@ function renderLanding() {
                 <div class="preview-parent-note">${icon("message-circle-heart", "preview-note-icon")}<span>${labels.benefits[1][1]}</span></div>
               </article>
             </div>
+          </div>
           </div>
         </section>
 
@@ -491,6 +516,17 @@ function normalizeState() {
 }
 
 function handleClick(event) {
+  const menuToggle = event.target.closest("[data-header-menu-toggle]");
+  if (menuToggle) {
+    const menuId = menuToggle.getAttribute("aria-controls");
+    const panel = menuId ? document.getElementById(menuId) : null;
+    if (!panel) return;
+    const willOpen = panel.hidden;
+    panel.hidden = !willOpen;
+    menuToggle.setAttribute("aria-expanded", String(willOpen));
+    return;
+  }
+
   if (handleAdaptiveClick(event, adaptiveContext())) return;
 
   const route = event.target.closest("[data-route]");
