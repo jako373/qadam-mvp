@@ -70,6 +70,27 @@ async function signUp(email, password) {
   return result;
 }
 
+async function requestPasswordReset(email) {
+  const redirectTo = encodeURIComponent(`${location.origin}/reset-password`);
+  return apiRequest(`/auth/v1/recover?redirect_to=${redirectTo}`, {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+function recoveryAccessToken() {
+  const params = new URLSearchParams(location.hash.replace(/^#/, ""));
+  return params.get("type") === "recovery" ? params.get("access_token") : null;
+}
+
+async function updatePassword(accessToken, password) {
+  return apiRequest("/auth/v1/user", {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ password }),
+  });
+}
+
 async function signOut() {
   const session = readSession();
   clearSession();
@@ -227,12 +248,15 @@ function authSteps(active) {
 }
 
 function loginMarkup() {
-  const confirmed = new URLSearchParams(location.search).get("confirmed") === "1";
+  const params = new URLSearchParams(location.search);
+  const confirmed = params.get("confirmed") === "1";
+  const passwordReset = params.get("password_reset") === "1";
   return `<main class="auth-page"><section class="auth-card" aria-labelledby="login-title">
     <a class="auth-brand" href="/" aria-label="Qadam, на главную"><span>Q</span><strong>Qadam</strong></a>${authSteps(1)}
     <div class="auth-kicker">Личный кабинет</div><h1 id="login-title">Вход в Qadam</h1>
-    <p>${confirmed ? "Email подтверждён. Теперь войдите в аккаунт." : "Продолжите занятия ребёнка с того места, где остановились."}</p>
+    <p>${passwordReset ? "Пароль обновлён. Теперь войдите с новым паролем." : confirmed ? "Email подтверждён. Теперь войдите в аккаунт." : "Продолжите занятия ребёнка с того места, где остановились."}</p>
     <form id="login-form" class="auth-form"><label><span>Email</span><input name="email" type="email" autocomplete="username" required /></label><label><span>Пароль</span><input name="password" type="password" autocomplete="current-password" required minlength="8" /></label><p id="login-error" class="auth-error" role="alert" hidden></p><button class="auth-primary" type="submit">Войти</button></form>
+    <p class="auth-switch"><a href="/forgot-password">Забыли пароль?</a></p>
     <p class="auth-switch">Нет аккаунта? <a href="/register">Зарегистрироваться</a></p><a class="auth-back" href="/">Вернуться на главную</a>
   </section></main>`;
 }
@@ -246,12 +270,93 @@ function registerMarkup() {
   </section></main>`;
 }
 
+function forgotPasswordMarkup() {
+  return `<main class="auth-page"><section class="auth-card" aria-labelledby="forgot-title">
+    <a class="auth-brand" href="/" aria-label="Qadam, на главную"><span>Q</span><strong>Qadam</strong></a>
+    <div class="auth-kicker">Восстановление доступа</div><h1 id="forgot-title">Забыли пароль?</h1>
+    <p>Введите email аккаунта Qadam. Мы отправим безопасную ссылку для создания нового пароля.</p>
+    <form id="forgot-form" class="auth-form"><label><span>Email</span><input name="email" type="email" autocomplete="username" required /></label><p id="forgot-error" class="auth-error" role="alert" hidden></p><button class="auth-primary" type="submit">Отправить ссылку</button></form>
+    <p class="auth-switch"><a href="/login">Вернуться ко входу</a></p>
+  </section></main>`;
+}
+
+function resetPasswordMarkup() {
+  const hasToken = Boolean(recoveryAccessToken());
+  return `<main class="auth-page"><section class="auth-card" aria-labelledby="reset-title">
+    <a class="auth-brand" href="/" aria-label="Qadam, на главную"><span>Q</span><strong>Qadam</strong></a>
+    <div class="auth-kicker">Новый пароль</div><h1 id="reset-title">${hasToken ? "Создайте новый пароль" : "Ссылка недействительна"}</h1>
+    ${hasToken ? `<p>Введите новый пароль для аккаунта Qadam.</p><form id="reset-form" class="auth-form"><label><span>Новый пароль</span><input name="password" type="password" autocomplete="new-password" required minlength="8" /></label><label><span>Повторите пароль</span><input name="passwordConfirm" type="password" autocomplete="new-password" required minlength="8" /></label><p class="auth-hint">Минимум 8 символов. Используйте уникальный пароль.</p><p id="reset-error" class="auth-error" role="alert" hidden></p><button class="auth-primary" type="submit">Сохранить новый пароль</button></form>` : `<p>Ссылка истекла или уже была использована. Запросите новую ссылку восстановления.</p><a class="auth-primary auth-link" href="/forgot-password">Получить новую ссылку</a>`}
+    <p class="auth-switch"><a href="/login">Вернуться ко входу</a></p>
+  </section></main>`;
+}
+
 function mountLogin() {
   app.innerHTML = loginMarkup();
   const form = document.getElementById("login-form"); const errorBox = document.getElementById("login-error");
   form.addEventListener("submit", async (event) => { event.preventDefault(); const button = form.querySelector("button"); const data = new FormData(form); button.disabled = true; button.textContent = "Входим…"; errorBox.hidden = true;
     try { const session = await signIn(String(data.get("email") || "").trim(), String(data.get("password") || "")); location.replace(isSuperadmin(session) ? "/account-mode" : (isAdmin(session) ? "/admin" : userDestination())); }
     catch (error) { errorBox.textContent = error.message === "Invalid login credentials" ? "Неверный email или пароль" : error.message; errorBox.hidden = false; button.disabled = false; button.textContent = "Войти"; }
+  });
+}
+
+function mountForgotPassword() {
+  app.innerHTML = forgotPasswordMarkup();
+  const form = document.getElementById("forgot-form");
+  const errorBox = document.getElementById("forgot-error");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = form.querySelector("button");
+    const email = String(new FormData(form).get("email") || "").trim();
+    button.disabled = true;
+    button.textContent = "Отправляем…";
+    errorBox.hidden = true;
+    try {
+      await requestPasswordReset(email);
+      app.innerHTML = `<main class="auth-page"><section class="auth-card auth-success"><div class="auth-success-mark">✓</div><div class="auth-kicker">Письмо отправлено</div><h1>Проверьте почту</h1><p>Если аккаунт с таким email существует, вы получите ссылку для создания нового пароля.</p><a class="auth-primary auth-link" href="/login">Вернуться ко входу</a></section></main>`;
+    } catch (error) {
+      errorBox.textContent = /rate limit/i.test(error.message) ? "Слишком много писем. Подождите немного и попробуйте снова." : error.message;
+      errorBox.hidden = false;
+      button.disabled = false;
+      button.textContent = "Отправить ссылку";
+    }
+  });
+}
+
+function mountResetPassword() {
+  app.innerHTML = resetPasswordMarkup();
+  const form = document.getElementById("reset-form");
+  if (!form) return;
+  const errorBox = document.getElementById("reset-error");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+    const password = String(data.get("password") || "");
+    const confirmation = String(data.get("passwordConfirm") || "");
+    if (password !== confirmation) {
+      errorBox.textContent = "Пароли не совпадают";
+      errorBox.hidden = false;
+      return;
+    }
+    const accessToken = recoveryAccessToken();
+    if (!accessToken) {
+      location.replace("/forgot-password");
+      return;
+    }
+    const button = form.querySelector("button");
+    button.disabled = true;
+    button.textContent = "Сохраняем…";
+    errorBox.hidden = true;
+    try {
+      await updatePassword(accessToken, password);
+      clearSession();
+      history.replaceState({}, "", "/login?password_reset=1");
+      location.reload();
+    } catch (error) {
+      errorBox.textContent = /expired|invalid|jwt/i.test(error.message) ? "Ссылка истекла. Запросите новую ссылку." : error.message;
+      errorBox.hidden = false;
+      button.disabled = false;
+      button.textContent = "Сохранить новый пароль";
+    }
   });
 }
 
@@ -426,12 +531,14 @@ function decorateApp(session) {
 
 document.documentElement.lang = "ru";
 const path = location.pathname.replace(/\/$/, "") || "/";
-const publicRoutes = new Set(["/", "/login", "/register"]);
+const publicRoutes = new Set(["/", "/login", "/register", "/forgot-password", "/reset-password"]);
 const session = await getSession();
 if ((path === "/login" || path === "/register") && session) location.replace(isSuperadmin(session) ? "/account-mode" : (isAdmin(session) ? "/admin" : userDestination()));
 else if (path === "/login") mountLogin();
 else if (path === "/register") mountRegister();
 else if (path === "/account-mode") renderAccountMode(session);
+else if (path === "/forgot-password") mountForgotPassword();
+else if (path === "/reset-password") mountResetPassword();
 else if (path === "/admin") await renderAdmin();
 else if (!publicRoutes.has(path) && !session) location.replace(`/login?next=${encodeURIComponent(path)}`);
 else { if (session) { await Promise.all([hydrateState(session), hydrateExerciseCatalogue(session)]); } await import("./app.js?v=20260715-superadmin-library"); decorateApp(session); }
