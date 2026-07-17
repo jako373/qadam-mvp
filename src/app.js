@@ -87,12 +87,11 @@ function pageShell(content, options = {}) {
 
 function renderUtilityNav() {
   const labels = t();
-  const homePath = state.progress.onboardingCompleted ? "/today" : "/";
   return `
     <header class="utility-nav">
-      <button class="utility-home" data-route="${homePath}" type="button" aria-label="${labels.homeAria}">
+      <a class="utility-home" href="/" aria-label="${labels.homeAria}">
         ${icon("house")}<span>${labels.brand}</span>
-      </button>
+      </a>
       <div class="utility-actions">
         <button class="subscription-chip" data-route="/subscription" type="button">${icon("sparkles")}<span>${state.language === "ru" ? "Подписка" : "Жазылым"}</span></button>
         ${renderLanguageSwitcher(true)}
