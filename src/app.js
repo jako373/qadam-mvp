@@ -94,7 +94,7 @@ function renderUtilityNav() {
         ${icon("house")}<span>${labels.brand}</span>
       </button>
       <div class="utility-actions">
-        ${state.adaptive.initialAssessment.completedAt ? `<button class="subscription-chip" data-route="/subscription" type="button">${icon("sparkles")}<span>${state.language === "ru" ? "Подписка" : "Жазылым"}</span></button>` : ""}
+        <button class="subscription-chip" data-route="/subscription" type="button">${icon("sparkles")}<span>${state.language === "ru" ? "Подписка" : "Жазылым"}</span></button>
         ${renderLanguageSwitcher(true)}
         <div data-account-controls-mount></div>
       </div>
@@ -117,7 +117,7 @@ function renderHeaderActions(scope = "app") {
   const menuId = `${scope}-mobile-menu`;
   return `
     <div class="header-actions-desktop">
-      ${state.adaptive.initialAssessment.completedAt ? `<button class="subscription-chip" data-route="/subscription" type="button">${icon("sparkles")}<span>${state.language === "ru" ? "Подписка" : "Жазылым"}</span></button>` : ""}
+      <button class="subscription-chip" data-route="/subscription" type="button">${icon("sparkles")}<span>${state.language === "ru" ? "Подписка" : "Жазылым"}</span></button>
       ${renderLanguageSwitcher(true)}
       <div data-account-controls-mount></div>
     </div>
@@ -130,7 +130,7 @@ function renderHeaderActions(scope = "app") {
       aria-label="${escapeHtml(labels.mobileNavigation)}"
     >${icon("menu", "header-menu-icon")}</button>
     <div id="${menuId}" class="header-mobile-menu" data-header-menu-panel hidden>
-      ${state.adaptive.initialAssessment.completedAt ? `<button class="subscription-chip" data-route="/subscription" type="button">${icon("sparkles")}<span>${state.language === "ru" ? "Подписка" : "Жазылым"}</span></button>` : ""}
+      <button class="subscription-chip" data-route="/subscription" type="button">${icon("sparkles")}<span>${state.language === "ru" ? "Подписка" : "Жазылым"}</span></button>
       ${renderLanguageSwitcher(true)}
       <div data-account-controls-mount></div>
     </div>
