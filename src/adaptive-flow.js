@@ -14,6 +14,7 @@ import {
   markDayCompleted,
   outcomeMessage,
   recordExerciseOutcome,
+  skillProgressSnapshot,
   skillStatus,
   weeklySummary,
 } from "./lib/progress-engine.js";
@@ -37,6 +38,8 @@ const libraryFilter = {
   search: "",
   favoritesOnly: false,
 };
+
+let openProgressCategory = exerciseCategoryOrder[0];
 
 const detailUi = {
   kk: {
@@ -453,374 +456,19 @@ function renderToday(context) {
     ${tomorrow ? renderTomorrowPreview(context, tomorrow.date, tomorrow.plan) : ""}
     ${done && !full ? renderFreeLimitReached(context) : ""}
 
-    <section class="weekly-strip">
-      <div><strong>${summary.completed}</strong><span>${ui.completedExercises}</span></div>
-      <div><strong>${summary.newSkills}</strong><span>${ui.newSkills}</span></div>
-    </section>
-  `);
-}
-
-function renderDailyExercise(context, index) {
-  const { state, access = { access_tier: "complimentary" }, pageShell, escapeHtml, saveState, icon } = context;
-  const ui = labels(state.language);
-  const { date, plan } = ensureTodayPlan(state, saveState, access);
-  const item = plan.items[index - 1];
-  const exercise = item ? getExerciseById(item.exerciseId) : null;
-  if (!exercise) return null;
-  const copy = exerciseCopy(exercise, state.language);
-  const category = categoryCopy(exercise.category, state.language);
-  const adjustment = item.variant === "easier"
-    ? [ui.easier, copy.easierVersion]
-    : item.variant === "guided"
-      ? [ui.parentTip, copy.parentTip]
-      : item.variant === "progress"
-        ? [ui.harder, copy.harderVersion]
-        : item.variant === "alternative"
-          ? [ui.parentTip, copy.parentTip]
-          : null;
-
-  return pageShell(
-    `
-      <section class="daily-exercise">
-        ${progressHeader(index, 3, state.language)}
-        <header class="lesson-heading">
-          <span class="adaptive-eyebrow">${escapeHtml(planDayLabel(state.adaptive, date, state.language))} · ${escapeHtml(category.title)} · ${exercise.durationMinutes} ${ui.minutes}${item.isNew ? ` · ${ui.newExercise}` : ""}</span>
-          <h1>${escapeHtml(copy.title)}</h1>
-          <p>${escapeHtml(copy.goal)}</p>
-        </header>
-
-        ${adjustment ? `
-          <section class="plan-adjustment">
-            ${icon(item.variant === "easier" ? "corner-down-left" : item.variant === "progress" ? "trending-up" : "hand-heart")}
-            <div><span>${escapeHtml(adjustment[0])}</span><strong>${escapeHtml(adjustment[1])}</strong></div>
-          </section>
-        ` : ""}
-
-        <section class="parent-script">
-          ${icon("message-circle", "instruction-icon")}
-          <div><span>${ui.sayThis}</span><blockquote>${escapeHtml(copy.parentWords || copy.title)}</blockquote></div>
-        </section>
-
-        <section class="lesson-preparation">
-          <div>
-            ${icon("package-open")}
-            <span>${ui.needed}</span>
-            <strong>${escapeHtml(copy.materials.join(", ") || ui.noMaterials)}</strong>
-          </div>
-          <div>
-            ${icon("move-horizontal")}
-            <span>${ui.prepare}</span>
-            <strong>${escapeHtml(copy.preparation || copy.steps[0])}</strong>
-          </div>
-        </section>
-
-        <section class="three-steps">
-          <h2>${ui.howTo}</h2>
-          <ol>
-            ${copy.steps.map((step) => `<li><span>${escapeHtml(step)}</span></li>`).join("")}
-          </ol>
-        </section>
-
-        <section class="lesson-detail-grid">
-          <article>
-            ${icon("repeat-2")}
-            <div><strong>${ui.repeatPlan}</strong><p>${escapeHtml(copy.repeatPlan)}</p></div>
-          </article>
-          <article>
-            ${icon("badge-check")}
-            <div><strong>${ui.success}</strong><p>${escapeHtml(copy.successCriteria)}</p></div>
-          </article>
-          <article>
-            ${icon("sparkles")}
-            <div><strong>${ui.whyUseful}</strong><p>${escapeHtml(copy.benefit)}</p></div>
-          </article>
-          <article>
-            ${icon("octagon-pause")}
-            <div><strong>${ui.stopRule}</strong><p>${escapeHtml(copy.stopRule)}</p></div>
-          </article>
-        </section>
-
-        <button class="primary adaptive-primary full" data-daily-next="${index}" type="button">
-          <span>${ui.markResult}</span>${icon("arrow-right")}
-        </button>
-      </section>
-    `,
-    { nav: false },
-  );
-}
-
-function renderDailyResult(context, index) {
-  const { state, access = { access_tier: "complimentary" }, pageShell, escapeHtml, saveState, icon } = context;
-  const ui = labels(state.language);
-  const { date, plan } = ensureTodayPlan(state, saveState, access);
-  const item = plan.items[index - 1];
-  const exercise = item ? getExerciseById(item.exerciseId) : null;
-  if (!exercise) return null;
-  const copy = exerciseCopy(exercise, state.language);
-  const outcomeButtons = [
-    ["independent", ui.independent, "circle-check"],
-    ["assisted", ui.assisted, "hand-helping"],
-    ["unable", ui.unable, "circle-minus"],
-    ["refused", ui.refused, "circle-pause"],
-  ];
-
-  return pageShell(
-    `
-      <section class="adaptive-question outcome-question">
-        ${progressHeader(index, 3, state.language)}
-        <span class="adaptive-eyebrow">${escapeHtml(planDayLabel(state.adaptive, date, state.language))} · ${ui.resultOne}</span>
-        <h1>${escapeHtml(copy.title)}</h1>
-        <p class="adaptive-lead">${ui.howWasIt}</p>
-        <div class="answer-stack outcome-stack">
-          ${outcomeButtons.map(([value, title, iconName]) => `
-            <button class="answer-button" data-exercise-outcome="${index}:${value}" type="button">
-              ${icon(iconName)}<span>${title}</span>
-            </button>
-          `).join("")}
-        </div>
-      </section>
-    `,
-    { nav: false },
-  );
-}
-
-function renderDailySummary(context) {
-  const { state, access = { access_tier: "complimentary" }, pageShell, escapeHtml, saveState, icon } = context;
-  const ui = labels(state.language);
-  const { date, plan } = ensureTodayPlan(state, saveState, access);
-  const tomorrow = hasFullAccess(access) ? ensureTomorrowPlan(state, saveState, date) : null;
-  return pageShell(
-    `
-      <section class="adaptive-center daily-summary">
-        <div class="ready-mark" aria-hidden="true">${icon("check")}</div>
-        <h1>${escapeHtml(planDayLabel(state.adaptive, date, state.language))} ${state.language === "ru" ? "завершён" : "аяқталды"}</h1>
-        <p class="adaptive-lead">${ui.summaryText}</p>
-        <div class="summary-results">
-          ${plan.items.map((item) => {
-            const exercise = getExerciseById(item.exerciseId);
-            const outcome = plan.results[item.exerciseId];
-            return `
-              <div>
-                <strong>${escapeHtml(exerciseCopy(exercise, state.language).title)}</strong>
-                <span>${escapeHtml(outcomeMessage(outcome, state.language))}</span>
-              </div>
-            `;
-          }).join("")}
-        </div>
-        ${tomorrow ? renderTomorrowPreview(context, tomorrow.date, tomorrow.plan) : renderFreeLimitReached(context)}
-        <button class="primary adaptive-primary" data-route="/today" type="button">${icon("house")}<span>${ui.backToday}</span></button>
-      </section>
-    `,
-    { nav: false },
-  );
-}
-
-function renderLibraryCard(exercise, context) {
-  const { state, escapeHtml, icon } = context;
-  const ui = labels(state.language);
-  const copy = exerciseCopy(exercise, state.language);
-  const category = categoryCopy(exercise.category, state.language);
-  const favorite = state.adaptive.favoriteExerciseIds.includes(exercise.id);
-  const searchText = `${copy.title} ${category.title} ${copy.materials.join(" ")}`.toLocaleLowerCase(state.language);
-  return `
-    <article
-      class="exercise-library-card"
-      data-exercise-card
-      data-category="${exercise.category}"
-      data-level="${exercise.level}"
-      data-search="${escapeHtml(searchText)}"
-      data-is-favorite="${favorite ? "true" : "false"}"
-      hidden
-    >
-      <div>
-        <span>${escapeHtml(category.title)} · ${escapeHtml(levelLabel(exercise.level, state.language))}</span>
-        <h3>${escapeHtml(copy.title)}</h3>
-      </div>
-      <div class="library-card-actions">
-        <button
-          class="favorite-button ${favorite ? "active" : ""}"
-          data-favorite="${exercise.id}"
-          type="button"
-          aria-label="${favorite ? ui.favoriteRemove : ui.favoriteAdd}"
-          title="${favorite ? ui.favoriteRemove : ui.favoriteAdd}"
-        >${icon("heart")}</button>
-        <button class="secondary compact" data-route="/library/${exercise.id}" type="button">${icon("arrow-up-right")}<span>${ui.open}</span></button>
-      </div>
-    </article>
-  `;
-}
-
-function renderLibrary(context) {
-  const { state, access = { access_tier: "complimentary" }, pageShell, escapeHtml, saveState, icon } = context;
-  const ui = labels(state.language);
-  if (!hasFullAccess(access)) {
-    ensureTodayPlan(state, saveState, access);
-    libraryFilter.category = "";
-    libraryFilter.level = "all";
-    libraryFilter.search = "";
-    libraryFilter.favoritesOnly = false;
-    const first = firstPlanEntry(state.adaptive);
-    const unlocked = freeExerciseIds(state.adaptive).map((id) => getExerciseById(id)).filter(Boolean);
-    const free = state.language === "ru"
-      ? { eyebrow: "Freemium", title: "Три упражнения первого дня", text: "Они останутся доступны для повторения. Подписка откроет новые ежедневные планы и всю библиотеку.", cta: "Открыть подписку", note: "Ваш бесплатный доступ" }
-      : { eyebrow: "Freemium", title: "Бірінші күннің үш жаттығуы", text: "Оларды кейін де қайталай аласыз. Жазылым жаңа күнделікті жоспарлар мен барлық кітапхананы ашады.", cta: "Жазылымды ашу", note: "Сіздің тегін қолжетімділігіңіз" };
-    return pageShell(`
-      <section class="adaptive-page-head library-head">
-        <div><span class="adaptive-eyebrow">${free.eyebrow}</span><h1>${free.title}</h1><p>${free.text}</p></div>
-        <button class="primary" data-route="/subscription" type="button">${icon("sparkles")}<span>${free.cta}</span></button>
-      </section>
-      <section class="free-library-note">${icon("unlock")}<div><strong>${free.note}</strong><span>3/3</span></div></section>
-      <section class="library-results free-library-results" data-library-results hidden>
-        ${unlocked.map((exercise) => renderLibraryCard(exercise, context)).join("")}
-      </section>
-      ${first?.plan?.completedAt ? renderFreeLimitReached(context) : `<section class="free-library-upsell">${icon("lock-keyhole")}<div><strong>${free.cta}</strong><p>${free.text}</p></div><button class="secondary" data-route="/subscription" type="button">${free.cta}</button></section>`}
-    `);
-  }
-  return pageShell(`
-    <section class="adaptive-page-head library-head">
-      <div><span class="adaptive-eyebrow">${ui.library}</span><h1>${ui.allExercises}</h1><p>${ui.libraryIntro}</p></div>
-      <button class="secondary" data-library-favorites type="button">${icon("heart")}<span>${ui.favorites}</span></button>
-    </section>
-
-    <section class="library-tools">
-      <label class="library-search">
-        <span>${ui.search}</span>
-        <input data-library-search type="search" value="${escapeHtml(libraryFilter.search)}" placeholder="${ui.searchPlaceholder}" />
-      </label>
-      <label>
-        <span>${ui.level}</span>
-        <select data-library-level>
-          <option value="all">${ui.allLevels}</option>
-          ${[1, 2, 3].map((level) => `<option value="${level}" ${libraryFilter.level === String(level) ? "selected" : ""}>${levelLabel(level, state.language)}</option>`).join("")}
-        </select>
-      </label>
-    </section>
-
-    <section class="category-grid" aria-label="${ui.chooseDirection}">
-      ${exerciseCategoryOrder.map((category) => {
-        const copy = categoryCopy(category, state.language);
-        return `
-          <button class="category-button ${libraryFilter.category === category ? "active" : ""}" data-library-category="${category}" type="button">
-            ${icon(categoryIconName(category), "category-icon")}<strong>${escapeHtml(copy.title)}</strong>${icon("chevron-right", "category-chevron")}
-          </button>
-        `;
-      }).join("")}
-    </section>
-
-    <section class="library-results" data-library-results hidden>
-      ${exercises.map((exercise) => renderLibraryCard(exercise, context)).join("")}
-      <p class="library-empty" data-library-empty hidden>${ui.noResults}</p>
-    </section>
-  `);
-}
-
-function renderSubscription(context) {
-  const { state, access = { access_tier: "complimentary" }, pageShell, icon } = context;
-  const selectedCode = new URLSearchParams(location.search).get("plan");
-  const selected = SUBSCRIPTION_PLANS.find((plan) => plan.code === selectedCode);
-  const full = hasFullAccess(access);
-  const copy = state.language === "ru"
-    ? {
-        eyebrow: "Подписка Qadam",
-        title: "Новые шаги каждый день",
-        intro: "Один пакет для всей семьи: персональные планы, полная библиотека и сохранение прогресса ребёнка.",
-        active: "Полный доступ активен",
-        activeText: access?.access_until ? `Доступ действует до ${access.access_until}.` : "У доступа нет ограничения по сроку.",
-        popular: "Выгодный выбор",
-        save: "Экономия",
-        monthEquivalent: "в месяц",
-        choose: "Выбрать",
-        selected: "Вы выбрали",
-        paymentPending: "Тариф сохранён. Оплату подключим после выбора платёжного партнёра; сейчас списаний не будет.",
-        continueFree: "Продолжить бесплатно",
-        features: ["Новый адаптивный план каждый день", "Вся библиотека упражнений", "История результатов и динамика навыков", "Казахский и русский языки"],
-        periods: { month: "1 месяц", quarter: "3 месяца", half_year: "6 месяцев", year: "1 год" },
-      }
-    : {
-        eyebrow: "Qadam жазылымы",
-        title: "Күн сайын жаңа қадам",
-        intro: "Бүкіл отбасыға арналған бір пакет: жеке жоспарлар, толық кітапхана және баланың прогресін сақтау.",
-        active: "Толық қолжетімділік белсенді",
-        activeText: access?.access_until ? `Қолжетімділік ${access.access_until} дейін жарамды.` : "Қолжетімділік мерзімсіз берілген.",
-        popular: "Тиімді таңдау",
-        save: "Үнем",
-        monthEquivalent: "айына",
-        choose: "Таңдау",
-        selected: "Сіз таңдадыңыз",
-        paymentPending: "Тариф сақталды. Төлем серіктесі таңдалғаннан кейін төлемді қосамыз; қазір қаражат алынбайды.",
-        continueFree: "Тегін жалғастыру",
-        features: ["Күн сайын жаңа бейімделген жоспар", "Барлық жаттығулар кітапханасы", "Нәтижелер тарихы мен дағдылар динамикасы", "Қазақ және орыс тілдері"],
-        periods: { month: "1 ай", quarter: "3 ай", half_year: "6 ай", year: "1 жыл" },
+ …6068 tokens truncated…ерек", "Қысымсыз жеңілірек қадам ұсынамыз", "hand-heart"],
+          observing: ["Бақылау жинап жатырмыз", "Тағы бірнеше талпыныс динамиканы көрсетеді", "scan-line"],
+          starting: ["Бастау нүктесі", "Алғашқы нәтижелер сабақтан кейін көрінеді", "sprout"],
+        },
+        outcomes: { independent: "Өз бетінше", assisted: "Көмекпен", unable: "Орындай алмады", refused: "Қаламады" },
       };
-  return pageShell(`
-    <section class="subscription-page">
-      <header class="subscription-hero">
-        <div><span class="adaptive-eyebrow">${copy.eyebrow}</span><h1>${copy.title}</h1><p>${copy.intro}</p></div>
-        <div class="subscription-spark" aria-hidden="true">${icon("sparkles")}</div>
-      </header>
-      ${full ? `<section class="active-access-banner">${icon("badge-check")}<div><strong>${copy.active}</strong><span>${copy.activeText}</span></div></section>` : ""}
-      <ul class="subscription-features">${copy.features.map((feature) => `<li>${icon("check")}<span>${feature}</span></li>`).join("")}</ul>
-      <section class="pricing-grid">
-        ${SUBSCRIPTION_PLANS.map((plan) => {
-          const saving = (SUBSCRIPTION_PLANS[0].priceKzt * plan.months) - plan.priceKzt;
-          const equivalent = Math.round(plan.priceKzt / plan.months);
-          const isSelected = selected?.code === plan.code;
-          return `<article class="pricing-card ${plan.featured ? "featured" : ""} ${isSelected ? "selected" : ""}">
-            ${plan.featured ? `<span class="pricing-popular">${copy.popular}</span>` : ""}
-            <span class="pricing-period">${copy.periods[plan.code]}</span>
-            <strong class="pricing-price">${formatKzt(plan.priceKzt)}</strong>
-            <small>${formatKzt(equivalent)} ${copy.monthEquivalent}</small>
-            ${saving > 0 ? `<span class="pricing-saving">${copy.save}: ${formatKzt(saving)}</span>` : `<span class="pricing-saving neutral">4990 ₸ ${copy.monthEquivalent}</span>`}
-            <button class="${plan.featured ? "primary" : "secondary"}" data-subscription-plan="${plan.code}" type="button">${icon(isSelected ? "check" : "arrow-right")}<span>${copy.choose}</span></button>
-          </article>`;
-        }).join("")}
-      </section>
-      ${selected ? `<section class="payment-status">${icon("shield-check")}<div><strong>${copy.selected}: ${copy.periods[selected.code]} — ${formatKzt(selected.priceKzt)}</strong><p>${copy.paymentPending}</p></div></section>` : ""}
-      <button class="subscription-escape" data-route="/today" type="button">${copy.continueFree}</button>
-    </section>
-  `);
-}
-
-function renderExerciseDetail(context, exerciseId) {
-  const { state, pageShell, escapeHtml, icon } = context;
-  const ui = labels(state.language);
-  const exercise = getExerciseById(exerciseId);
-  if (!exercise) return null;
-  const copy = exerciseCopy(exercise, state.language);
-  const category = categoryCopy(exercise.category, state.language);
-  const favorite = state.adaptive.favoriteExerciseIds.includes(exercise.id);
-
-  return pageShell(`
-    <section class="exercise-detail">
-      <button class="text-back" data-route="/library" type="button">${icon("arrow-left")}<span>${ui.close}</span></button>
-      <div class="exercise-detail-head">
-        <div><span class="adaptive-eyebrow">${escapeHtml(category.title)} · ${levelLabel(exercise.level, state.language)}</span><h1>${escapeHtml(copy.title)}</h1></div>
-        <button class="favorite-button ${favorite ? "active" : ""}" data-favorite="${exercise.id}" type="button" aria-label="${favorite ? ui.favoriteRemove : ui.favoriteAdd}">${icon("heart")}</button>
-      </div>
-      <div class="exercise-facts">
-        <div><span>${ui.duration}</span><strong>${exercise.durationMinutes} ${ui.minutes}</strong></div>
-        <div><span>${ui.goal}</span><strong>${escapeHtml(copy.goal)}</strong></div>
-        <div><span>${ui.needed}</span><strong>${escapeHtml(copy.materials.join(", ") || ui.noMaterials)}</strong></div>
-      </div>
-      <section class="parent-script detail-parent-script">${icon("message-circle", "instruction-icon")}<div><span>${ui.sayThis}</span><blockquote>${escapeHtml(copy.parentWords)}</blockquote></div></section>
-      <section class="three-steps detail-steps"><h2>${ui.howTo}</h2><ol>${copy.steps.map((step) => `<li><span>${escapeHtml(step)}</span></li>`).join("")}</ol></section>
-      <section class="detail-notes">
-        <article><strong>${ui.repeatPlan}</strong><p>${escapeHtml(copy.repeatPlan)}</p></article>
-        <article><strong>${ui.success}</strong><p>${escapeHtml(copy.successCriteria)}</p></article>
-        <article><strong>${ui.easier}</strong><p>${escapeHtml(copy.easierVersion)}</p></article>
-        <article><strong>${ui.harder}</strong><p>${escapeHtml(copy.harderVersion)}</p></article>
-        <article><strong>${ui.whyUseful}</strong><p>${escapeHtml(copy.benefit)}</p></article>
-        <article><strong>${ui.stopRule}</strong><p>${escapeHtml(copy.stopRule)}</p></article>
-      </section>
-    </section>
-  `);
-}
-
-function renderAdaptiveProgress(context) {
-  const { state, pageShell, escapeHtml, icon } = context;
-  const ui = labels(state.language);
-  const summary = weeklySummary(state.adaptive);
-  const streak = completionStreak(state.adaptive);
+  const snapshots = exerciseCategoryOrder.map((category) => ({
+    category,
+    snapshot: skillProgressSnapshot(state.adaptive, category, exercises),
+  }));
+  const overallProgress = Math.round(
+    snapshots.reduce((sum, item) => sum + item.snapshot.progressPercent, 0) / snapshots.length,
+  );
   return pageShell(`
     <section class="adaptive-page-head">
       <div><span class="adaptive-eyebrow">${ui.progress}</span><h1>${ui.weeklyResult}</h1><p>${ui.childOwnPace}</p></div>
@@ -832,16 +480,46 @@ function renderAdaptiveProgress(context) {
       <div><strong>${streak}</strong><span>${ui.streak}</span></div>
     </section>
     <section class="skill-levels">
-      <div class="section-line"><h2>${ui.skillDirections}</h2></div>
-      ${exerciseCategoryOrder.map((category) => {
-        const level = state.adaptive.skillLevels[category] || 1;
+      <div class="skill-growth-intro">
+        <div><span class="adaptive-eyebrow">${progressCopy.mapEyebrow}</span><h2>${ui.skillDirections}</h2><p>${progressCopy.mapText}</p></div>
+        <div class="growth-total"><strong>${overallProgress}%</strong><span>${progressCopy.overall}</span></div>
+      </div>
+      <div class="growth-overview" aria-label="${progressCopy.overall}: ${overallProgress}%">
+        <progress max="100" value="${overallProgress}">${overallProgress}%</progress>
+        <div><span>${progressCopy.start}</span><span>${progressCopy.develops}</span><span>${progressCopy.confident}</span></div>
+      </div>
+      <div class="skill-growth-list">
+      ${snapshots.map(({ category, snapshot }, categoryIndex) => {
+        const categoryDetails = exerciseCategories[category][state.language];
+        const expanded = openProgressCategory === category;
+        const trend = progressCopy.trends[snapshot.trend];
         return `
-          <article>
-            <div><strong>${escapeHtml(categoryCopy(category, state.language).title)}</strong><span>${escapeHtml(skillStatus(level, state.language))}</span></div>
-            <div class="level-track level-${level}"><i></i></div>
+          <article class="skill-growth-card skill-color-${categoryIndex + 1} ${expanded ? "expanded" : ""}">
+            <button class="skill-growth-toggle" data-skill-progress="${category}" type="button" aria-expanded="${expanded}" aria-label="${expanded ? progressCopy.close : progressCopy.open}: ${escapeHtml(categoryDetails.title)}">
+              <span class="skill-growth-icon">${icon(categoryIconName(category))}</span>
+              <span class="skill-growth-heading"><strong>${escapeHtml(categoryDetails.title)}</strong><small>${escapeHtml(skillStatus(snapshot.level, state.language))} · ${progressCopy.stage} ${snapshot.level}/3</small></span>
+              <span class="skill-growth-value"><strong>${snapshot.progressPercent}%</strong>${icon(expanded ? "chevron-up" : "chevron-down")}</span>
+              <span class="skill-growth-bar"><progress max="100" value="${snapshot.progressPercent}">${snapshot.progressPercent}%</progress></span>
+            </button>
+            <div class="skill-growth-details" aria-hidden="${expanded ? "false" : "true"}">
+              <div class="skill-trend">${icon(trend[2])}<div><strong>${trend[0]}</strong><span>${trend[1]}</span></div></div>
+              <div class="skill-parent-grid">
+                <div><span>${progressCopy.goal}</span><strong>${escapeHtml(categoryDetails.goal)}</strong></div>
+                <div><span>${progressCopy.parentTip}</span><strong>${escapeHtml(snapshot.attempts ? categoryDetails.tip : progressCopy.noAttempts)}</strong></div>
+              </div>
+              <div class="skill-metrics">
+                <div><strong>${snapshot.attempts}</strong><span>${progressCopy.attempts}</span></div>
+                <div><strong>${snapshot.independent}</strong><span>${progressCopy.independent}</span></div>
+                <div><strong>${snapshot.assisted}</strong><span>${progressCopy.assisted}</span></div>
+                <div><strong>${snapshot.needsSupport}</strong><span>${progressCopy.needsSupport}</span></div>
+              </div>
+              <div class="skill-recent"><span>${progressCopy.recent}</span>${snapshot.recentOutcomes.length ? `<div>${snapshot.recentOutcomes.map((outcome) => `<i class="outcome-dot outcome-${outcome}" role="img" aria-label="${progressCopy.outcomes[outcome]}" title="${progressCopy.outcomes[outcome]}"></i>`).join("")}</div>` : `<small>${progressCopy.noRecent}</small>`}</div>
+              <div class="skill-stage-note"><span>${snapshot.masteredAtCurrentLevel}/3</span><p>${progressCopy.mastered}</p></div>
+            </div>
           </article>
         `;
       }).join("")}
+      </div>
     </section>
     ${isReassessmentDue(state.adaptive) ? `
       <section class="recheck-band">
@@ -1079,6 +757,14 @@ function saveOutcome(context, index, outcome) {
 }
 
 export function handleAdaptiveClick(event, context) {
+  const skillProgress = event.target.closest("[data-skill-progress]");
+  if (skillProgress) {
+    const category = skillProgress.dataset.skillProgress;
+    openProgressCategory = openProgressCategory === category ? null : category;
+    context.render();
+    return true;
+  }
+
   const subscriptionPlan = event.target.closest("[data-subscription-plan]");
   if (subscriptionPlan) {
     const plan = SUBSCRIPTION_PLANS.find((item) => item.code === subscriptionPlan.dataset.subscriptionPlan);
@@ -1210,3 +896,4 @@ export function handleAdaptiveInput(event) {
   }
   return false;
 }
+
