@@ -16,7 +16,7 @@ describe("exercise illustrations", () => {
     for (const exercise of active) {
       const markup = renderExerciseIllustration(exercise, "ru", (value) => String(value));
       assert.match(markup, new RegExp(`data-illustration-id="${exercise.id}"`));
-      assert.match(markup, /<img src="\/public\/images\/exercises\/[a-z-]+\.webp"/);
+      assert.match(markup, /<img src="\/public\/images\/exercises\/[a-z0-9-]+\.webp"/);
       assert.match(markup, /alt="Иллюстрация к упражнению/);
       assert.doesNotMatch(markup, /<svg\b/i);
     }
@@ -24,7 +24,7 @@ describe("exercise illustrations", () => {
 
   it("uses varied scenes while preserving one visual system", () => {
     const scenes = new Set(exercises.map((exercise) => exerciseIllustrationSpec(exercise).scene));
-    assert.equal(scenes.size, 40);
+    assert.equal(scenes.size, 120);
     assert.equal(exercises.length, 120);
     assert.equal(new Set(exercises.map((exercise) => renderExerciseIllustration(exercise))).size, exercises.length);
     for (const scene of scenes) {
