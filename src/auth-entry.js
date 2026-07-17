@@ -544,7 +544,7 @@ function decorateApp(session) {
       controls.dataset.accountControls = "true";
       controls.className = "account-controls";
       if (!session) controls.innerHTML = `<a href="/login">${labels.login}</a><a class="account-register" href="/register">${labels.register}</a>`;
-      else controls.innerHTML = `${isAdmin(session) ? `<a class="admin-badge" href="/admin">${labels.admin}</a>` : ""}<span>${escapeHtml(session.user?.email || "")}</span><button type="button" data-account-logout>${labels.logout}</button>`;
+      else controls.innerHTML = `${isAdmin(session) && !isSuperadmin(session) ? `<a class="admin-badge" href="/admin">${labels.admin}</a>` : ""}<span>${escapeHtml(session.user?.email || "")}</span><button type="button" data-account-logout>${labels.logout}</button>`;
       target.append(controls);
       controls.querySelector("[data-account-logout]")?.addEventListener("click", async () => {
         await signOut();

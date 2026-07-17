@@ -93,12 +93,19 @@ function renderUtilityNav() {
         ${icon("house")}<span>${labels.brand}</span>
       </a>
       <div class="utility-actions">
+        ${renderSuperadminModeSwitch()}
         <button class="subscription-chip" data-route="/subscription" type="button">${icon("sparkles")}<span>${state.language === "ru" ? "Подписка" : "Жазылым"}</span></button>
         ${renderLanguageSwitcher(true)}
         <div data-account-controls-mount></div>
       </div>
     </header>
   `;
+}
+
+function renderSuperadminModeSwitch() {
+  if (globalThis.qadamAuth?.getAccess?.().role !== "superadmin") return "";
+  const label = state.language === "ru" ? "Кабинет суперадмина" : "Суперадмин кабинеті";
+  return `<a class="superadmin-mode-switch" href="/admin" aria-label="${label}">${icon("layout-dashboard")}<span>${label}</span></a>`;
 }
 
 function renderLanguageSwitcher(compact = false) {
@@ -116,6 +123,7 @@ function renderHeaderActions(scope = "app") {
   const menuId = `${scope}-mobile-menu`;
   return `
     <div class="header-actions-desktop">
+      ${renderSuperadminModeSwitch()}
       <button class="subscription-chip" data-route="/subscription" type="button">${icon("sparkles")}<span>${state.language === "ru" ? "Подписка" : "Жазылым"}</span></button>
       ${renderLanguageSwitcher(true)}
       <div data-account-controls-mount></div>
@@ -129,6 +137,7 @@ function renderHeaderActions(scope = "app") {
       aria-label="${escapeHtml(labels.mobileNavigation)}"
     >${icon("menu", "header-menu-icon")}</button>
     <div id="${menuId}" class="header-mobile-menu" data-header-menu-panel hidden>
+      ${renderSuperadminModeSwitch()}
       <button class="subscription-chip" data-route="/subscription" type="button">${icon("sparkles")}<span>${state.language === "ru" ? "Подписка" : "Жазылым"}</span></button>
       ${renderLanguageSwitcher(true)}
       <div data-account-controls-mount></div>
