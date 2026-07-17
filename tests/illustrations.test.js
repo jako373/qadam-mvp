@@ -24,7 +24,8 @@ describe("exercise illustrations", () => {
 
   it("uses varied scenes while preserving one visual system", () => {
     const scenes = new Set(exercises.map((exercise) => exerciseIllustrationSpec(exercise).scene));
-    assert.ok(scenes.size >= 10);
+    assert.equal(scenes.size, 40);
+    assert.equal(exercises.length, 120);
     assert.equal(new Set(exercises.map((exercise) => renderExerciseIllustration(exercise))).size, exercises.length);
     for (const scene of scenes) {
       assert.equal(existsSync(new URL(`../public/images/exercises/${scene}.webp`, import.meta.url)), true);
