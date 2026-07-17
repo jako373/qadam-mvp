@@ -665,6 +665,52 @@ button:not(:disabled):active {
 }
 
 /* Adaptive exercise flow */
+.exercise-illustration {
+  position: relative;
+  isolation: isolate;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: 26px;
+  background: #edf7f3;
+  box-shadow: 0 22px 58px rgba(20, 75, 68, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+.exercise-illustration svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.exercise-illustration.full {
+  width: 100%;
+  max-width: 780px;
+}
+
+.exercise-illustration.compact {
+  width: 164px;
+  flex: 0 0 164px;
+  border-radius: 18px;
+  box-shadow: 0 10px 28px rgba(20, 75, 68, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.illustration-skeleton {
+  aspect-ratio: 16 / 9;
+  background:
+    linear-gradient(110deg, transparent 24%, rgba(255, 255, 255, 0.58) 42%, transparent 60%) 0 0 / 220% 100%,
+    linear-gradient(145deg, #def1eb, #fff1df);
+  animation: illustration-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes illustration-shimmer {
+  to { background-position: -220% 0, 0 0; }
+}
+
+.exercise-library-card:hover .exercise-illustration.compact {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(20, 75, 68, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.94);
+}
+
 .adaptive-center,
 .adaptive-question,
 .daily-exercise {
@@ -1400,16 +1446,16 @@ button:not(:disabled):active {
 }
 
 .exercise-library-card {
-  min-height: 92px;
-  display: flex;
+  min-height: 122px;
+  display: grid;
+  grid-template-columns: 164px minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 18px;
-  padding: 14px 4px;
+  padding: 14px 4px 14px 0;
   border-bottom: 1px solid var(--line);
 }
 
-.exercise-library-card > div:first-child {
+.library-card-copy {
   min-width: 0;
   display: grid;
   gap: 5px;
@@ -1635,6 +1681,27 @@ button:not(:disabled):active {
 
   .skill-levels article {
     grid-template-columns: minmax(0, 1fr) 120px;
+  }
+}
+
+@media (max-width: 620px) {
+  .exercise-library-card {
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px 0;
+  }
+
+  .exercise-illustration.compact {
+    width: 112px;
+  }
+
+  .library-card-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+
+  .exercise-illustration.full {
+    border-radius: 20px;
   }
 }
 

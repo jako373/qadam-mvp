@@ -5,6 +5,7 @@ import {
 } from "./data/assessment-questions.js";
 import { exerciseCategories, exerciseCategoryOrder } from "./data/exercise-localization.js";
 import { exercises, getExerciseById } from "./data/exercises.js";
+import { renderExerciseIllustration } from "./exercise-illustrations.js";
 import { shiftDateKey, todayKey } from "./lib/adaptive-state.js";
 import {
   calculateSkillLevels,
@@ -40,6 +41,16 @@ const libraryFilter = {
 };
 
 let openProgressCategory = exerciseCategoryOrder[0];
+let illustrationLanguage = "kk";
+
+function escapeIllustrationText(value = "") {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
 const detailUi = {
   kk: {
@@ -492,6 +503,8 @@ function renderDailyExercise(context, index) {
           <p>${escapeHtml(copy.goal)}</p>
         </header>
 
+        ${renderExerciseIllustration(exercise, state.language, escapeHtml)}
+
         ${adjustment ? `
           <section class="plan-adjustment">
             ${icon(item.variant === "easier" ? "corner-down-left" : item.variant === "progress" ? "trending-up" : "hand-heart")}
@@ -629,13 +642,15 @@ function renderLibraryCard(exercise, context) {
     <article
       class="exercise-library-card"
       data-exercise-card
+      data-exercise-id="${exercise.id}"
       data-category="${exercise.category}"
       data-level="${exercise.level}"
       data-search="${escapeHtml(searchText)}"
       data-is-favorite="${favorite ? "true" : "false"}"
       hidden
     >
-      <div>
+      <div class="exercise-illustration compact illustration-skeleton" data-illustration-mount aria-hidden="true"></div>
+      <div class="library-card-copy">
         <span>${escapeHtml(category.title)} · ${escapeHtml(levelLabel(exercise.level, state.language))}</span>
         <h3>${escapeHtml(copy.title)}</h3>
       </div>
@@ -656,6 +671,7 @@ function renderLibraryCard(exercise, context) {
 function renderLibrary(context) {
   const { state, access = { access_tier: "complimentary" }, pageShell, escapeHtml, saveState, icon } = context;
   const ui = labels(state.language);
+  illustrationLanguage = state.language;
   if (!hasFullAccess(access)) {
     ensureTodayPlan(state, saveState, access);
     libraryFilter.category = "";
@@ -800,6 +816,7 @@ function renderExerciseDetail(context, exerciseId) {
         <div><span class="adaptive-eyebrow">${escapeHtml(category.title)} · ${levelLabel(exercise.level, state.language)}</span><h1>${escapeHtml(copy.title)}</h1></div>
         <button class="favorite-button ${favorite ? "active" : ""}" data-favorite="${exercise.id}" type="button" aria-label="${favorite ? ui.favoriteRemove : ui.favoriteAdd}">${icon("heart")}</button>
       </div>
+      ${renderExerciseIllustration(exercise, state.language, escapeHtml)}
       <div class="exercise-facts">
         <div><span>${ui.duration}</span><strong>${exercise.durationMinutes} ${ui.minutes}</strong></div>
         <div><span>${ui.goal}</span><strong>${escapeHtml(copy.goal)}</strong></div>
@@ -1293,7 +1310,12 @@ export function applyLibraryFilters() {
       (!libraryFilter.favoritesOnly || card.dataset.isFavorite === "true") &&
       (!search || card.dataset.search.includes(search));
     card.hidden = !hasFilter || !matches;
-    if (hasFilter && matches) visible += 1;
+    if (hasFilter && matches) {
+      visible += 1;
+      const mount = card.querySelector("[data-illustration-mount]");
+      const exercise = mount ? getExerciseById(card.dataset.exerciseId) : null;
+      if (mount && exercise) mount.outerHTML = renderExerciseIllustration(exercise, illustrationLanguage, escapeIllustrationText, true);
+    }
   }
   const results = document.querySelector("[data-library-results]");
   const empty = document.querySelector("[data-library-empty]");
