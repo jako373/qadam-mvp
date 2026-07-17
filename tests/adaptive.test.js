@@ -375,4 +375,3 @@ describe("daily recommendation", () => {
     assert.ok(nextExercises.find((item) => item.exercise.category === "understanding").exercise.level <= 1);
   });
 });
-
