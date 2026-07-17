@@ -152,6 +152,47 @@ export function weeklySummary(adaptive, now = new Date()) {
   };
 }
 
+export function skillProgressSnapshot(adaptive, category, exercises = []) {
+  const level = clampLevel(adaptive.skillLevels?.[category]);
+  const history = (adaptive.exerciseHistory || []).filter((item) => item.category === category);
+  const answered = history.filter((item) => Number.isFinite(item.score));
+  const currentLevelExercises = exercises.filter(
+    (exercise) => exercise.category === category && exercise.level === level,
+  );
+  const masteredAtCurrentLevel = currentLevelExercises.filter(
+    (exercise) => Number(adaptive.exerciseProgress?.[exercise.id]?.independentCount || 0) >= 2,
+  ).length;
+  const masterySteps = Math.min(3, masteredAtCurrentLevel);
+  const progressPercent = Math.round((((level - 1) * 3 + masterySteps) / 9) * 100);
+  const recent = answered.slice(-3);
+  const previous = answered.slice(-6, -3);
+  const average = (items) => items.length
+    ? items.reduce((sum, item) => sum + Number(item.score || 0), 0) / items.length
+    : null;
+  const recentAverage = average(recent);
+  const previousAverage = average(previous);
+  let trend = "starting";
+  if (recentAverage !== null && previousAverage !== null) {
+    const difference = recentAverage - previousAverage;
+    trend = difference >= 0.35 ? "up" : difference <= -0.35 ? "support" : "steady";
+  } else if (answered.length) {
+    trend = "observing";
+  }
+
+  return {
+    level,
+    progressPercent,
+    masteredAtCurrentLevel: masterySteps,
+    attempts: history.length,
+    independent: history.filter((item) => item.outcome === "independent").length,
+    assisted: history.filter((item) => item.outcome === "assisted").length,
+    needsSupport: history.filter((item) => item.outcome === "unable").length,
+    refused: history.filter((item) => item.outcome === "refused").length,
+    trend,
+    recentOutcomes: history.slice(-8).map((item) => item.outcome),
+  };
+}
+
 export function completionStreak(adaptive, now = new Date()) {
   const dates = [...new Set(adaptive.completedDates)].sort().reverse();
   if (!dates.length) return 0;
@@ -205,3 +246,4 @@ export function outcomeMessage(outcome, language) {
   };
   return messages[outcome]?.[language] || "";
 }
+
