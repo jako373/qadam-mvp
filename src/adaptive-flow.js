@@ -14,6 +14,7 @@ import {
   markDayCompleted,
   outcomeMessage,
   recordExerciseOutcome,
+  skillProgressSnapshot,
   skillStatus,
   weeklySummary,
 } from "./lib/progress-engine.js";
@@ -37,6 +38,8 @@ const libraryFilter = {
   search: "",
   favoritesOnly: false,
 };
+
+let openProgressCategory = exerciseCategoryOrder[0];
 
 const detailUi = {
   kk: {
@@ -821,6 +824,72 @@ function renderAdaptiveProgress(context) {
   const ui = labels(state.language);
   const summary = weeklySummary(state.adaptive);
   const streak = completionStreak(state.adaptive);
+  const progressCopy = state.language === "ru"
+    ? {
+        mapEyebrow: "Карта развития",
+        mapText: "Полоса растёт только по результатам ребёнка: от текущего этапа к самостоятельно освоенным упражнениям.",
+        overall: "Общее движение",
+        start: "Начинаем",
+        develops: "Закрепляем",
+        confident: "Увереннее",
+        stage: "Этап",
+        mastered: "освоено на этом этапе",
+        attempts: "Попытки",
+        independent: "Самостоятельно",
+        assisted: "С помощью",
+        needsSupport: "Нужна поддержка",
+        goal: "Что развиваем",
+        parentTip: "Что делать родителю",
+        noAttempts: "Начните с дневного плана. После первых результатов здесь появится личная динамика ребёнка.",
+        recent: "Последние попытки",
+        noRecent: "Пока нет отмеченных попыток",
+        open: "Показать подробности",
+        close: "Скрыть подробности",
+        trends: {
+          up: ["Есть движение вперёд", "Последние попытки даются увереннее", "trending-up"],
+          steady: ["Навык закрепляется", "Результат становится стабильнее", "move-right"],
+          support: ["Сейчас нужна поддержка", "Предложим более лёгкий шаг без давления", "hand-heart"],
+          observing: ["Собираем наблюдения", "Ещё несколько попыток покажут динамику", "scan-line"],
+          starting: ["Точка старта", "Первые результаты появятся после занятий", "sprout"],
+        },
+        outcomes: { independent: "Самостоятельно", assisted: "С помощью", unable: "Не получилось", refused: "Не захотел" },
+      }
+    : {
+        mapEyebrow: "Даму картасы",
+        mapText: "Жолақ баланың өз нәтижелері бойынша өседі: қазіргі кезеңнен өз бетінше меңгерген жаттығуларға дейін.",
+        overall: "Жалпы қозғалыс",
+        start: "Бастаймыз",
+        develops: "Бекітеміз",
+        confident: "Сенімдірек",
+        stage: "Кезең",
+        mastered: "осы кезеңде меңгерілді",
+        attempts: "Талпыныс",
+        independent: "Өз бетінше",
+        assisted: "Көмекпен",
+        needsSupport: "Қолдау керек",
+        goal: "Нені дамытамыз",
+        parentTip: "Ата-ана не істейді",
+        noAttempts: "Күнделікті жоспардан бастаңыз. Алғашқы нәтижелерден кейін мұнда баланың жеке динамикасы көрінеді.",
+        recent: "Соңғы талпыныстар",
+        noRecent: "Әзірге белгіленген талпыныс жоқ",
+        open: "Толығырақ көрсету",
+        close: "Толығырақ жасыру",
+        trends: {
+          up: ["Алға жылжу бар", "Соңғы талпыныстар сенімдірек орындалды", "trending-up"],
+          steady: ["Дағды бекіп келеді", "Нәтиже тұрақтанып келеді", "move-right"],
+          support: ["Қазір қолдау керек", "Қысымсыз жеңілірек қадам ұсынамыз", "hand-heart"],
+          observing: ["Бақылау жинап жатырмыз", "Тағы бірнеше талпыныс динамиканы көрсетеді", "scan-line"],
+          starting: ["Бастау нүктесі", "Алғашқы нәтижелер сабақтан кейін көрінеді", "sprout"],
+        },
+        outcomes: { independent: "Өз бетінше", assisted: "Көмекпен", unable: "Орындай алмады", refused: "Қаламады" },
+      };
+  const snapshots = exerciseCategoryOrder.map((category) => ({
+    category,
+    snapshot: skillProgressSnapshot(state.adaptive, category, exercises),
+  }));
+  const overallProgress = Math.round(
+    snapshots.reduce((sum, item) => sum + item.snapshot.progressPercent, 0) / snapshots.length,
+  );
   return pageShell(`
     <section class="adaptive-page-head">
       <div><span class="adaptive-eyebrow">${ui.progress}</span><h1>${ui.weeklyResult}</h1><p>${ui.childOwnPace}</p></div>
@@ -832,16 +901,46 @@ function renderAdaptiveProgress(context) {
       <div><strong>${streak}</strong><span>${ui.streak}</span></div>
     </section>
     <section class="skill-levels">
-      <div class="section-line"><h2>${ui.skillDirections}</h2></div>
-      ${exerciseCategoryOrder.map((category) => {
-        const level = state.adaptive.skillLevels[category] || 1;
+      <div class="skill-growth-intro">
+        <div><span class="adaptive-eyebrow">${progressCopy.mapEyebrow}</span><h2>${ui.skillDirections}</h2><p>${progressCopy.mapText}</p></div>
+        <div class="growth-total"><strong>${overallProgress}%</strong><span>${progressCopy.overall}</span></div>
+      </div>
+      <div class="growth-overview" aria-label="${progressCopy.overall}: ${overallProgress}%">
+        <progress max="100" value="${overallProgress}">${overallProgress}%</progress>
+        <div><span>${progressCopy.start}</span><span>${progressCopy.develops}</span><span>${progressCopy.confident}</span></div>
+      </div>
+      <div class="skill-growth-list">
+      ${snapshots.map(({ category, snapshot }, categoryIndex) => {
+        const categoryDetails = exerciseCategories[category][state.language];
+        const expanded = openProgressCategory === category;
+        const trend = progressCopy.trends[snapshot.trend];
         return `
-          <article>
-            <div><strong>${escapeHtml(categoryCopy(category, state.language).title)}</strong><span>${escapeHtml(skillStatus(level, state.language))}</span></div>
-            <div class="level-track level-${level}"><i></i></div>
+          <article class="skill-growth-card skill-color-${categoryIndex + 1} ${expanded ? "expanded" : ""}">
+            <button class="skill-growth-toggle" data-skill-progress="${category}" type="button" aria-expanded="${expanded}" aria-label="${expanded ? progressCopy.close : progressCopy.open}: ${escapeHtml(categoryDetails.title)}">
+              <span class="skill-growth-icon">${icon(categoryIconName(category))}</span>
+              <span class="skill-growth-heading"><strong>${escapeHtml(categoryDetails.title)}</strong><small>${escapeHtml(skillStatus(snapshot.level, state.language))} · ${progressCopy.stage} ${snapshot.level}/3</small></span>
+              <span class="skill-growth-value"><strong>${snapshot.progressPercent}%</strong>${icon(expanded ? "chevron-up" : "chevron-down")}</span>
+              <span class="skill-growth-bar"><progress max="100" value="${snapshot.progressPercent}">${snapshot.progressPercent}%</progress></span>
+            </button>
+            <div class="skill-growth-details" aria-hidden="${expanded ? "false" : "true"}">
+              <div class="skill-trend">${icon(trend[2])}<div><strong>${trend[0]}</strong><span>${trend[1]}</span></div></div>
+              <div class="skill-parent-grid">
+                <div><span>${progressCopy.goal}</span><strong>${escapeHtml(categoryDetails.goal)}</strong></div>
+                <div><span>${progressCopy.parentTip}</span><strong>${escapeHtml(snapshot.attempts ? categoryDetails.tip : progressCopy.noAttempts)}</strong></div>
+              </div>
+              <div class="skill-metrics">
+                <div><strong>${snapshot.attempts}</strong><span>${progressCopy.attempts}</span></div>
+                <div><strong>${snapshot.independent}</strong><span>${progressCopy.independent}</span></div>
+                <div><strong>${snapshot.assisted}</strong><span>${progressCopy.assisted}</span></div>
+                <div><strong>${snapshot.needsSupport}</strong><span>${progressCopy.needsSupport}</span></div>
+              </div>
+              <div class="skill-recent"><span>${progressCopy.recent}</span>${snapshot.recentOutcomes.length ? `<div>${snapshot.recentOutcomes.map((outcome) => `<i class="outcome-dot outcome-${outcome}" role="img" aria-label="${progressCopy.outcomes[outcome]}" title="${progressCopy.outcomes[outcome]}"></i>`).join("")}</div>` : `<small>${progressCopy.noRecent}</small>`}</div>
+              <div class="skill-stage-note"><span>${snapshot.masteredAtCurrentLevel}/3</span><p>${progressCopy.mastered}</p></div>
+            </div>
           </article>
         `;
       }).join("")}
+      </div>
     </section>
     ${isReassessmentDue(state.adaptive) ? `
       <section class="recheck-band">
@@ -1079,6 +1178,14 @@ function saveOutcome(context, index, outcome) {
 }
 
 export function handleAdaptiveClick(event, context) {
+  const skillProgress = event.target.closest("[data-skill-progress]");
+  if (skillProgress) {
+    const category = skillProgress.dataset.skillProgress;
+    openProgressCategory = openProgressCategory === category ? null : category;
+    context.render();
+    return true;
+  }
+
   const subscriptionPlan = event.target.closest("[data-subscription-plan]");
   if (subscriptionPlan) {
     const plan = SUBSCRIPTION_PLANS.find((item) => item.code === subscriptionPlan.dataset.subscriptionPlan);
