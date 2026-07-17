@@ -6,6 +6,7 @@ import {
   handleAdaptiveClick,
   nextDailyRoute,
   planDayNumber,
+  renderAdaptiveRoute,
 } from "../src/adaptive-flow.js";
 import { assessmentQuestions } from "../src/data/assessment-questions.js";
 import { exerciseCategoryOrder } from "../src/data/exercise-localization.js";
@@ -17,6 +18,7 @@ import {
   completionStreak,
   markDayCompleted,
   recordExerciseOutcome,
+  skillProgressSnapshot,
 } from "../src/lib/progress-engine.js";
 import {
   adaptNextPlanItem,
@@ -115,6 +117,63 @@ describe("adaptive skill levels", () => {
       adaptive = recordExerciseOutcome(adaptive, exercise, "independent", "2026-07-14", exercises);
     }
     assert.equal(adaptive.skillLevels.communication, 3);
+  });
+});
+
+describe("parent skill progress", () => {
+  it("combines the current stage with mastered exercises", () => {
+    const adaptive = assessedAdaptive(1);
+    const targets = exercises
+      .filter((item) => item.category === "communication" && item.level === 2)
+      .slice(0, 2);
+    for (const exercise of targets) {
+      adaptive.exerciseProgress[exercise.id] = { independentCount: 2 };
+    }
+    const snapshot = skillProgressSnapshot(adaptive, "communication", exercises);
+    assert.equal(snapshot.level, 2);
+    assert.equal(snapshot.masteredAtCurrentLevel, 2);
+    assert.equal(snapshot.progressPercent, 56);
+  });
+
+  it("shows the direction of recent results without comparing children", () => {
+    const adaptive = assessedAdaptive(0);
+    adaptive.exerciseHistory = [0, 0, 0, 2, 2, 2].map((score, index) => ({
+      category: "understanding",
+      exerciseId: `understanding-${index}`,
+      outcome: score === 2 ? "independent" : "unable",
+      score,
+      date: `2026-07-${String(index + 1).padStart(2, "0")}`,
+    }));
+    const snapshot = skillProgressSnapshot(adaptive, "understanding", exercises);
+    assert.equal(snapshot.trend, "up");
+    assert.equal(snapshot.attempts, 6);
+    assert.equal(snapshot.independent, 3);
+  });
+
+  it("opens a skill explanation interactively", () => {
+    let renders = 0;
+    const event = {
+      target: {
+        closest: (selector) => selector === "[data-skill-progress]"
+          ? { dataset: { skillProgress: "communication" } }
+          : null,
+      },
+    };
+    assert.equal(handleAdaptiveClick(event, { render: () => { renders += 1; } }), true);
+    assert.equal(renders, 1);
+  });
+
+  it("renders an overall bar and one interactive bar for every skill", () => {
+    const state = { language: "ru", adaptive: assessedAdaptive(1) };
+    const html = renderAdaptiveRoute("/progress", {
+      state,
+      pageShell: (content) => content,
+      escapeHtml: (value) => String(value),
+      icon: (name) => `<i data-icon="${name}"></i>`,
+    });
+    assert.equal((html.match(/data-skill-progress=/g) || []).length, 8);
+    assert.equal((html.match(/<progress /g) || []).length, 9);
+    assert.match(html, /Карта развития/);
   });
 });
 
@@ -316,3 +375,4 @@ describe("daily recommendation", () => {
     assert.ok(nextExercises.find((item) => item.exercise.category === "understanding").exercise.level <= 1);
   });
 });
+
