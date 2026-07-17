@@ -246,4 +246,3 @@ export function outcomeMessage(outcome, language) {
   };
   return messages[outcome]?.[language] || "";
 }
-
