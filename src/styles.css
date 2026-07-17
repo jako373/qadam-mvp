@@ -566,7 +566,8 @@ button:not(:disabled):active {
   }
 
   .header-mobile-menu .lang-switch,
-  .header-mobile-menu .account-controls {
+  .header-mobile-menu .account-controls,
+  .header-mobile-menu .superadmin-mode-switch {
     width: 100%;
     display: flex;
   }
@@ -2852,6 +2853,33 @@ html {
   height: 17px;
 }
 
+.superadmin-mode-switch {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 12px;
+  color: #fff;
+  border: 1px solid rgba(23, 98, 92, 0.28);
+  border-radius: 13px;
+  background: linear-gradient(145deg, #227d75, #0d514c);
+  box-shadow: 0 8px 20px rgba(17, 82, 76, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.26);
+  text-decoration: none;
+  font-size: 0.78rem;
+  font-weight: 820;
+}
+
+.superadmin-mode-switch:hover {
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.superadmin-mode-switch svg {
+  width: 17px;
+  height: 17px;
+}
+
 .utility-actions .account-controls {
   position: static;
   max-width: none;
@@ -3365,7 +3393,8 @@ html {
 
   .utility-home span,
   .utility-actions .account-controls > span,
-  .subscription-chip span {
+  .subscription-chip span,
+  .utility-actions .superadmin-mode-switch span {
     display: none;
   }
 

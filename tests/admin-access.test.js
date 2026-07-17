@@ -20,6 +20,14 @@ describe("superadmin navigation and access periods", () => {
     assert.match(authSource, /href="\$\{userDestination\(\)\}"/);
   });
 
+  it("shows a direct superadmin cabinet button in the parent interface", () => {
+    assert.match(appSource, /function renderSuperadminModeSwitch\(\)/);
+    assert.match(appSource, /class="superadmin-mode-switch" href="\/admin"/);
+    assert.match(appSource, /Кабинет суперадмина/);
+    assert.match(appSource, /Суперадмин кабинеті/);
+    assert.match(authSource, /isAdmin\(session\) && !isSuperadmin\(session\)/);
+  });
+
   it("offers every requested access period", () => {
     for (const period of ["month", "quarter", "half_year", "year", "lifetime"]) {
       assert.match(authSource, new RegExp(`option value="${period}"`));
