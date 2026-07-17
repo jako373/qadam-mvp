@@ -2,6 +2,7 @@ const SUPABASE_URL = "https://iismpbsapzmacxqraecx.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hFMdiuuIp051vWhUE7IQKg_DczXIfmV";
 const SESSION_KEY = "qadam.auth.session.v1";
 const STATE_KEY = "qadam.mvp.state.v1";
+const ACCESS_KEY = "qadam.account.access.v1";
 const CATEGORIES = ["joint_attention", "understanding", "imitation", "communication", "play_thinking", "fine_motor", "regulation", "daily_social"];
 const app = document.getElementById("app");
 let syncTimer = null;
@@ -18,6 +19,16 @@ function readJson(key, fallback = null) {
 function readSession() { return readJson(SESSION_KEY); }
 function writeSession(session) { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); }
 function clearSession() { localStorage.removeItem(SESSION_KEY); }
+
+function readAccountAccess(session = readSession()) {
+  const saved = readJson(ACCESS_KEY, {});
+  return {
+    access_tier: saved.access_tier || "standard",
+    access_until: saved.access_until || null,
+    plan_code: saved.plan_code || null,
+    role: accountRole(session),
+  };
+}
 
 function accountLabels() {
   const language = readJson(STATE_KEY, {})?.language === "ru" ? "ru" : "kk";
@@ -226,6 +237,18 @@ async function syncState(state) {
   }
 }
 
+async function hydrateAccountAccess(session) {
+  if (!session?.user?.id) return;
+  const fallback = { access_tier: "standard", access_until: null, plan_code: null, role: accountRole(session) };
+  try {
+    const rows = await dataRequest(`account_access?select=access_tier,access_until,plan_code&user_id=eq.${session.user.id}&limit=1`, session);
+    localStorage.setItem(ACCESS_KEY, JSON.stringify({ ...fallback, ...(rows?.[0] || {}) }));
+  } catch (error) {
+    localStorage.setItem(ACCESS_KEY, JSON.stringify(fallback));
+    console.warn("Qadam access:", error.message);
+  }
+}
+
 function scheduleSync(state) {
   clearTimeout(syncTimer);
   syncTimer = setTimeout(() => syncState(state).catch((error) => console.warn("Qadam sync:", error.message)), 650);
@@ -233,6 +256,7 @@ function scheduleSync(state) {
 
 globalThis.qadamAuth = {
   getSession,
+  getAccess: () => readAccountAccess(),
   scheduleSync,
   signOut,
   canBrowseCatalogWithoutOnboarding: () => isSuperadmin(readSession()),
@@ -410,7 +434,7 @@ function userRows(rows, canManage) {
   if (!rows.length) return `<div class="admin-empty">Зарегистрированных пользователей пока нет.</div>`;
   return `<div class="admin-table-wrap"><table class="admin-table admin-users"><thead><tr><th>Пользователь</th><th>Роль</th><th>Доступ</th><th>Дети</th><th>Активность</th>${canManage ? "<th>Управление</th>" : ""}</tr></thead><tbody>${rows.map((row) => {
     const role = row.account_role === "superadmin" ? "Суперадмин" : row.account_role === "admin" ? "Администратор" : "Родитель";
-    const access = row.access_tier === "complimentary" ? `Бесплатно${row.access_until ? ` до ${escapeHtml(row.access_until)}` : " без срока"}` : row.access_tier === "blocked" ? "Заблокирован" : "Стандартный";
+    const access = row.access_tier === "complimentary" ? `Бесплатно${row.access_until ? ` до ${escapeHtml(row.access_until)}` : " без срока"}` : row.access_tier === "paid" ? `Оплачено${row.access_until ? ` до ${escapeHtml(row.access_until)}` : ""}` : row.access_tier === "blocked" ? "Заблокирован" : "Freemium";
     const controls = canManage && row.account_role !== "superadmin" ? `<div class="admin-row-actions"><button data-admin-action="${row.account_role === "admin" ? "parent" : "admin"}" data-user-id="${row.user_id}">${row.account_role === "admin" ? "Снять роль" : "Сделать админом"}</button><button data-admin-action="complimentary" data-user-id="${row.user_id}">Бесплатный доступ</button><button data-admin-action="standard" data-user-id="${row.user_id}">Обычный доступ</button></div>` : "";
     return `<tr><td><strong>${escapeHtml(row.email || "—")}</strong><small>${row.created_at ? `Регистрация: ${new Date(row.created_at).toLocaleDateString("ru-RU")}` : ""}</small></td><td><span class="admin-role role-${row.account_role}">${role}</span></td><td>${access}</td><td>${Number(row.children_count || 0)}</td><td><strong>${Number(row.exercise_attempts || 0)}</strong> выполнений<small>${row.last_activity_at ? new Date(row.last_activity_at).toLocaleString("ru-RU") : "Нет активности"}</small></td>${canManage ? `<td>${controls}</td>` : ""}</tr>`;
   }).join("")}</tbody></table></div>`;
@@ -541,4 +565,4 @@ else if (path === "/forgot-password") mountForgotPassword();
 else if (path === "/reset-password") mountResetPassword();
 else if (path === "/admin") await renderAdmin();
 else if (!publicRoutes.has(path) && !session) location.replace(`/login?next=${encodeURIComponent(path)}`);
-else { if (session) { await Promise.all([hydrateState(session), hydrateExerciseCatalogue(session)]); } await import("./app.js?v=20260715-superadmin-library"); decorateApp(session); }
+else { if (session) { await Promise.all([hydrateState(session), hydrateAccountAccess(session), hydrateExerciseCatalogue(session)]); } await import("./app.js?v=20260715-superadmin-library"); decorateApp(session); }

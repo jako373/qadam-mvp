@@ -63,6 +63,7 @@ function setLanguage(language) {
 function adaptiveContext() {
   return {
     state,
+    access: globalThis.qadamAuth?.getAccess?.() || { access_tier: "standard", role: "parent" },
     pageShell,
     escapeHtml,
     icon,
@@ -74,12 +75,30 @@ function adaptiveContext() {
 
 function pageShell(content, options = {}) {
   const showNav = options.nav !== false && state.progress.onboardingCompleted;
+  const showUtility = !showNav && options.utility !== false;
   return `
-    <div class="app-shell ${showNav ? "with-nav" : ""}">
-      ${showNav ? renderTopNav() : ""}
+    <div class="app-shell ${showNav ? "with-nav" : showUtility ? "with-utility-nav" : ""}">
+      ${showNav ? renderTopNav() : showUtility ? renderUtilityNav() : ""}
       <main class="page">${content}</main>
       ${showNav ? renderBottomNav() : ""}
     </div>
+  `;
+}
+
+function renderUtilityNav() {
+  const labels = t();
+  const homePath = state.progress.onboardingCompleted ? "/today" : "/";
+  return `
+    <header class="utility-nav">
+      <button class="utility-home" data-route="${homePath}" type="button" aria-label="${labels.homeAria}">
+        ${icon("house")}<span>${labels.brand}</span>
+      </button>
+      <div class="utility-actions">
+        ${state.adaptive.initialAssessment.completedAt ? `<button class="subscription-chip" data-route="/subscription" type="button">${icon("sparkles")}<span>${state.language === "ru" ? "Подписка" : "Жазылым"}</span></button>` : ""}
+        ${renderLanguageSwitcher(true)}
+        <div data-account-controls-mount></div>
+      </div>
+    </header>
   `;
 }
 
@@ -98,6 +117,7 @@ function renderHeaderActions(scope = "app") {
   const menuId = `${scope}-mobile-menu`;
   return `
     <div class="header-actions-desktop">
+      ${state.adaptive.initialAssessment.completedAt ? `<button class="subscription-chip" data-route="/subscription" type="button">${icon("sparkles")}<span>${state.language === "ru" ? "Подписка" : "Жазылым"}</span></button>` : ""}
       ${renderLanguageSwitcher(true)}
       <div data-account-controls-mount></div>
     </div>
@@ -110,6 +130,7 @@ function renderHeaderActions(scope = "app") {
       aria-label="${escapeHtml(labels.mobileNavigation)}"
     >${icon("menu", "header-menu-icon")}</button>
     <div id="${menuId}" class="header-mobile-menu" data-header-menu-panel hidden>
+      ${state.adaptive.initialAssessment.completedAt ? `<button class="subscription-chip" data-route="/subscription" type="button">${icon("sparkles")}<span>${state.language === "ru" ? "Подписка" : "Жазылым"}</span></button>` : ""}
       ${renderLanguageSwitcher(true)}
       <div data-account-controls-mount></div>
     </div>
@@ -306,7 +327,7 @@ function renderLanding() {
         </section>
       </div>
     `,
-    { nav: false },
+    { nav: false, utility: false },
   );
 }
 
@@ -501,7 +522,7 @@ function guardRoute(pathname) {
   if (["/", "/language", "/onboarding"].includes(pathname)) return pathname;
   if (superadminCatalogAccess) return pathname;
   if (!state.progress.onboardingCompleted) return "/language";
-  return guardAdaptiveRoute(pathname, state) || pathname;
+  return guardAdaptiveRoute(pathname, state, globalThis.qadamAuth?.getAccess?.() || {}) || pathname;
 }
 
 function render() {

@@ -15,7 +15,7 @@ for (const entry of ["index.html", "src", "public"]) {
 }
 
 const appRoutes = [
-  "login", "register", "forgot-password", "reset-password", "account-mode", "admin", "language", "onboarding", "today", "skill-check", "plan-ready", "daily-summary", "library", "progress", "profile",
+  "login", "register", "forgot-password", "reset-password", "account-mode", "admin", "language", "onboarding", "today", "skill-check", "plan-ready", "daily-summary", "library", "progress", "profile", "subscription",
   ...Array.from({ length: 16 }, (_, index) => `skill-check/${index + 1}`),
   ...Array.from({ length: 3 }, (_, index) => `daily/${index + 1}`),
   ...Array.from({ length: 3 }, (_, index) => `daily-results/${index + 1}`),
