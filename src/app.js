@@ -353,29 +353,39 @@ function renderLanguagePage() {
 function inputField(name, label, type, value, required) {
   const autocomplete = name === "name" ? "name" : "off";
   const maxLength = name === "name" ? 80 : 160;
+  const fieldIcons = { name: "user-round", bestTime: "sun-medium" };
+  const placeholders = state.language === "ru"
+    ? { name: "Например, Айсултан", bestTime: "Например, утром или после дневного сна" }
+    : { name: "Мысалы, Айсұлтан", bestTime: "Мысалы, таңертең немесе түскі ұйқыдан кейін" };
   return `
     <label class="field">
-      <span>${label}</span>
-      <input name="${name}" type="${type}" value="${escapeHtml(value)}" ${required ? "required" : ""} maxlength="${maxLength}" autocomplete="${autocomplete}" />
+      <span class="field-label">${icon(fieldIcons[name] || "circle", "field-label-icon")}<b>${label}</b></span>
+      <input name="${name}" type="${type}" value="${escapeHtml(value)}" placeholder="${escapeHtml(placeholders[name] || "")}" ${required ? "required" : ""} maxlength="${maxLength}" autocomplete="${autocomplete}" />
     </label>
   `;
 }
 
 function textareaField(name, label, value) {
+  const fieldIcons = { interests: "sparkles", dislikes: "shield-alert" };
+  const placeholders = state.language === "ru"
+    ? { interests: "Игрушки, музыка, любимые занятия…", dislikes: "Громкие звуки, ожидание, новые места…" }
+    : { interests: "Ойыншықтар, әуендер, сүйікті істері…", dislikes: "Қатты дыбыс, күту, жаңа орындар…" };
   return `
-    <label class="field full">
-      <span>${label}</span>
-      <textarea name="${name}" maxlength="240" rows="3">${escapeHtml(value)}</textarea>
+    <label class="field">
+      <span class="field-label">${icon(fieldIcons[name] || "message-square", "field-label-icon")}<b>${label}</b></span>
+      <textarea name="${name}" maxlength="240" rows="3" placeholder="${escapeHtml(placeholders[name] || "")}">${escapeHtml(value)}</textarea>
     </label>
   `;
 }
 
 function selectField(name, label, options, value) {
+  const fieldIcons = { age: "cake-slice", diagnosis: "clipboard-heart", homeLanguage: "languages", meaningfulWords: "message-circle-more" };
+  const emptyLabel = state.language === "ru" ? "Выберите вариант" : "Нұсқаны таңдаңыз";
   return `
     <label class="field">
-      <span>${label}</span>
+      <span class="field-label">${icon(fieldIcons[name] || "list-filter", "field-label-icon")}<b>${label}</b></span>
       <select name="${name}" required>
-        <option value=""></option>
+        <option value="">${emptyLabel}</option>
         ${options.map((option) => `<option value="${escapeHtml(option)}" ${String(value) === String(option) ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
       </select>
     </label>
@@ -386,27 +396,82 @@ function renderOnboarding() {
   const labels = t();
   const adaptiveLabels = adaptiveUi[state.language];
   const profile = state.childProfile || {};
+  const copy = state.language === "ru"
+    ? {
+        kicker: "Основа персонального плана",
+        intro: "Расскажите немного о ребёнке — так ежедневные упражнения будут ближе к его речи, интересам и темпу.",
+        progress: "Профиль заполнен",
+        mainTitle: "Основные сведения",
+        mainText: "Помогут определить подходящий стартовый уровень",
+        comfortTitle: "Что важно для комфорта",
+        comfortText: "Используем это, чтобы занятия были понятными и приятными",
+        privacyTitle: "Данные под вашим контролем",
+        privacyText: "Информация нужна только для персонального плана ребёнка.",
+      }
+    : {
+        kicker: "Жеке жоспардың негізі",
+        intro: "Балаңыз туралы аздап айтып беріңіз — сонда күнделікті жаттығулар оның тіліне, қызығушылығына және қарқынына сай болады.",
+        progress: "Профиль толтырылды",
+        mainTitle: "Негізгі мәліметтер",
+        mainText: "Қолайлы бастапқы деңгейді анықтауға көмектеседі",
+        comfortTitle: "Балаға жайлы болуы үшін",
+        comfortText: "Жаттығуды түсінікті әрі қызықты етуге пайдаланамыз",
+        privacyTitle: "Деректер сіздің бақылауыңызда",
+        privacyText: "Бұл ақпарат тек баланың жеке жоспарын құру үшін қажет.",
+      };
   return pageShell(
     `
       <section class="center-panel profile-setup">
-        <div class="section-kicker">${labels.brand}</div>
-        <h1>${labels.childProfile}</h1>
-        <form id="profile-form" class="form-grid">
-          ${inputField("name", labels.childName, "text", profile.name || "", true)}
-          ${selectField("age", labels.childAge, ageOptions, profile.age || "")}
-          ${selectField("diagnosis", labels.diagnosis, diagnosisOptions, profile.diagnosis || "")}
-          ${selectField("homeLanguage", labels.homeLanguage, homeLanguageOptions, profile.homeLanguage || "")}
-          ${selectField("meaningfulWords", labels.meaningfulWords, wordOptions, profile.meaningfulWords || "")}
-          ${textareaField("interests", adaptiveLabels.interests, profile.interests || "")}
-          ${textareaField("dislikes", adaptiveLabels.dislikes, profile.dislikes || "")}
-          ${inputField("bestTime", adaptiveLabels.bestTime, "text", profile.bestTime || "", false)}
-          <label class="check-row full">
-            <input id="consent" name="consent" type="checkbox" required />
-            <span>${adaptiveLabels.consent}</span>
-          </label>
-          <button id="profile-submit" class="primary full" type="submit" disabled>
-            ${icon("save")}<span>${adaptiveLabels.saveProfile}</span>
-          </button>
+        <header class="profile-setup-head">
+          <div class="profile-setup-copy">
+            <div class="section-kicker">${copy.kicker}</div>
+            <h1>${labels.childProfile}</h1>
+            <p>${copy.intro}</p>
+          </div>
+          <div class="child-profile-orb" aria-hidden="true">
+            <span>${icon("heart-handshake")}</span>
+            <i></i><i></i>
+          </div>
+        </header>
+        <div class="profile-progress" role="status" aria-live="polite">
+          <div><span>${copy.progress}</span><strong data-profile-progress-value>0/6</strong></div>
+          <div class="profile-progress-track"><span data-profile-progress-bar></span></div>
+        </div>
+        <form id="profile-form" class="profile-form">
+          <fieldset class="profile-form-section">
+            <legend>
+              <span>${icon("contact-round")}</span>
+              <span><strong>${copy.mainTitle}</strong><small>${copy.mainText}</small></span>
+            </legend>
+            <div class="profile-core-grid">
+              ${inputField("name", labels.childName, "text", profile.name || "", true)}
+              ${selectField("age", labels.childAge, ageOptions, profile.age || "")}
+              ${selectField("diagnosis", labels.diagnosis, diagnosisOptions, profile.diagnosis || "")}
+              ${selectField("homeLanguage", labels.homeLanguage, homeLanguageOptions, profile.homeLanguage || "")}
+              <div class="profile-words-field">${selectField("meaningfulWords", labels.meaningfulWords, wordOptions, profile.meaningfulWords || "")}</div>
+            </div>
+          </fieldset>
+          <fieldset class="profile-form-section profile-comfort-section">
+            <legend>
+              <span>${icon("wand-sparkles")}</span>
+              <span><strong>${copy.comfortTitle}</strong><small>${copy.comfortText}</small></span>
+            </legend>
+            <div class="profile-insight-grid">
+              ${textareaField("interests", adaptiveLabels.interests, profile.interests || "")}
+              ${textareaField("dislikes", adaptiveLabels.dislikes, profile.dislikes || "")}
+              <div class="profile-best-time">${inputField("bestTime", adaptiveLabels.bestTime, "text", profile.bestTime || "", false)}</div>
+            </div>
+          </fieldset>
+          <div class="profile-form-footer">
+            <label class="profile-consent">
+              <input id="consent" name="consent" type="checkbox" required />
+              <span class="profile-consent-icon">${icon("shield-check")}</span>
+              <span><strong>${copy.privacyTitle}</strong><small>${copy.privacyText} ${adaptiveLabels.consent}</small></span>
+            </label>
+            <button id="profile-submit" class="primary profile-submit" type="submit" disabled>
+              ${icon("arrow-right")}<span>${adaptiveLabels.saveProfile}</span>
+            </button>
+          </div>
         </form>
       </section>
     `,
@@ -464,6 +529,12 @@ function mountProfileForm() {
   const submit = document.getElementById("profile-submit");
   const validate = () => {
     submit.disabled = !form.checkValidity();
+    const requiredFields = [...form.querySelectorAll("[required]")];
+    const completed = requiredFields.filter((field) => field.type === "checkbox" ? field.checked : Boolean(field.value.trim())).length;
+    const progressValue = form.parentElement.querySelector("[data-profile-progress-value]");
+    const progressBar = form.parentElement.querySelector("[data-profile-progress-bar]");
+    if (progressValue) progressValue.textContent = `${completed}/${requiredFields.length}`;
+    if (progressBar) progressBar.style.width = `${(completed / requiredFields.length) * 100}%`;
   };
   form.addEventListener("input", validate);
   form.addEventListener("change", validate);
