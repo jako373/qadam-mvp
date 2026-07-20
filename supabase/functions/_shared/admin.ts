@@ -1,9 +1,17 @@
 const allowedOrigins = new Set(["https://qadam-mvp.vercel.app", "http://localhost:3000"]);
 
+function isAllowedOrigin(origin: string) {
+  if (allowedOrigins.has(origin)) return true;
+  try {
+    const url = new URL(origin);
+    return url.protocol === "https:" && /^qadam-mvp(?:-[a-z0-9-]+)?\.vercel\.app$/i.test(url.hostname);
+  } catch { return false; }
+}
+
 export function cors(req: Request) {
   const origin = req.headers.get("origin") || "";
   return {
-    "Access-Control-Allow-Origin": allowedOrigins.has(origin) ? origin : "https://qadam-mvp.vercel.app",
+    "Access-Control-Allow-Origin": isAllowedOrigin(origin) ? origin : "https://qadam-mvp.vercel.app",
     "Access-Control-Allow-Headers": "authorization, apikey, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Content-Type": "application/json; charset=utf-8",

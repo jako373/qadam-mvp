@@ -14,6 +14,12 @@ for (const entry of ["index.html", "src", "public"]) {
   await cp(join(root, entry), join(dist, entry), { recursive: true });
 }
 
+await mkdir(join(dist, "public", "vendor", "pdfjs"), { recursive: true });
+await copyFile(join(root, "node_modules", "pdfjs-dist", "legacy", "build", "pdf.mjs"), join(dist, "public", "vendor", "pdfjs", "pdf.mjs"));
+await copyFile(join(root, "node_modules", "pdfjs-dist", "legacy", "build", "pdf.worker.mjs"), join(dist, "public", "vendor", "pdfjs", "pdf.worker.mjs"));
+await mkdir(join(dist, "public", "vendor", "zxing"), { recursive: true });
+await copyFile(join(root, "node_modules", "@zxing", "browser", "umd", "zxing-browser.min.js"), join(dist, "public", "vendor", "zxing", "zxing-browser.min.js"));
+
 const appRoutes = [
   "login", "register", "forgot-password", "reset-password", "account-mode", "admin", "language", "onboarding", "today", "skill-check", "plan-ready", "daily-summary", "library", "progress", "profile", "subscription",
   ...Array.from({ length: 16 }, (_, index) => `skill-check/${index + 1}`),

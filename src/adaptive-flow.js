@@ -794,7 +794,22 @@ function renderSubscription(context) {
           </article>`;
         }).join("")}
       </section>
-      ${selected ? `<section class="payment-status">${icon("shield-check")}<div><strong>${copy.selected}: ${copy.periods[selected.code]} — ${formatKzt(selected.priceKzt)}</strong><p>${copy.paymentPending}</p></div></section>` : ""}
+      ${selected ? `<section class="kaspi-checkout" data-payment-checkout data-plan-code="${selected.code}">
+        <header class="kaspi-checkout-head">${icon("shield-check")}<div><span>${copy.selected}</span><strong>${copy.periods[selected.code]} — ${formatKzt(selected.priceKzt)}</strong></div></header>
+        <div class="payment-steps">
+          <div class="payment-step"><b>1</b><div><strong>${state.language === "ru" ? "Создайте заявку" : "Өтінім жасаңыз"}</strong><span>${state.language === "ru" ? "Мы зафиксируем тариф и точную сумму." : "Тариф пен нақты соманы бекітеміз."}</span></div></div>
+          <div class="payment-step"><b>2</b><div><strong>${state.language === "ru" ? "Оплатите через Kaspi Pay" : "Kaspi Pay арқылы төлеңіз"}</strong><span>${state.language === "ru" ? `Введите ровно ${formatKzt(selected.priceKzt)}. Получатель: ИП AIQYN AI AGENCY.` : `Дәл ${formatKzt(selected.priceKzt)} енгізіңіз. Алушы: ИП AIQYN AI AGENCY.`}</span></div></div>
+          <div class="payment-step"><b>3</b><div><strong>${state.language === "ru" ? "Загрузите чек" : "Чекті жүктеңіз"}</strong><span>${state.language === "ru" ? "Qadam найдёт QR и проверит официальный чек Kaspi." : "Qadam QR-ды тауып, Kaspi ресми чегін тексереді."}</span></div></div>
+        </div>
+        <div data-payment-start><button class="primary kaspi-start" data-start-kaspi-payment type="button">${icon("receipt-text")}<span>${state.language === "ru" ? "Перейти к оплате" : "Төлемге өту"}</span></button></div>
+        <div class="kaspi-upload" data-payment-upload hidden>
+          <div class="payment-order-ref">${state.language === "ru" ? "Заявка" : "Өтінім"}: <strong data-payment-order-code></strong></div>
+          <a class="primary kaspi-pay-link" href="https://pay.kaspi.kz/pay/t51uofa4" target="_blank" rel="noopener noreferrer">${icon("external-link")}<span>${state.language === "ru" ? "Открыть Kaspi Pay" : "Kaspi Pay ашу"}</span></a>
+          <label class="receipt-dropzone">${icon("upload-cloud")}<strong>${state.language === "ru" ? "Выбрать чек" : "Чекті таңдау"}</strong><span>PDF, JPEG, PNG, WebP · ${state.language === "ru" ? "до 10 МБ" : "10 МБ дейін"}</span><input data-kaspi-receipt type="file" accept="application/pdf,image/jpeg,image/png,image/webp" /></label>
+          <p class="receipt-privacy">${icon("lock")}<span>${state.language === "ru" ? "Если QR распознан, файл не загружается на сервер — сохраняется только его цифровой отпечаток." : "QR танылса, файл серверге жүктелмейді — тек цифрлық ізі сақталады."}</span></p>
+        </div>
+        <div class="payment-message" data-payment-message hidden></div>
+      </section>` : ""}
       <button class="subscription-escape" data-route="/today" type="button">${copy.continueFree}</button>
     </section>
   `);

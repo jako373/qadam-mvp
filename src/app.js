@@ -16,6 +16,7 @@ import {
   renderAdaptiveRoute,
 } from "./adaptive-flow.js";
 import { loadState, resetState, saveState } from "./storage.js";
+import { handlePaymentClick, handlePaymentFile } from "./payments.js";
 
 let state = loadState();
 
@@ -620,7 +621,7 @@ function normalizeState() {
   saveState(state);
 }
 
-function handleClick(event) {
+async function handleClick(event) {
   const menuToggle = event.target.closest("[data-header-menu-toggle]");
   if (menuToggle) {
     const menuId = menuToggle.getAttribute("aria-controls");
@@ -632,6 +633,7 @@ function handleClick(event) {
     return;
   }
 
+  if (await handlePaymentClick(event, adaptiveContext())) return;
   if (handleAdaptiveClick(event, adaptiveContext())) return;
 
   const route = event.target.closest("[data-route]");
@@ -661,7 +663,8 @@ function handleClick(event) {
   }
 }
 
-function handleFormInput(event) {
+async function handleFormInput(event) {
+  if (await handlePaymentFile(event, adaptiveContext())) return;
   handleAdaptiveInput(event);
 }
 

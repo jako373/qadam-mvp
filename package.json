@@ -12,5 +12,9 @@
     "verify": "npm run build && npm run check && npm run test",
     "serve": "node scripts/serve.mjs",
     "exercise:inventory": "node scripts/check-exercise-inventory.mjs"
+  },
+  "dependencies": {
+    "@zxing/browser": "0.2.1",
+    "pdfjs-dist": "6.1.200"
   }
 }
