@@ -254,11 +254,52 @@ function scheduleSync(state) {
   syncTimer = setTimeout(() => syncState(state).catch((error) => console.warn("Qadam sync:", error.message)), 650);
 }
 
+async function createPaymentOrder(planCode) {
+  const session = await getSession();
+  if (!session) throw new Error("Сначала войдите в аккаунт");
+  return rpc("create_payment_order", session, { p_plan_code: planCode });
+}
+
+async function verifyKaspiReceipt(orderId, receiptUrl, fileHash) {
+  const session = await getSession();
+  if (!session) throw new Error("Сначала войдите в аккаунт");
+  const result = await functionRequest("qadam-verify-kaspi-receipt", session, { order_id: orderId, receipt_url: receiptUrl, file_sha256: fileHash });
+  if (result.status === "confirmed") await hydrateAccountAccess(session);
+  return result;
+}
+
+async function submitManualReceipt(orderId, file, fileHash) {
+  const session = await getSession();
+  if (!session) throw new Error("Сначала войдите в аккаунт");
+  const extension = ({ "application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" })[file.type] || "bin";
+  const path = `${session.user.id}/${orderId}/${fileHash}.${extension}`;
+  const response = await fetch(`${SUPABASE_URL}/storage/v1/object/payment-receipts/${path}`, {
+    method: "POST",
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${session.access_token}`, "Content-Type": file.type, "x-upsert": "false" },
+    body: file,
+  });
+  if (!response.ok && response.status !== 409) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload.message || payload.error || "Не удалось передать чек на проверку");
+  }
+  return rpc("submit_payment_manual_review", session, { p_order_id: orderId, p_storage_path: path, p_file_sha256: fileHash });
+}
+
+async function paymentOrders() {
+  const session = await getSession();
+  if (!session) return [];
+  return dataRequest("payment_orders?select=id,requested_plan_code,requested_amount_kzt,actual_plan_code,actual_amount_kzt,status,access_until,review_reason,created_at,updated_at&order=created_at.desc&limit=10", session);
+}
+
 globalThis.qadamAuth = {
   getSession,
   getAccess: () => readAccountAccess(),
   scheduleSync,
   signOut,
+  createPaymentOrder,
+  verifyKaspiReceipt,
+  submitManualReceipt,
+  paymentOrders,
   canBrowseCatalogWithoutOnboarding: () => isSuperadmin(readSession()),
 };
 
@@ -468,6 +509,18 @@ function openExerciseEditor(id) {
 }
 
 async function handleAdminAction(event, session) {
+  const receiptButton = event.target.closest("[data-open-payment-receipt]");
+  if (receiptButton) {
+    const viewer = window.open("about:blank", "_blank");
+    if (viewer) viewer.opener = null;
+    receiptButton.disabled = true;
+    try {
+      const result = await functionRequest("qadam-admin-payment-receipt", session, { order_id: receiptButton.dataset.openPaymentReceipt });
+      if (viewer) viewer.location = result.url; else window.open(result.url, "_blank", "noopener,noreferrer");
+    } catch (error) { viewer?.close(); alert(error.message); }
+    finally { receiptButton.disabled = false; }
+    return;
+  }
   const editButton = event.target.closest("[data-exercise-edit]");
   if (editButton) { openExerciseEditor(editButton.dataset.exerciseEdit); return; }
   const statusButton = event.target.closest("[data-exercise-status]");
@@ -513,10 +566,28 @@ async function handleAdminForm(event, session) {
   } catch (error) { errorBox.textContent = error.message; errorBox.hidden = false; button.disabled = false; }
 }
 
+function paymentRows(rows) {
+  if (!rows.length) return `<div class="admin-empty">Платёжных заявок пока нет.</div>`;
+  const labels = { created: "Ожидает чека", verifying: "Проверяется", confirmed: "Подтверждён", manual_review: "Ручная проверка", rejected: "Отклонён", expired: "Истёк", refunded: "Возврат" };
+  return `<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Пользователь</th><th>Тариф</th><th>Сумма</th><th>Статус</th><th>Чек</th><th>Создан</th></tr></thead><tbody>${rows.map((row) => `<tr><td>${escapeHtml(row.email || "—")}</td><td>${escapeHtml(row.requested_plan_code)}</td><td>${Number(row.actual_amount_kzt || row.requested_amount_kzt || 0).toLocaleString("ru-RU")} ₸</td><td><strong>${labels[row.status] || escapeHtml(row.status)}</strong>${row.review_reason ? `<small>${escapeHtml(row.review_reason)}</small>` : ""}</td><td>${row.receipt_storage_path ? `<button class="auth-secondary" data-open-payment-receipt="${row.id}" type="button">Открыть файл</button>` : escapeHtml(row.kaspi_ext_tran_id || "—")}</td><td>${new Date(row.created_at).toLocaleString("ru-RU")}</td></tr>`).join("")}</tbody></table></div>`;
+}
+
 async function loadAdmin(session) {
-  const status = document.getElementById("admin-status"); const dashboard = document.getElementById("admin-dashboard"); status.hidden = false; status.textContent = "Загружаем данные…"; dashboard.hidden = true;
-  try { const [summary, participants, users, exerciseList] = await Promise.all([rpc("admin_dashboard_summary", session), rpc("admin_participant_progress", session), rpc("admin_users", session), rpc("admin_exercises", session)]); adminExerciseRows = Array.isArray(exerciseList) ? exerciseList : []; const outcomes = summary.outcomes || {}; const canManage = isSuperadmin(session); dashboard.innerHTML = `<div class="admin-stats">${summaryCard(summary.registered_users, "Зарегистрировано")}${summaryCard(summary.participants, "Участников")}${summaryCard(summary.children, "Детских профилей")}${summaryCard(summary.active_participants_30d, "Активны за 30 дней")}${summaryCard(summary.assessments, "Оценок навыков")}${summaryCard(summary.exercise_attempts, "Выполнений упражнений")}${summaryCard(summary.completed_plans, "Завершённых планов")}</div><section class="admin-panel admin-panel-head"><div><div class="auth-kicker">Mini CRM</div><h2>Пользователи и доступы</h2><p>Назначайте администраторов и открывайте полный доступ на 1, 3, 6, 12 месяцев или без ограничения срока.</p></div>${canManage ? `<button class="auth-primary" data-open-create-user type="button">Добавить пользователя</button>` : ""}</section><section class="admin-panel admin-panel-flush">${userRows(Array.isArray(users) ? users : [], canManage)}</section><section class="admin-panel admin-panel-head"><div><div class="auth-kicker">Каталог</div><h2>Все упражнения</h2><p>Активные упражнения доступны родителям. Черновики и архивные записи видны только в CRM.</p></div>${canManage ? `<button class="auth-primary" data-open-generate type="button">Создать с ИИ</button>` : ""}</section><section class="admin-panel admin-panel-flush">${exerciseRows(adminExerciseRows, canManage)}</section><section class="admin-panel"><h2>Результаты упражнений</h2><div class="admin-outcomes">${summaryCard(outcomes.independent, "Самостоятельно")}${summaryCard(outcomes.assisted, "С помощью")}${summaryCard(outcomes.unable, "Не получилось")}${summaryCard(outcomes.refused, "Отказ")}</div></section><section class="admin-panel"><h2>Прогресс участников</h2>${participantRows(Array.isArray(participants) ? participants : [])}</section>`; dashboard.onclick = (event) => handleAdminAction(event, session); document.onsubmit = (event) => handleAdminForm(event, session); status.hidden = true; dashboard.hidden = false; }
-  catch (error) { if (/jwt|token|unauthorized/i.test(error.message)) { clearSession(); location.replace("/login"); return; } status.textContent = `Не удалось загрузить данные: ${error.message}`; }
+  const status = document.getElementById("admin-status");
+  const dashboard = document.getElementById("admin-dashboard");
+  status.hidden = false; status.textContent = "Загружаем данные…"; dashboard.hidden = true;
+  try {
+    const [summary, participants, users, exerciseList, payments] = await Promise.all([
+      rpc("admin_dashboard_summary", session), rpc("admin_participant_progress", session), rpc("admin_users", session), rpc("admin_exercises", session), rpc("admin_payment_orders", session),
+    ]);
+    adminExerciseRows = Array.isArray(exerciseList) ? exerciseList : [];
+    const outcomes = summary.outcomes || {}; const canManage = isSuperadmin(session);
+    dashboard.innerHTML = `<div class="admin-stats">${summaryCard(summary.registered_users, "Зарегистрировано")}${summaryCard(summary.participants, "Участников")}${summaryCard(summary.children, "Детских профилей")}${summaryCard(summary.active_participants_30d, "Активны за 30 дней")}${summaryCard(summary.assessments, "Оценок навыков")}${summaryCard(summary.exercise_attempts, "Выполнений упражнений")}${summaryCard(summary.completed_plans, "Завершённых планов")}</div><section class="admin-panel admin-panel-head"><div><div class="auth-kicker">Оплаты Kaspi</div><h2>Платёжные заявки</h2><p>Автоматически подтверждённые чеки и приватная очередь тех, где QR не удалось распознать.</p></div></section><section class="admin-panel admin-panel-flush">${paymentRows(Array.isArray(payments) ? payments : [])}</section><section class="admin-panel admin-panel-head"><div><div class="auth-kicker">Mini CRM</div><h2>Пользователи и доступы</h2><p>Назначайте администраторов и открывайте полный доступ на 1, 3, 6, 12 месяцев или без ограничения срока.</p></div>${canManage ? `<button class="auth-primary" data-open-create-user type="button">Добавить пользователя</button>` : ""}</section><section class="admin-panel admin-panel-flush">${userRows(Array.isArray(users) ? users : [], canManage)}</section><section class="admin-panel admin-panel-head"><div><div class="auth-kicker">Каталог</div><h2>Все упражнения</h2><p>Активные упражнения доступны родителям. Черновики и архивные записи видны только в CRM.</p></div>${canManage ? `<button class="auth-primary" data-open-generate type="button">Создать с ИИ</button>` : ""}</section><section class="admin-panel admin-panel-flush">${exerciseRows(adminExerciseRows, canManage)}</section><section class="admin-panel"><h2>Результаты упражнений</h2><div class="admin-outcomes">${summaryCard(outcomes.independent, "Самостоятельно")}${summaryCard(outcomes.assisted, "С помощью")}${summaryCard(outcomes.unable, "Не получилось")}${summaryCard(outcomes.refused, "Отказ")}</div></section><section class="admin-panel"><h2>Прогресс участников</h2>${participantRows(Array.isArray(participants) ? participants : [])}</section>`;
+    dashboard.onclick = (event) => handleAdminAction(event, session); document.onsubmit = (event) => handleAdminForm(event, session); status.hidden = true; dashboard.hidden = false;
+  } catch (error) {
+    if (/jwt|token|unauthorized/i.test(error.message)) { clearSession(); location.replace("/login"); return; }
+    status.textContent = `Не удалось загрузить данные: ${error.message}`;
+  }
 }
 
 async function renderAdmin() {
