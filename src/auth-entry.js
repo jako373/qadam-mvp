@@ -497,7 +497,7 @@ function userRows(rows, canManage) {
   return `<div class="admin-table-wrap"><table class="admin-table admin-users"><thead><tr><th>Пользователь</th><th>Роль</th><th>Доступ</th><th>Дети</th><th>Активность</th>${canManage ? "<th>Управление</th>" : ""}</tr></thead><tbody>${rows.map((row) => {
     const role = row.account_role === "superadmin" ? "Суперадмин" : row.account_role === "admin" ? "Администратор" : "Родитель";
     const access = row.access_tier === "complimentary" ? `Бесплатно${row.access_until ? ` до ${escapeHtml(row.access_until)}` : " без срока"}` : row.access_tier === "paid" ? `Оплачено${row.access_until ? ` до ${escapeHtml(row.access_until)}` : ""}` : row.access_tier === "blocked" ? "Заблокирован" : "Freemium";
-    const controls = canManage && row.account_role !== "superadmin" ? `<div class="admin-row-actions"><button data-admin-action="${row.account_role === "admin" ? "parent" : "admin"}" data-user-id="${row.user_id}">${row.account_role === "admin" ? "Снять роль" : "Сделать админом"}</button><div class="admin-access-grant"><select data-access-period="${row.user_id}" aria-label="Срок полного доступа для ${escapeHtml(row.email || "пользователя")}"><option value="month">1 месяц</option><option value="quarter">3 месяца</option><option value="half_year">6 месяцев</option><option value="year">1 год</option><option value="lifetime">Безлимитно</option></select><button data-admin-action="grant-access" data-user-id="${row.user_id}">Открыть доступ</button></div><button data-admin-action="standard" data-user-id="${row.user_id}">Вернуть Freemium</button></div>` : "";
+    const controls = canManage && row.account_role !== "superadmin" ? `<div class="admin-row-actions"><button data-admin-action="${row.account_role === "admin" ? "parent" : "admin"}" data-user-id="${row.user_id}">${row.account_role === "admin" ? "Снять роль" : "Сделать админом"}</button><div class="admin-access-grant"><select data-access-period="${row.user_id}" aria-label="Срок полного доступа для ${escapeHtml(row.email || "пользователя")}"><option value="month">1 месяц</option><option value="quarter">3 месяца</option><option value="half_year">6 месяцев</option><option value="year">1 год</option><option value="lifetime">Безлимитно</option></select><button data-admin-action="grant-access" data-user-id="${row.user_id}">Открыть доступ</button></div><button data-admin-action="standard" data-user-id="${row.user_id}">Вернуть Freemium</button><button class="admin-danger" data-admin-action="delete-user" data-user-id="${row.user_id}" data-user-email="${escapeHtml(row.email || "")}">Удалить аккаунт</button></div>` : "";
     return `<tr><td><strong>${escapeHtml(row.email || "—")}</strong><small>${row.created_at ? `Регистрация: ${new Date(row.created_at).toLocaleDateString("ru-RU")}` : ""}</small></td><td><span class="admin-role role-${row.account_role}">${role}</span></td><td>${access}</td><td>${Number(row.children_count || 0)}</td><td><strong>${Number(row.exercise_attempts || 0)}</strong> выполнений<small>${row.last_activity_at ? new Date(row.last_activity_at).toLocaleString("ru-RU") : "Нет активности"}</small></td>${canManage ? `<td>${controls}</td>` : ""}</tr>`;
   }).join("")}</tbody></table></div>`;
 }
@@ -516,6 +516,10 @@ function showAdminModal(title, formMarkup) {
 
 function openCreateUserModal() {
   showAdminModal("Добавить пользователя", `<form class="admin-form" data-admin-form="create-user"><label>Email<input name="email" type="email" required></label><label>Временный пароль<input name="password" type="text" minlength="8" required></label><label>Роль<select name="role"><option value="parent">Родитель</option><option value="admin">Администратор</option></select></label><label class="admin-check"><input name="full_access" type="checkbox" checked> Полный бесплатный доступ без срока</label><p class="admin-form-note">Пользователь сможет сразу войти с указанным паролем. Роль администратора даёт просмотр CRM и каталога, но не управление ролями.</p><button class="auth-primary" type="submit">Создать пользователя</button><p class="auth-error" hidden></p></form>`);
+}
+
+function openDeleteUserModal(userId, email) {
+  showAdminModal("Удалить аккаунт", `<form class="admin-form delete-user-form" data-admin-form="delete-user" data-user-id="${escapeHtml(userId)}" data-user-email="${escapeHtml(email)}"><div class="admin-delete-warning"><strong>Это действие нельзя отменить</strong><p>Будут удалены аккаунт <b>${escapeHtml(email || "пользователя")}</b>, профили детей, прогресс, планы занятий, результаты упражнений и история доступов.</p></div><label>Для подтверждения введите email пользователя<input name="confirmationEmail" type="email" autocomplete="off" placeholder="${escapeHtml(email)}" required></label><button class="auth-danger" type="submit">Удалить аккаунт навсегда</button><p class="auth-error" hidden></p></form>`);
 }
 
 function openGenerateModal() {
@@ -550,8 +554,12 @@ async function handleAdminAction(event, session) {
   if (event.target.closest("[data-open-generate]")) { openGenerateModal(); return; }
   const button = event.target.closest("[data-admin-action]");
   if (!button) return;
-  button.disabled = true;
   const action = button.dataset.adminAction;
+  if (action === "delete-user") {
+    openDeleteUserModal(button.dataset.userId, button.dataset.userEmail);
+    return;
+  }
+  button.disabled = true;
   try {
     if (action === "admin" || action === "parent") await rpc("admin_set_user_role", session, { p_user_id: button.dataset.userId, p_role: action });
     else if (action === "grant-access") {
@@ -571,6 +579,11 @@ async function handleAdminForm(event, session) {
   try {
     if (form.dataset.adminForm === "create-user") {
       await functionRequest("qadam-admin-create-user", session, { email: data.get("email"), password: data.get("password"), role: data.get("role"), full_access: data.get("full_access") === "on" });
+    } else if (form.dataset.adminForm === "delete-user") {
+      const confirmationEmail = String(data.get("confirmationEmail") || "").trim().toLowerCase();
+      const expectedEmail = String(form.dataset.userEmail || "").trim().toLowerCase();
+      if (!expectedEmail || confirmationEmail !== expectedEmail) throw new Error("Email не совпадает. Аккаунт не удалён.");
+      await functionRequest("qadam-admin-delete-user", session, { user_id: form.dataset.userId, confirmation_email: confirmationEmail });
     } else if (form.dataset.adminForm === "generate") {
       await functionRequest("qadam-generate-exercise", session, { category: data.get("category"), level: Number(data.get("level")), focus: data.get("focus") });
     } else if (form.dataset.adminForm === "edit-exercise") {
