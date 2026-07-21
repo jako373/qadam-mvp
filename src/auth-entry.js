@@ -312,6 +312,24 @@ function authSteps(active) {
   return `<ol class="auth-steps"><li class="${active >= 1 ? "active" : ""}"><span>1</span>Аккаунт</li><li class="${active >= 2 ? "active" : ""}"><span>2</span>Профиль ребёнка</li><li class="${active >= 3 ? "active" : ""}"><span>3</span>Первые упражнения</li></ol>`;
 }
 
+function passwordField(name, autocomplete) {
+  return `<span class="password-control"><input name="${name}" type="password" autocomplete="${autocomplete}" required minlength="8" /><button class="password-toggle" type="button" data-password-toggle aria-label="Показать пароль" aria-pressed="false"><span>Показать</span></button></span>`;
+}
+
+function mountPasswordToggles(container = document) {
+  container.querySelectorAll("[data-password-toggle]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const input = button.closest(".password-control")?.querySelector("input");
+      if (!input) return;
+      const visible = input.type === "text";
+      input.type = visible ? "password" : "text";
+      button.setAttribute("aria-pressed", String(!visible));
+      button.setAttribute("aria-label", visible ? "Показать пароль" : "Скрыть пароль");
+      button.querySelector("span").textContent = visible ? "Показать" : "Скрыть";
+    });
+  });
+}
+
 function loginMarkup() {
   const params = new URLSearchParams(location.search);
   const confirmed = params.get("confirmed") === "1";
@@ -320,7 +338,7 @@ function loginMarkup() {
     <a class="auth-brand" href="/" aria-label="Qadam, на главную"><span>Q</span><strong>Qadam</strong></a>${authSteps(1)}
     <div class="auth-kicker">Личный кабинет</div><h1 id="login-title">Вход в Qadam</h1>
     <p>${passwordReset ? "Пароль обновлён. Теперь войдите с новым паролем." : confirmed ? "Email подтверждён. Теперь войдите в аккаунт." : "Продолжите занятия ребёнка с того места, где остановились."}</p>
-    <form id="login-form" class="auth-form"><label><span>Email</span><input name="email" type="email" autocomplete="username" required /></label><label><span>Пароль</span><input name="password" type="password" autocomplete="current-password" required minlength="8" /></label><p id="login-error" class="auth-error" role="alert" hidden></p><button class="auth-primary" type="submit">Войти</button></form>
+    <form id="login-form" class="auth-form"><label><span>Email</span><input name="email" type="email" autocomplete="username" required /></label><label><span>Пароль</span>${passwordField("password", "current-password")}</label><p id="login-error" class="auth-error" role="alert" hidden></p><button class="auth-primary" type="submit">Войти</button></form>
     <p class="auth-switch"><a href="/forgot-password">Забыли пароль?</a></p>
     <p class="auth-switch">Нет аккаунта? <a href="/register">Зарегистрироваться</a></p><a class="auth-back" href="/">Вернуться на главную</a>
   </section></main>`;
@@ -330,7 +348,7 @@ function registerMarkup() {
   return `<main class="auth-page"><section class="auth-card" aria-labelledby="register-title">
     <a class="auth-brand" href="/" aria-label="Qadam, на главную"><span>Q</span><strong>Qadam</strong></a>${authSteps(1)}
     <div class="auth-kicker">Новый аккаунт</div><h1 id="register-title">Начать с Qadam</h1><p>Создайте аккаунт, затем заполните короткий профиль ребёнка и получите первые упражнения.</p>
-    <form id="register-form" class="auth-form"><label><span>Email</span><input name="email" type="email" autocomplete="username" required /></label><label><span>Пароль</span><input name="password" type="password" autocomplete="new-password" required minlength="8" /></label><label><span>Повторите пароль</span><input name="passwordConfirm" type="password" autocomplete="new-password" required minlength="8" /></label><p class="auth-hint">Минимум 8 символов. Лучше использовать уникальный пароль.</p><p id="register-error" class="auth-error" role="alert" hidden></p><button class="auth-primary" type="submit">Создать аккаунт</button></form>
+    <form id="register-form" class="auth-form"><label><span>Email</span><input name="email" type="email" autocomplete="username" required /></label><label><span>Пароль</span>${passwordField("password", "new-password")}</label><label><span>Повторите пароль</span>${passwordField("passwordConfirm", "new-password")}</label><p class="auth-hint">Минимум 8 символов. Лучше использовать уникальный пароль.</p><p id="register-error" class="auth-error" role="alert" hidden></p><button class="auth-primary" type="submit">Создать аккаунт</button></form>
     <p class="auth-switch">Уже есть аккаунт? <a href="/login">Войти</a></p><a class="auth-back" href="/">Вернуться на главную</a>
   </section></main>`;
 }
@@ -350,13 +368,14 @@ function resetPasswordMarkup() {
   return `<main class="auth-page"><section class="auth-card" aria-labelledby="reset-title">
     <a class="auth-brand" href="/" aria-label="Qadam, на главную"><span>Q</span><strong>Qadam</strong></a>
     <div class="auth-kicker">Новый пароль</div><h1 id="reset-title">${hasToken ? "Создайте новый пароль" : "Ссылка недействительна"}</h1>
-    ${hasToken ? `<p>Введите новый пароль для аккаунта Qadam.</p><form id="reset-form" class="auth-form"><label><span>Новый пароль</span><input name="password" type="password" autocomplete="new-password" required minlength="8" /></label><label><span>Повторите пароль</span><input name="passwordConfirm" type="password" autocomplete="new-password" required minlength="8" /></label><p class="auth-hint">Минимум 8 символов. Используйте уникальный пароль.</p><p id="reset-error" class="auth-error" role="alert" hidden></p><button class="auth-primary" type="submit">Сохранить новый пароль</button></form>` : `<p>Ссылка истекла или уже была использована. Запросите новую ссылку восстановления.</p><a class="auth-primary auth-link" href="/forgot-password">Получить новую ссылку</a>`}
+    ${hasToken ? `<p>Введите новый пароль для аккаунта Qadam.</p><form id="reset-form" class="auth-form"><label><span>Новый пароль</span>${passwordField("password", "new-password")}</label><label><span>Повторите пароль</span>${passwordField("passwordConfirm", "new-password")}</label><p class="auth-hint">Минимум 8 символов. Используйте уникальный пароль.</p><p id="reset-error" class="auth-error" role="alert" hidden></p><button class="auth-primary" type="submit">Сохранить новый пароль</button></form>` : `<p>Ссылка истекла или уже была использована. Запросите новую ссылку восстановления.</p><a class="auth-primary auth-link" href="/forgot-password">Получить новую ссылку</a>`}
     <p class="auth-switch"><a href="/login">Вернуться ко входу</a></p>
   </section></main>`;
 }
 
 function mountLogin() {
   app.innerHTML = loginMarkup();
+  mountPasswordToggles(app);
   const form = document.getElementById("login-form"); const errorBox = document.getElementById("login-error");
   form.addEventListener("submit", async (event) => { event.preventDefault(); const button = form.querySelector("button"); const data = new FormData(form); button.disabled = true; button.textContent = "Входим…"; errorBox.hidden = true;
     try { const session = await signIn(String(data.get("email") || "").trim(), String(data.get("password") || "")); location.replace(isSuperadmin(session) ? "/account-mode" : (isAdmin(session) ? "/admin" : userDestination())); }
@@ -389,6 +408,7 @@ function mountForgotPassword() {
 
 function mountResetPassword() {
   app.innerHTML = resetPasswordMarkup();
+  mountPasswordToggles(app);
   const form = document.getElementById("reset-form");
   if (!form) return;
   const errorBox = document.getElementById("reset-error");
@@ -427,6 +447,7 @@ function mountResetPassword() {
 
 function mountRegister() {
   app.innerHTML = registerMarkup();
+  mountPasswordToggles(app);
   const form = document.getElementById("register-form"); const errorBox = document.getElementById("register-error");
   form.addEventListener("submit", async (event) => { event.preventDefault(); const button = form.querySelector("button"); const data = new FormData(form); const password = String(data.get("password") || ""); const confirmation = String(data.get("passwordConfirm") || ""); errorBox.hidden = true;
     if (password !== confirmation) { errorBox.textContent = "Пароли не совпадают"; errorBox.hidden = false; return; }
