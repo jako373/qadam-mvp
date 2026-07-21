@@ -735,7 +735,15 @@ function renderLibrary(context) {
 
 function renderSubscription(context) {
   const { state, access = { access_tier: "complimentary" }, pageShell, icon } = context;
-  const selectedCode = new URLSearchParams(location.search).get("plan");
+  const requestedCode = new URLSearchParams(location.search).get("plan");
+  const savedCode = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("qadam.subscription.selection.v1") || "null")?.code || null;
+    } catch {
+      return null;
+    }
+  })();
+  const selectedCode = requestedCode || savedCode;
   const selected = SUBSCRIPTION_PLANS.find((plan) => plan.code === selectedCode);
   const full = hasFullAccess(access);
   const copy = state.language === "ru"
@@ -749,6 +757,7 @@ function renderSubscription(context) {
         save: "Экономия",
         monthEquivalent: "в месяц",
         choose: "Выбрать",
+        chosen: "Выбрано",
         selected: "Вы выбрали",
         paymentPending: "Тариф сохранён. Оплату подключим после выбора платёжного партнёра; сейчас списаний не будет.",
         continueFree: "Продолжить бесплатно",
@@ -765,6 +774,7 @@ function renderSubscription(context) {
         save: "Үнем",
         monthEquivalent: "айына",
         choose: "Таңдау",
+        chosen: "Таңдалды",
         selected: "Сіз таңдадыңыз",
         paymentPending: "Тариф сақталды. Төлем серіктесі таңдалғаннан кейін төлемді қосамыз; қазір қаражат алынбайды.",
         continueFree: "Тегін жалғастыру",
@@ -784,13 +794,14 @@ function renderSubscription(context) {
           const saving = (SUBSCRIPTION_PLANS[0].priceKzt * plan.months) - plan.priceKzt;
           const equivalent = Math.round(plan.priceKzt / plan.months);
           const isSelected = selected?.code === plan.code;
-          return `<article class="pricing-card ${plan.featured ? "featured" : ""} ${isSelected ? "selected" : ""}">
+          return `<article class="pricing-card ${plan.featured ? "featured" : ""} ${isSelected ? "selected" : ""}" aria-selected="${isSelected}">
             ${plan.featured ? `<span class="pricing-popular">${copy.popular}</span>` : ""}
+            ${isSelected ? `<span class="pricing-selection-mark" role="status">${icon("circle-check")}<span>${copy.selected}</span></span>` : ""}
             <span class="pricing-period">${copy.periods[plan.code]}</span>
             <strong class="pricing-price">${formatKzt(plan.priceKzt)}</strong>
             <small>${formatKzt(equivalent)} ${copy.monthEquivalent}</small>
             ${saving > 0 ? `<span class="pricing-saving">${copy.save}: ${formatKzt(saving)}</span>` : `<span class="pricing-saving neutral">4990 ₸ ${copy.monthEquivalent}</span>`}
-            <button class="${plan.featured ? "primary" : "secondary"}" data-subscription-plan="${plan.code}" type="button">${icon(isSelected ? "check" : "arrow-right")}<span>${copy.choose}</span></button>
+            <button class="${isSelected ? "pricing-selected-button" : plan.featured ? "primary" : "secondary"}" data-subscription-plan="${plan.code}" type="button" aria-pressed="${isSelected}">${icon(isSelected ? "check" : "arrow-right")}<span>${isSelected ? copy.chosen : copy.choose}</span></button>
           </article>`;
         }).join("")}
       </section>
