@@ -1716,7 +1716,11 @@ button:not(:disabled):active {
 }
 
 .adaptive-profile-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.adaptive-profile-grid article:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 .profile-note {
@@ -1797,7 +1801,7 @@ button:not(:disabled):active {
   .adaptive-center,
   .adaptive-question,
   .daily-exercise {
-    width: min(100% - 28px, 680px);
+    width: min(100% - 32px, 680px);
     padding: 28px 0;
   }
 
@@ -2060,7 +2064,7 @@ html {
 
 .profile-setup h1 {
   font-family: ui-rounded, "Avenir Next", "Segoe UI", sans-serif;
-  font-size: 4.5rem;
+  font-size: 4rem;
   line-height: 0.98;
   letter-spacing: -0.045em;
 }
@@ -2370,7 +2374,7 @@ html {
 
 @media (max-width: 760px) {
   .page:has(.profile-setup) {
-    padding: 88px 10px 24px;
+    padding: 88px 16px 24px;
   }
 
   .profile-setup {
@@ -3184,12 +3188,11 @@ html {
 
 .journey-step strong {
   max-width: 220px;
-  overflow: hidden;
   color: #24413d;
   font-size: 0.78rem;
   line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .journey-step small {
@@ -3504,6 +3507,97 @@ html {
   font-weight: 760;
 }
 
+/* Responsive shell: preserve comfortable reading widths without making desktop
+   exercise pages feel like enlarged phone screens. */
+@media (min-width: 1000px) {
+  .daily-exercise {
+    width: min(calc(100% - 64px), 1120px);
+    grid-template-columns: minmax(320px, 0.82fr) minmax(460px, 1.18fr);
+    align-content: start;
+    column-gap: clamp(28px, 4vw, 56px);
+    padding: 122px 0 72px;
+  }
+
+  .daily-exercise > .adaptive-progress {
+    grid-column: 1 / -1;
+  }
+
+  .daily-exercise > .lesson-heading {
+    grid-column: 1;
+    grid-row: 2;
+    align-content: center;
+  }
+
+  .daily-exercise > .exercise-illustration.full {
+    grid-column: 2;
+    grid-row: 2 / span 2;
+    align-self: start;
+    max-width: none;
+  }
+
+  .daily-exercise > .plan-adjustment {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .daily-exercise > .parent-script,
+  .daily-exercise > .lesson-preparation,
+  .daily-exercise > .three-steps,
+  .daily-exercise > .lesson-detail-grid,
+  .daily-exercise > .adaptive-primary {
+    grid-column: 1 / -1;
+  }
+}
+
+/* A 1024 px laptop cannot hold the full navigation, language switch and
+   account controls. Keep primary destinations visible and move utilities into
+   a compact popover before anything gets clipped. */
+@media (min-width: 821px) and (max-width: 1160px) {
+  .header-actions-desktop {
+    display: none;
+  }
+
+  .header-menu-toggle {
+    margin-left: auto;
+    display: inline-flex;
+  }
+
+  .header-mobile-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: min(380px, calc(100vw - 32px));
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid var(--glass-line);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: var(--glass-shadow);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+  }
+
+  .header-mobile-menu[hidden] {
+    display: none;
+  }
+
+  .header-mobile-menu .lang-switch,
+  .header-mobile-menu .account-controls,
+  .header-mobile-menu .superadmin-mode-switch,
+  .header-mobile-menu .subscription-chip {
+    width: 100%;
+    display: flex;
+  }
+
+  .header-mobile-menu .lang-switch > *,
+  .header-mobile-menu .account-controls > * {
+    min-width: 0;
+    flex: 1 1 0;
+    justify-content: center;
+  }
+}
+
 @media (hover: hover) {
   .journey-step:not(:disabled):hover > span {
     transform: translateY(-3px) scale(1.04);
@@ -3540,7 +3634,7 @@ html {
 
   .utility-nav {
     top: 8px;
-    width: calc(100% - 16px);
+    width: calc(100% - 24px);
     min-height: 56px;
     padding: 7px 8px;
     border-radius: 18px;
@@ -3557,6 +3651,23 @@ html {
     gap: 5px;
   }
 
+  .utility-actions .lang-switch {
+    gap: 2px;
+    padding: 3px;
+  }
+
+  .utility-actions .lang-switch button,
+  .utility-actions .account-controls button {
+    min-height: 36px;
+    padding-inline: 7px;
+    font-size: 0.72rem;
+  }
+
+  .utility-actions .account-controls {
+    gap: 2px;
+    padding: 3px;
+  }
+
   .qadam-journey {
     padding: 18px 12px;
     border-radius: 23px;
@@ -3568,7 +3679,7 @@ html {
   }
 
   .journey-step strong {
-    max-width: 96px;
+    max-width: 100%;
     font-size: 0.68rem;
   }
 
@@ -3617,6 +3728,12 @@ html {
   .subscription-spark svg {
     width: 30px;
     height: 30px;
+  }
+}
+
+@media (max-width: 520px) {
+  .adaptive-profile-grid article:last-child:nth-child(odd) {
+    grid-column: auto;
   }
 }
 
