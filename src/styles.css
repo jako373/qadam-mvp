@@ -15,6 +15,37 @@
   --radius: 8px;
 }
 
+.site-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  width: 100%;
+  padding: 1.35rem 1rem 1.6rem;
+  color: #667672;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.site-footer span + span::before {
+  content: "·";
+  margin-right: 0.65rem;
+  color: rgba(23, 98, 92, 0.45);
+}
+
+@media (max-width: 520px) {
+  .site-footer {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .site-footer span + span::before {
+    content: none;
+  }
+}
+
 .kaspi-checkout {
   margin-top: 1.5rem;
   padding: clamp(1.1rem, 3vw, 1.75rem);
