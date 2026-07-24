@@ -5,6 +5,7 @@ import {
   formatPlanDate,
   handleAdaptiveClick,
   nextDailyRoute,
+  planDateContext,
   planDayNumber,
   renderAdaptiveRoute,
 } from "../src/adaptive-flow.js";
@@ -56,6 +57,19 @@ describe("bilingual plan dates", () => {
     adaptive.completedDates = ["2026-07-13"];
     assert.equal(planDayNumber(adaptive, "2026-07-14"), 2);
   });
+
+  it("makes the real calendar date and future status explicit", () => {
+    assert.deepEqual(planDateContext("2026-07-14", "ru", "2026-07-13"), {
+      kind: "future",
+      label: "Будущий план",
+      formattedDate: "14 июля, вторник",
+    });
+    assert.deepEqual(planDateContext("2026-07-13", "kk", "2026-07-13"), {
+      kind: "today",
+      label: "Бүгін",
+      formattedDate: "13 шілде, дүйсенбі",
+    });
+  });
 });
 
 describe("completion streak", () => {
@@ -66,6 +80,12 @@ describe("completion streak", () => {
 
     adaptive.completedDates.push("2026-07-12");
     assert.equal(completionStreak(adaptive, new Date("2026-07-13T12:00:00")), 3);
+  });
+
+  it("ignores completed future admin plans in the current calendar streak", () => {
+    const adaptive = createDefaultAdaptiveState();
+    adaptive.completedDates = ["2026-07-12", "2026-07-13", "2026-07-14"];
+    assert.equal(completionStreak(adaptive, new Date("2026-07-13T12:00:00")), 2);
   });
 });
 

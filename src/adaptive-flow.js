@@ -324,6 +324,18 @@ export function formatPlanDate(dateKey, language) {
   return `${day} ${calendar.months[month - 1]}, ${calendar.weekdays[date.getDay()]}`;
 }
 
+export function planDateContext(dateKey, language, currentDateKey = todayKey()) {
+  const kind = dateKey === currentDateKey ? "today" : dateKey > currentDateKey ? "future" : "past";
+  const contextLabels = language === "ru"
+    ? { today: "Сегодня", future: "Будущий план", past: "Прошедший план" }
+    : { today: "Бүгін", future: "Алдағы жоспар", past: "Өткен жоспар" };
+  return {
+    kind,
+    label: contextLabels[kind],
+    formattedDate: formatPlanDate(dateKey, language),
+  };
+}
+
 function renderTomorrowPreview(context, date, plan) {
   const { state, escapeHtml, icon } = context;
   const ui = labels(state.language);
@@ -419,15 +431,22 @@ function renderToday(context) {
   const tomorrow = done && full ? ensureTomorrowPlan(state, saveState, date) : null;
   const childName = state.childProfile?.name || ui.childProfile;
   const dayLabel = planDayLabel(state.adaptive, date, state.language);
+  const dateContext = planDateContext(date, state.language);
 
   return pageShell(`
     <section class="adaptive-page-head">
       <div>
-        <span class="adaptive-eyebrow">${escapeHtml(dayLabel)}</span>
+        <div class="plan-date-line">
+          <span class="adaptive-eyebrow">${escapeHtml(dayLabel)}</span>
+          <span class="plan-date-chip plan-date-${dateContext.kind}">
+            ${icon("calendar-days")}
+            <span>${escapeHtml(dateContext.label)} · ${escapeHtml(dateContext.formattedDate)}</span>
+          </span>
+        </div>
         <h1>${escapeHtml(planHeading(childName, state.adaptive, date, state.language, done))}</h1>
         <p>${done ? ui.doneTodayText : ui.planReason}</p>
       </div>
-      <div class="today-streak"><strong>${streak}</strong><span>${ui.streak}</span></div>
+      <div class="today-streak" title="${escapeHtml(ui.streakHint)}"><strong>${streak}</strong><span>${ui.streak}</span></div>
     </section>
 
     ${isReassessmentDue(state.adaptive) ? `
@@ -438,24 +457,6 @@ function renderToday(context) {
     ` : ""}
 
     ${renderJourneyProgress(context, plan)}
-
-    <section class="daily-plan-list" aria-label="${ui.todayThree}">
-      ${plan.items.map((item, index) => {
-        const exercise = getExerciseById(item.exerciseId);
-        const copy = exerciseCopy(exercise, state.language);
-        const outcome = plan.results[item.exerciseId];
-        return `
-          <article class="daily-plan-row">
-            <span class="daily-number">${index + 1}</span>
-            <div>
-              <strong>${escapeHtml(copy.title)}</strong>
-              <small>${escapeHtml(categoryCopy(exercise.category, state.language).title)}${item.isNew ? ` · ${ui.newExercise}` : ""}</small>
-            </div>
-            <span class="daily-state">${outcome ? icon("circle-check", "status-icon") : ""}</span>
-          </article>
-        `;
-      }).join("")}
-    </section>
 
     <section class="today-action">
       <div><span>${ui.totalTime}</span><strong>${planDuration(plan, exercises)} ${ui.minutes}</strong></div>

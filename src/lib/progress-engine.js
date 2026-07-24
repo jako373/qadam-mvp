@@ -194,13 +194,17 @@ export function skillProgressSnapshot(adaptive, category, exercises = []) {
 }
 
 export function completionStreak(adaptive, now = new Date()) {
-  const dates = [...new Set(adaptive.completedDates)].sort().reverse();
-  if (!dates.length) return 0;
   const today = new Date(now);
   today.setHours(12, 0, 0, 0);
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const dates = [...new Set(adaptive.completedDates)]
+    .filter((date) => date <= todayKey)
+    .sort()
+    .reverse();
+  if (!dates.length) return 0;
   const latest = new Date(`${dates[0]}T12:00:00`);
   const latestGap = Math.round((today - latest) / 86400000);
-  if (latestGap < 0 || latestGap > 1) return 0;
+  if (latestGap > 1) return 0;
 
   let streak = 1;
   let previous = latest;
