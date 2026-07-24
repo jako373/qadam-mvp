@@ -429,26 +429,29 @@ function renderOnboarding() {
   const copy = state.language === "ru"
     ? {
         kicker: "Основа персонального плана",
-        intro: "Расскажите немного о ребёнке — так ежедневные упражнения будут ближе к его речи, интересам и темпу.",
+        intro: "Ответьте на несколько вопросов — и мы подберём подходящий старт.",
         progress: "Профиль заполнен",
         mainTitle: "Основные сведения",
-        mainText: "Помогут определить подходящий стартовый уровень",
-        comfortTitle: "Что важно для комфорта",
-        comfortText: "Используем это, чтобы занятия были понятными и приятными",
+        mainText: "Только то, что нужно для первого плана",
+        comfortTitle: "Дополнить профиль",
+        comfortText: "Интересы, сложности и удобное время",
+        optional: "Необязательно",
         privacyTitle: "Данные под вашим контролем",
-        privacyText: "Информация нужна только для персонального плана ребёнка.",
+        privacyText: "Используем только для личного плана.",
       }
     : {
         kicker: "Жеке жоспардың негізі",
-        intro: "Балаңыз туралы аздап айтып беріңіз — сонда күнделікті жаттығулар оның тіліне, қызығушылығына және қарқынына сай болады.",
+        intro: "Бірнеше сұраққа жауап беріңіз — біз қолайлы бастауды таңдаймыз.",
         progress: "Профиль толтырылды",
         mainTitle: "Негізгі мәліметтер",
-        mainText: "Қолайлы бастапқы деңгейді анықтауға көмектеседі",
-        comfortTitle: "Балаға жайлы болуы үшін",
-        comfortText: "Жаттығуды түсінікті әрі қызықты етуге пайдаланамыз",
+        mainText: "Алғашқы жоспарға қажет мәліметтер",
+        comfortTitle: "Профильді толықтыру",
+        comfortText: "Қызығушылық, қиындық және ыңғайлы уақыт",
+        optional: "Міндетті емес",
         privacyTitle: "Деректер сіздің бақылауыңызда",
-        privacyText: "Бұл ақпарат тек баланың жеке жоспарын құру үшін қажет.",
+        privacyText: "Тек жеке жоспар үшін қолданамыз.",
       };
+  const hasComfortDetails = Boolean(profile.interests || profile.dislikes || profile.bestTime);
   return pageShell(
     `
       <section class="center-panel profile-setup">
@@ -481,17 +484,19 @@ function renderOnboarding() {
               <div class="profile-words-field">${selectField("meaningfulWords", labels.meaningfulWords, wordOptions, profile.meaningfulWords || "")}</div>
             </div>
           </fieldset>
-          <fieldset class="profile-form-section profile-comfort-section">
-            <legend>
+          <details class="profile-form-section profile-comfort-section" ${hasComfortDetails ? "open" : ""}>
+            <summary>
               <span>${icon("wand-sparkles")}</span>
               <span><strong>${copy.comfortTitle}</strong><small>${copy.comfortText}</small></span>
-            </legend>
+              <em>${copy.optional}</em>
+              ${icon("chevron-down", "profile-disclosure-chevron")}
+            </summary>
             <div class="profile-insight-grid">
               ${textareaField("interests", adaptiveLabels.interests, profile.interests || "")}
               ${textareaField("dislikes", adaptiveLabels.dislikes, profile.dislikes || "")}
               <div class="profile-best-time">${inputField("bestTime", adaptiveLabels.bestTime, "text", profile.bestTime || "", false)}</div>
             </div>
-          </fieldset>
+          </details>
           <div class="profile-form-footer">
             <label class="profile-consent">
               <input id="consent" name="consent" type="checkbox" required />
