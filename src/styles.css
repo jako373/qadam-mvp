@@ -1461,13 +1461,13 @@ button:not(:disabled):active {
   line-height: 1.52;
 }
 
-.lesson-preparation {
+.lesson-prep-disclosure {
   display: block;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.62);
 }
 
-.lesson-preparation summary {
+.lesson-prep-disclosure summary {
   padding-block: 13px;
 }
 
@@ -3817,7 +3817,7 @@ html {
   }
 
   .daily-exercise > .parent-script,
-  .daily-exercise > .lesson-preparation,
+  .daily-exercise > .lesson-prep-disclosure,
   .daily-exercise > .three-steps,
   .daily-exercise > .lesson-support,
   .daily-exercise > .adaptive-primary {

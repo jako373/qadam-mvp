@@ -11,7 +11,8 @@ test("daily exercises keep the primary action before optional guidance", () => {
   const end = flowSource.indexOf("function renderDailyResult");
   const dailySource = flowSource.slice(start, end);
 
-  assert.match(dailySource, /<details class="lesson-disclosure lesson-preparation">/);
+  assert.match(dailySource, /<details class="lesson-disclosure lesson-prep-disclosure">/);
+  assert.doesNotMatch(dailySource, /lesson-disclosure lesson-preparation/);
   assert.match(dailySource, /<section class="lesson-support"/);
   assert.ok(dailySource.indexOf('data-daily-next="${index}"') < dailySource.indexOf('<section class="lesson-support"'));
   assert.doesNotMatch(dailySource, /lesson-detail-grid/);

@@ -522,7 +522,7 @@ function renderDailyExercise(context, index) {
           <div><span>${ui.sayThis}</span><blockquote>${escapeHtml(copy.parentWords || copy.title)}</blockquote></div>
         </section>
 
-        <details class="lesson-disclosure lesson-preparation">
+        <details class="lesson-disclosure lesson-prep-disclosure">
           <summary>
             ${icon("package-open")}
             <span><strong>${ui.prepare}</strong><small>${escapeHtml(copy.materials.join(", ") || ui.noMaterials)}</small></span>
