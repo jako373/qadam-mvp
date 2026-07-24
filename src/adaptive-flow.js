@@ -492,6 +492,12 @@ function renderDailyExercise(context, index) {
         : item.variant === "alternative"
           ? [ui.parentTip, copy.parentTip]
           : null;
+  const supportItems = [
+    ["repeat-2", ui.repeatPlan, copy.repeatPlan],
+    ["badge-check", ui.success, copy.successCriteria],
+    ["sparkles", ui.whyUseful, copy.benefit],
+    ["octagon-pause", ui.stopRule, copy.stopRule],
+  ];
 
   return pageShell(
     `
@@ -500,7 +506,6 @@ function renderDailyExercise(context, index) {
         <header class="lesson-heading">
           <span class="adaptive-eyebrow">${escapeHtml(planDayLabel(state.adaptive, date, state.language))} · ${escapeHtml(category.title)} · ${exercise.durationMinutes} ${ui.minutes}${item.isNew ? ` · ${ui.newExercise}` : ""}</span>
           <h1>${escapeHtml(copy.title)}</h1>
-          <p>${escapeHtml(copy.goal)}</p>
         </header>
 
         ${renderExerciseIllustration(exercise, state.language, escapeHtml)}
@@ -517,18 +522,14 @@ function renderDailyExercise(context, index) {
           <div><span>${ui.sayThis}</span><blockquote>${escapeHtml(copy.parentWords || copy.title)}</blockquote></div>
         </section>
 
-        <section class="lesson-preparation">
-          <div>
+        <details class="lesson-disclosure lesson-preparation">
+          <summary>
             ${icon("package-open")}
-            <span>${ui.needed}</span>
-            <strong>${escapeHtml(copy.materials.join(", ") || ui.noMaterials)}</strong>
-          </div>
-          <div>
-            ${icon("move-horizontal")}
-            <span>${ui.prepare}</span>
-            <strong>${escapeHtml(copy.preparation || copy.steps[0])}</strong>
-          </div>
-        </section>
+            <span><strong>${ui.prepare}</strong><small>${escapeHtml(copy.materials.join(", ") || ui.noMaterials)}</small></span>
+            ${icon("chevron-down", "disclosure-chevron")}
+          </summary>
+          <div class="lesson-disclosure-body"><p>${escapeHtml(copy.preparation || copy.steps[0])}</p></div>
+        </details>
 
         <section class="three-steps">
           <h2>${ui.howTo}</h2>
@@ -537,28 +538,19 @@ function renderDailyExercise(context, index) {
           </ol>
         </section>
 
-        <section class="lesson-detail-grid">
-          <article>
-            ${icon("repeat-2")}
-            <div><strong>${ui.repeatPlan}</strong><p>${escapeHtml(copy.repeatPlan)}</p></div>
-          </article>
-          <article>
-            ${icon("badge-check")}
-            <div><strong>${ui.success}</strong><p>${escapeHtml(copy.successCriteria)}</p></div>
-          </article>
-          <article>
-            ${icon("sparkles")}
-            <div><strong>${ui.whyUseful}</strong><p>${escapeHtml(copy.benefit)}</p></div>
-          </article>
-          <article>
-            ${icon("octagon-pause")}
-            <div><strong>${ui.stopRule}</strong><p>${escapeHtml(copy.stopRule)}</p></div>
-          </article>
-        </section>
-
         <button class="primary adaptive-primary full" data-daily-next="${index}" type="button">
           <span>${ui.markResult}</span>${icon("arrow-right")}
         </button>
+
+        <section class="lesson-support" aria-label="${ui.helpIfNeeded}">
+          <h2>${ui.helpIfNeeded}</h2>
+          ${supportItems.map(([iconName, title, text]) => `
+            <details class="lesson-disclosure">
+              <summary>${icon(iconName)}<span><strong>${title}</strong></span>${icon("chevron-down", "disclosure-chevron")}</summary>
+              <div class="lesson-disclosure-body"><p>${escapeHtml(text)}</p></div>
+            </details>
+          `).join("")}
+        </section>
       </section>
     `,
     { nav: false },
@@ -834,6 +826,14 @@ function renderExerciseDetail(context, exerciseId) {
   const copy = exerciseCopy(exercise, state.language);
   const category = categoryCopy(exercise.category, state.language);
   const favorite = state.adaptive.favoriteExerciseIds.includes(exercise.id);
+  const supportItems = [
+    ["repeat-2", ui.repeatPlan, copy.repeatPlan],
+    ["badge-check", ui.success, copy.successCriteria],
+    ["corner-down-left", ui.easier, copy.easierVersion],
+    ["trending-up", ui.harder, copy.harderVersion],
+    ["sparkles", ui.whyUseful, copy.benefit],
+    ["octagon-pause", ui.stopRule, copy.stopRule],
+  ];
 
   return pageShell(`
     <section class="exercise-detail">
@@ -845,18 +845,18 @@ function renderExerciseDetail(context, exerciseId) {
       ${renderExerciseIllustration(exercise, state.language, escapeHtml)}
       <div class="exercise-facts">
         <div><span>${ui.duration}</span><strong>${exercise.durationMinutes} ${ui.minutes}</strong></div>
-        <div><span>${ui.goal}</span><strong>${escapeHtml(copy.goal)}</strong></div>
         <div><span>${ui.needed}</span><strong>${escapeHtml(copy.materials.join(", ") || ui.noMaterials)}</strong></div>
       </div>
       <section class="parent-script detail-parent-script">${icon("message-circle", "instruction-icon")}<div><span>${ui.sayThis}</span><blockquote>${escapeHtml(copy.parentWords)}</blockquote></div></section>
       <section class="three-steps detail-steps"><h2>${ui.howTo}</h2><ol>${copy.steps.map((step) => `<li><span>${escapeHtml(step)}</span></li>`).join("")}</ol></section>
-      <section class="detail-notes">
-        <article><strong>${ui.repeatPlan}</strong><p>${escapeHtml(copy.repeatPlan)}</p></article>
-        <article><strong>${ui.success}</strong><p>${escapeHtml(copy.successCriteria)}</p></article>
-        <article><strong>${ui.easier}</strong><p>${escapeHtml(copy.easierVersion)}</p></article>
-        <article><strong>${ui.harder}</strong><p>${escapeHtml(copy.harderVersion)}</p></article>
-        <article><strong>${ui.whyUseful}</strong><p>${escapeHtml(copy.benefit)}</p></article>
-        <article><strong>${ui.stopRule}</strong><p>${escapeHtml(copy.stopRule)}</p></article>
+      <section class="lesson-support detail-notes" aria-label="${ui.helpIfNeeded}">
+        <h2>${ui.helpIfNeeded}</h2>
+        ${supportItems.map(([iconName, title, text]) => `
+          <details class="lesson-disclosure">
+            <summary>${icon(iconName)}<span><strong>${title}</strong></span>${icon("chevron-down", "disclosure-chevron")}</summary>
+            <div class="lesson-disclosure-body"><p>${escapeHtml(text)}</p></div>
+          </details>
+        `).join("")}
       </section>
     </section>
   `);
