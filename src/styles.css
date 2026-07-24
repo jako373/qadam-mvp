@@ -1195,6 +1195,47 @@ button:not(:disabled):active {
   line-height: 1.35;
 }
 
+.plan-date-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.plan-date-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  color: var(--teal-dark);
+  border: 1px solid rgba(23, 98, 92, 0.18);
+  border-radius: 999px;
+  background: rgba(232, 241, 237, 0.82);
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.plan-date-chip svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+}
+
+.plan-date-future {
+  color: #7b5522;
+  border-color: rgba(216, 170, 58, 0.3);
+  background: rgba(255, 245, 210, 0.84);
+}
+
+.plan-date-past {
+  color: var(--muted);
+  border-color: rgba(91, 103, 100, 0.16);
+  background: rgba(243, 245, 243, 0.84);
+}
+
 .daily-plan-list {
   display: grid;
   border-top: 1px solid var(--line);
@@ -2203,7 +2244,7 @@ html {
 }
 
 .top-nav {
-  width: min(calc(100% - 32px), 1240px);
+  width: min(calc(100% - 32px), 1520px);
   inset: 12px 16px auto 50%;
   transform: translateX(-50%);
   border: 1px solid var(--glass-line);
@@ -4327,10 +4368,16 @@ html {
 
 .header-actions-desktop {
   min-width: 0;
+  max-width: 100%;
   margin-left: auto;
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.header-actions-desktop [data-account-controls-mount] {
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
 .header-actions-desktop .account-controls,
@@ -4339,7 +4386,17 @@ html {
   z-index: auto;
   top: auto;
   right: auto;
-  max-width: none;
+  max-width: 100%;
+}
+
+.header-actions-desktop .account-controls {
+  min-width: 0;
+  max-width: 248px;
+}
+
+.header-actions-desktop .account-controls > span {
+  min-width: 0;
+  max-width: 132px;
 }
 
 .header-menu-toggle,
