@@ -35,6 +35,171 @@
   color: rgba(23, 98, 92, 0.45);
 }
 
+.contact-lang-ru {
+  display: none;
+}
+
+html[lang="ru"] .contact-lang-kk {
+  display: none;
+}
+
+html[lang="ru"] .contact-lang-ru {
+  display: inline;
+}
+
+.contact-dock {
+  position: fixed;
+  z-index: 55;
+  right: 18px;
+  bottom: 18px;
+}
+
+body:has(.app-shell.with-nav) .contact-dock {
+  bottom: 22px;
+}
+
+.contact-dock > summary {
+  min-height: 48px;
+  display: inline-grid;
+  grid-template-columns: 21px auto 16px;
+  align-items: center;
+  gap: 9px;
+  float: right;
+  padding: 10px 14px;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.44);
+  border-radius: 999px;
+  background: linear-gradient(145deg, #267d72, #12534d);
+  box-shadow: 0 14px 34px rgba(17, 79, 73, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.contact-dock > summary::-webkit-details-marker {
+  display: none;
+}
+
+.contact-dock > summary:focus-visible,
+.contact-option:focus-visible {
+  outline: 3px solid rgba(207, 100, 66, 0.48);
+  outline-offset: 3px;
+}
+
+.contact-dock svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.contact-dock .contact-chevron {
+  width: 16px;
+  height: 16px;
+  transition: transform 180ms ease;
+}
+
+.contact-dock[open] .contact-chevron {
+  transform: rotate(180deg);
+}
+
+.contact-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  width: min(360px, calc(100vw - 24px));
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 22px;
+  background: rgba(250, 252, 250, 0.92);
+  box-shadow: 0 24px 64px rgba(20, 64, 59, 0.2);
+  -webkit-backdrop-filter: blur(20px) saturate(135%);
+  backdrop-filter: blur(20px) saturate(135%);
+}
+
+.contact-panel > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 5px 7px;
+  color: #214742;
+  font-weight: 820;
+}
+
+.contact-panel > header small {
+  color: #62807b;
+  font-size: 0.7rem;
+  font-weight: 720;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.contact-option {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 11px;
+  padding: 12px;
+  color: #183d38;
+  border: 1px solid rgba(33, 100, 91, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.contact-option:hover {
+  border-color: rgba(33, 126, 104, 0.34);
+  box-shadow: 0 10px 24px rgba(24, 83, 73, 0.09);
+  transform: translateY(-1px);
+}
+
+.contact-option-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  border-radius: 14px;
+  background: #207d68;
+}
+
+.contact-community .contact-option-icon {
+  color: #2c6259;
+  background: #dceee8;
+}
+
+.contact-option-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.contact-option-copy strong {
+  overflow-wrap: anywhere;
+  font-size: 0.86rem;
+}
+
+.contact-option-copy small {
+  color: #687b77;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.contact-arrow {
+  width: 17px !important;
+  height: 17px !important;
+  color: #5d7f79;
+}
+
 @media (max-width: 520px) {
   .site-footer {
     display: grid;
@@ -43,6 +208,31 @@
 
   .site-footer span + span::before {
     content: none;
+  }
+
+  .contact-dock {
+    right: 12px;
+    bottom: 12px;
+  }
+
+  body:has(.app-shell.with-nav) .contact-dock {
+    bottom: 94px;
+  }
+
+  .contact-panel {
+    width: min(340px, calc(100vw - 24px));
+  }
+
+  .contact-dock > summary {
+    min-height: 44px;
+    padding: 9px 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contact-dock .contact-chevron,
+  .contact-option {
+    transition: none;
   }
 }
 
