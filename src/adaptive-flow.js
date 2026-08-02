@@ -20,7 +20,6 @@ import {
   weeklySummary,
 } from "./lib/progress-engine.js";
 import {
-  adaptNextPlanItem,
   ensureDailyPlan,
   planDuration,
 } from "./lib/recommendation-engine.js";
@@ -74,6 +73,17 @@ const detailUi = {
     planReason: "Үш қадам баланың әлсіз, қарым-қатынас және сенімді дағдыларын тең қамтиды.",
     completed: "Аяқталды",
     currentLevel: "Қазіргі деңгей",
+    reviewNext: "Келесі нұсқаулық",
+    startOffline: "Телефонды қойып, жаттығуларды бастау",
+    offlineEyebrow: "Телефонсыз жаттығу",
+    offlineTitle: "Енді балаға толық назар аударыңыз",
+    offlineText: "Үш нұсқаулықпен таныстыңыз. Телефонды қоя тұрып, жаттығуларды баламен бірге орындаңыз. Үшеуі аяқталған соң осы экранға оралыңыз.",
+    exercisesFinished: "Үш жаттығуды орындап болдым",
+    batchResultTitle: "Үш жаттығу қалай өтті?",
+    batchResultText: "Әр жаттығуға бір нәтиже таңдаңыз. Барлығы бір рет сақталады.",
+    chooseOutcome: "Нәтижені таңдаңыз",
+    saveAllResults: "Барлық нәтижені сақтау",
+    allResultsRequired: "Үш жаттығудың әрқайсысына нәтиже таңдаңыз.",
   },
   ru: {
     goal: "Цель",
@@ -96,6 +106,17 @@ const detailUi = {
     planReason: "Три шага охватывают слабый, коммуникативный и уверенный навык ребёнка.",
     completed: "Завершено",
     currentLevel: "Текущий уровень",
+    reviewNext: "Следующая инструкция",
+    startOffline: "Отложить телефон и начать",
+    offlineEyebrow: "Занятие без телефона",
+    offlineTitle: "Теперь уделите всё внимание ребёнку",
+    offlineText: "Вы просмотрели три инструкции. Отложите телефон и выполните упражнения вместе с ребёнком. После всех трёх вернитесь на этот экран.",
+    exercisesFinished: "Все три упражнения выполнены",
+    batchResultTitle: "Как прошли три упражнения?",
+    batchResultText: "Выберите один результат для каждого упражнения. Всё сохранится один раз.",
+    chooseOutcome: "Выберите результат",
+    saveAllResults: "Сохранить все результаты",
+    allResultsRequired: "Выберите результат для каждого из трёх упражнений.",
   },
 };
 
@@ -301,12 +322,12 @@ function renderPlanReady(context) {
 
 export function nextDailyRoute(plan) {
   if (plan.completedAt) return "/daily-summary";
-  const unanswered = plan.items.findIndex((item) => !hasAnswer(plan.results, item.exerciseId));
+  const unanswered = plan.items.findIndex((item) => !hasAnswer(plan.results || {}, item.exerciseId));
   if (unanswered === -1) return "/daily-summary";
-  const index = unanswered + 1;
-  return Number(plan.viewedCount || 0) >= index
-    ? `/daily-results/${index}`
-    : `/daily/${index}`;
+  const viewed = Math.min(Number(plan.viewedCount || 0), plan.items.length);
+  return viewed < plan.items.length
+    ? `/daily/${viewed + 1}`
+    : "/daily-results/1";
 }
 
 export function formatPlanDate(dateKey, language) {
@@ -540,7 +561,7 @@ function renderDailyExercise(context, index) {
         </section>
 
         <button class="primary adaptive-primary full" data-daily-next="${index}" type="button">
-          <span>${ui.markResult}</span>${icon("arrow-right")}
+          <span>${index < plan.items.length ? ui.reviewNext : ui.startOffline}</span>${icon(index < plan.items.length ? "arrow-right" : "heart-handshake")}
         </button>
 
         <section class="lesson-support" aria-label="${ui.helpIfNeeded}">
@@ -558,14 +579,10 @@ function renderDailyExercise(context, index) {
   );
 }
 
-function renderDailyResult(context, index) {
+function renderDailyResult(context) {
   const { state, access = { access_tier: "complimentary" }, pageShell, escapeHtml, saveState, icon } = context;
   const ui = labels(state.language);
   const { date, plan } = ensureTodayPlan(state, saveState, access);
-  const item = plan.items[index - 1];
-  const exercise = item ? getExerciseById(item.exerciseId) : null;
-  if (!exercise) return null;
-  const copy = exerciseCopy(exercise, state.language);
   const outcomeButtons = [
     ["independent", ui.independent, "circle-check"],
     ["assisted", ui.assisted, "hand-helping"],
@@ -575,18 +592,61 @@ function renderDailyResult(context, index) {
 
   return pageShell(
     `
-      <section class="adaptive-question outcome-question">
-        ${progressHeader(index, 3, state.language)}
-        <span class="adaptive-eyebrow">${escapeHtml(planDayLabel(state.adaptive, date, state.language))} · ${ui.resultOne}</span>
-        <h1>${escapeHtml(copy.title)}</h1>
-        <p class="adaptive-lead">${ui.howWasIt}</p>
-        <div class="answer-stack outcome-stack">
-          ${outcomeButtons.map(([value, title, iconName]) => `
-            <button class="answer-button" data-exercise-outcome="${index}:${value}" type="button">
-              ${icon(iconName)}<span>${title}</span>
-            </button>
-          `).join("")}
-        </div>
+      <section class="batch-outcome-page">
+        ${progressHeader(3, 3, state.language)}
+
+        <section class="batch-session-intro" data-batch-session-intro>
+          <div class="batch-session-icon" aria-hidden="true">${icon("heart-handshake")}</div>
+          <span class="adaptive-eyebrow">${ui.offlineEyebrow}</span>
+          <h1>${ui.offlineTitle}</h1>
+          <p class="adaptive-lead">${ui.offlineText}</p>
+          <button class="primary adaptive-primary full" data-show-batch-results type="button">
+            <span>${ui.exercisesFinished}</span>${icon("check")}
+          </button>
+        </section>
+
+        <section class="batch-results" data-batch-results hidden>
+          <header class="batch-results-heading">
+            <span class="adaptive-eyebrow">${escapeHtml(planDayLabel(state.adaptive, date, state.language))}</span>
+            <h1>${ui.batchResultTitle}</h1>
+            <p class="adaptive-lead">${ui.batchResultText}</p>
+          </header>
+
+          <div class="batch-outcome-grid">
+            ${plan.items.map((item, index) => {
+              const exercise = getExerciseById(item.exerciseId);
+              const copy = exerciseCopy(exercise, state.language);
+              const savedOutcome = plan.results?.[item.exerciseId];
+              return `
+                <section class="batch-outcome-card" data-batch-card="${index + 1}">
+                  <header>
+                    <span>${index + 1}</span>
+                    <div>
+                      <small>${ui.chooseOutcome}</small>
+                      <h2>${escapeHtml(copy.title)}</h2>
+                    </div>
+                  </header>
+                  <div class="batch-outcome-options" role="group" aria-label="${escapeHtml(copy.title)}">
+                    ${outcomeButtons.map(([value, title, iconName]) => `
+                      <button
+                        class="batch-outcome-button ${savedOutcome === value ? "selected" : ""}"
+                        data-batch-outcome="${index + 1}:${value}"
+                        aria-pressed="${savedOutcome === value ? "true" : "false"}"
+                        ${savedOutcome ? "disabled" : ""}
+                        type="button"
+                      >${icon(iconName)}<span>${title}</span></button>
+                    `).join("")}
+                  </div>
+                </section>
+              `;
+            }).join("")}
+          </div>
+
+          <p class="batch-error" data-batch-error hidden>${ui.allResultsRequired}</p>
+          <button class="primary adaptive-primary full" data-save-batch-outcomes type="button">
+            <span>${ui.saveAllResults}</span>${icon("check-check")}
+          </button>
+        </section>
       </section>
     `,
     { nav: false },
@@ -1066,10 +1126,9 @@ export function guardAdaptiveRoute(path, state, access = {}) {
       (item) => !hasAnswer(plan.results || {}, item.exerciseId),
     );
     if (firstUnanswered === -1) return "/daily-summary";
-    const requested = routeNumber(path);
-    const expected = firstUnanswered + 1;
-    if (requested !== expected) return nextDailyRoute(plan);
-    if (Number(plan.viewedCount || 0) < expected) return `/daily/${expected}`;
+    if (routeNumber(path) !== 1) return "/daily-results/1";
+    const viewed = Math.min(Number(plan.viewedCount || 0), plan.items.length);
+    if (viewed < plan.items.length) return `/daily/${viewed + 1}`;
   }
   if (path.startsWith("/daily/") && plan) {
     const expected = nextDailyRoute(plan);
@@ -1178,47 +1237,51 @@ function completeDailyStep(context, index) {
     },
   };
   saveState(state);
-  routeTo(`/daily-results/${index}`);
+  routeTo(index < plan.items.length ? `/daily/${index + 1}` : "/daily-results/1");
 }
 
-function saveOutcome(context, index, outcome) {
+function saveBatchOutcomes(context, selectedOutcomes) {
   const { state, access = { access_tier: "complimentary" }, saveState, routeTo } = context;
   const { date, plan } = ensureTodayPlan(state, saveState, access);
-  const item = plan.items[index - 1];
-  const exercise = item ? getExerciseById(item.exerciseId) : null;
-  if (!exercise || !["independent", "assisted", "unable", "refused"].includes(outcome)) return;
-  if (hasAnswer(plan.results, exercise.id)) {
-    if (index < plan.items.length) {
-      state.adaptive = adaptNextPlanItem(state.adaptive, exercises, date, index).adaptive;
-      saveState(state);
+  if (!Array.isArray(selectedOutcomes) || selectedOutcomes.length !== plan.items.length) return false;
+
+  const validOutcomes = new Set(["independent", "assisted", "unable", "refused"]);
+  let adaptive = state.adaptive;
+  const results = { ...(plan.results || {}) };
+
+  for (let index = 0; index < plan.items.length; index += 1) {
+    const item = plan.items[index];
+    const exercise = getExerciseById(item.exerciseId);
+    const selected = selectedOutcomes[index];
+    const outcome = hasAnswer(results, item.exerciseId) ? results[item.exerciseId] : selected;
+    if (!exercise || !validOutcomes.has(outcome)) return false;
+    if (!hasAnswer(results, item.exerciseId)) {
+      adaptive = recordExerciseOutcome(adaptive, exercise, outcome, date, exercises);
+      results[item.exerciseId] = outcome;
     }
-    routeTo(index >= plan.items.length ? "/daily-summary" : `/daily/${index + 1}`);
-    return;
   }
 
-  state.adaptive = recordExerciseOutcome(state.adaptive, exercise, outcome, date, exercises);
-  const currentPlan = state.adaptive.dailyPlans[date];
-  const results = { ...currentPlan.results, [exercise.id]: outcome };
-  state.adaptive = {
-    ...state.adaptive,
+  const currentPlan = adaptive.dailyPlans[date];
+  adaptive = {
+    ...adaptive,
     dailyPlans: {
-      ...state.adaptive.dailyPlans,
-      [date]: { ...currentPlan, results },
+      ...adaptive.dailyPlans,
+      [date]: {
+        ...currentPlan,
+        results,
+        viewedCount: plan.items.length,
+      },
     },
   };
-
-  const allAnswered = currentPlan.items.every((planItem) => hasAnswer(results, planItem.exerciseId));
-  if (allAnswered) {
-    state.adaptive = markDayCompleted(state.adaptive, date);
-    if (hasFullAccess(access)) {
-      const tomorrow = ensureDailyPlan(state.adaptive, exercises, shiftDateKey(date, 1));
-      state.adaptive = tomorrow.adaptive;
-    }
-  } else {
-    state.adaptive = adaptNextPlanItem(state.adaptive, exercises, date, index).adaptive;
+  adaptive = markDayCompleted(adaptive, date);
+  if (hasFullAccess(access)) {
+    adaptive = ensureDailyPlan(adaptive, exercises, shiftDateKey(date, 1)).adaptive;
   }
+
+  state.adaptive = adaptive;
   saveState(state);
-  routeTo(allAnswered ? "/daily-summary" : `/daily/${index + 1}`);
+  routeTo("/daily-summary");
+  return true;
 }
 
 export function handleAdaptiveClick(event, context) {
@@ -1260,10 +1323,43 @@ export function handleAdaptiveClick(event, context) {
     return true;
   }
 
-  const outcome = event.target.closest("[data-exercise-outcome]");
-  if (outcome) {
-    const [index, value] = outcome.dataset.exerciseOutcome.split(":");
-    saveOutcome(context, Number(index), value);
+  const showBatchResults = event.target.closest("[data-show-batch-results]");
+  if (showBatchResults) {
+    const intro = document.querySelector("[data-batch-session-intro]");
+    const results = document.querySelector("[data-batch-results]");
+    if (intro) intro.hidden = true;
+    if (results) {
+      results.hidden = false;
+      results.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    return true;
+  }
+
+  const batchOutcome = event.target.closest("[data-batch-outcome]");
+  if (batchOutcome) {
+    const card = batchOutcome.closest("[data-batch-card]");
+    if (!card || batchOutcome.disabled) return true;
+    card.querySelectorAll("[data-batch-outcome]").forEach((button) => {
+      const selected = button === batchOutcome;
+      button.classList.toggle("selected", selected);
+      button.setAttribute("aria-pressed", selected ? "true" : "false");
+    });
+    document.querySelector("[data-batch-error]")?.setAttribute("hidden", "");
+    return true;
+  }
+
+  const saveBatch = event.target.closest("[data-save-batch-outcomes]");
+  if (saveBatch) {
+    const cards = [...document.querySelectorAll("[data-batch-card]")];
+    const outcomes = cards.map((card) => {
+      const selected = card.querySelector("[data-batch-outcome].selected");
+      return selected?.dataset.batchOutcome.split(":")[1] || null;
+    });
+    if (outcomes.some((outcome) => !outcome) || !saveBatchOutcomes(context, outcomes)) {
+      document.querySelector("[data-batch-error]")?.removeAttribute("hidden");
+      return true;
+    }
+    saveBatch.disabled = true;
     return true;
   }
 
