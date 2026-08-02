@@ -376,6 +376,48 @@ describe("daily recommendation", () => {
     assert.ok(!next.items.some((item) => item.exerciseId === refusedId));
   });
 
+  it("does not repeat independently completed exercises in the next plan", () => {
+    const date = "2026-07-13";
+    let adaptive = assessedAdaptive(1);
+    const first = ensureDailyPlan(adaptive, exercises, date);
+    adaptive = first.adaptive;
+    for (const item of first.plan.items) {
+      const exercise = exercises.find((candidate) => candidate.id === item.exerciseId);
+      adaptive = recordExerciseOutcome(adaptive, exercise, "independent", date, exercises);
+      adaptive.dailyPlans[date].results[item.exerciseId] = "independent";
+    }
+    adaptive = markDayCompleted(adaptive, date);
+
+    const next = ensureDailyPlan(adaptive, exercises, shiftDateKey(date, 1));
+    const previousIds = new Set(first.plan.items.map((item) => item.exerciseId));
+    assert.ok(next.plan.items.every((item) => !previousIds.has(item.exerciseId)));
+  });
+
+  it("allows assisted practice once but blocks a third consecutive recommendation", () => {
+    let adaptive = assessedAdaptive(1);
+    const plans = [];
+    for (const date of ["2026-07-10", "2026-07-11"]) {
+      const result = ensureDailyPlan(adaptive, exercises, date);
+      adaptive = result.adaptive;
+      plans.push(result.plan);
+      for (const item of result.plan.items) {
+        const exercise = exercises.find((candidate) => candidate.id === item.exerciseId);
+        adaptive = recordExerciseOutcome(adaptive, exercise, "assisted", date, exercises);
+        adaptive.dailyPlans[date].results[item.exerciseId] = "assisted";
+      }
+      adaptive = markDayCompleted(adaptive, date);
+    }
+
+    const repeated = plans[0].items
+      .map((item) => item.exerciseId)
+      .filter((id) => plans[1].items.some((item) => item.exerciseId === id));
+    assert.ok(repeated.length > 0);
+    const third = ensureDailyPlan(adaptive, exercises, "2026-07-12");
+    for (const id of repeated) {
+      assert.ok(!third.plan.items.some((item) => item.exerciseId === id), id);
+    }
+  });
+
   it("does not repeat one exercise for a fourth consecutive day", () => {
     let adaptive = assessedAdaptive(1);
     const plans = [];
