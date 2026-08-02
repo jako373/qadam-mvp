@@ -1,3 +1,5 @@
+import { canonicalExerciseHistory, exerciseProgressFromHistory } from "./lib/progress-engine.js";
+
 const SUPABASE_URL = "https://iismpbsapzmacxqraecx.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hFMdiuuIp051vWhUE7IQKg_DczXIfmV";
 const SESSION_KEY = "qadam.auth.session.v1";
@@ -145,13 +147,6 @@ async function hydrateState(session) {
   const skillLevels = { ...(adaptive.skillLevels || {}) };
   for (const category of CATEGORIES) skillLevels[category] = 1;
   for (const item of levels) skillLevels[item.category] = Number(item.level);
-  const exerciseProgress = Object.fromEntries(progress.map((item) => [item.exercise_id, {
-    independentCount: item.independent_count,
-    unableStreak: item.unable_streak,
-    attempts: item.attempts,
-    lastOutcome: item.last_outcome,
-    lastDate: item.last_attempted_on,
-  }]));
   const dailyPlans = Object.fromEntries(plans.map((item) => [item.plan_date, {
     date: item.plan_date,
     basedOnDate: item.based_on_date || null,
@@ -160,15 +155,12 @@ async function hydrateState(session) {
     viewedCount: item.viewed_count || 0,
     completedAt: item.completed_at || null,
   }]));
-  const exerciseHistory = attempts.map((item) => ({
-    exerciseId: item.exercise_id,
-    category: item.category,
-    level: item.exercise_level,
-    outcome: item.outcome,
-    score: item.score,
-    date: item.attempted_on,
-    at: item.created_at,
-  }));
+  const knownExerciseIds = new Set([
+    ...progress.map((item) => item.exercise_id),
+    ...plans.flatMap((plan) => (plan.items || []).map((item) => item.exerciseId)),
+  ]);
+  const exerciseHistory = canonicalExerciseHistory(plans, attempts);
+  const exerciseProgress = exerciseProgressFromHistory(exerciseHistory, [...knownExerciseIds]);
   const next = {
     language: profiles?.[0]?.preferred_language === "ru" ? "ru" : (saved.language === "ru" ? "ru" : "kk"),
     childProfile: {
@@ -182,7 +174,7 @@ async function hydrateState(session) {
       skillLevels,
       exerciseProgress,
       exerciseHistory,
-      introducedExerciseIds: progress.map((item) => item.exercise_id),
+      introducedExerciseIds: [...knownExerciseIds],
       favoriteExerciseIds: progress.filter((item) => item.is_favorite).map((item) => item.exercise_id),
       dailyPlans,
       completedDates: plans.filter((item) => item.completed_at).map((item) => item.plan_date).sort(),
