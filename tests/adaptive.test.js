@@ -15,8 +15,10 @@ import { exercises } from "../src/data/exercises.js";
 import { createDefaultAdaptiveState, shiftDateKey } from "../src/lib/adaptive-state.js";
 import {
   calculateSkillLevels,
+  canonicalExerciseHistory,
   completeInitialAssessment,
   completionStreak,
+  exerciseProgressFromHistory,
   markDayCompleted,
   recordExerciseOutcome,
   skillProgressSnapshot,
@@ -86,6 +88,31 @@ describe("completion streak", () => {
     const adaptive = createDefaultAdaptiveState();
     adaptive.completedDates = ["2026-07-12", "2026-07-13", "2026-07-14"];
     assert.equal(completionStreak(adaptive, new Date("2026-07-13T12:00:00")), 2);
+  });
+});
+
+describe("canonical parent outcomes", () => {
+  it("counts one saved plan answer once even when attempt rows were duplicated", () => {
+    const plans = [{
+      plan_date: "2026-07-18",
+      results: { "understanding-01": "independent" },
+      completed_at: "2026-07-18T12:00:00.000Z",
+      updated_at: "2026-07-18T12:00:00.000Z",
+    }];
+    const attempts = [0, 1, 2].map((index) => ({
+      exercise_id: "understanding-01",
+      category: "understanding",
+      exercise_level: 1,
+      outcome: "independent",
+      attempted_on: "2026-07-18",
+      created_at: `2026-07-18T12:00:00.00${index}Z`,
+    }));
+    const history = canonicalExerciseHistory(plans, attempts);
+    const progress = exerciseProgressFromHistory(history, ["understanding-01"]);
+
+    assert.equal(history.length, 1);
+    assert.equal(progress["understanding-01"].attempts, 1);
+    assert.equal(progress["understanding-01"].independentCount, 1);
   });
 });
 
@@ -294,6 +321,15 @@ describe("daily recommendation", () => {
       assert.equal(adapted.plan.items[1].exerciseId, exerciseId, outcome);
       assert.equal(adapted.plan.items[1].variant, variant, outcome);
       assert.notEqual(adapted.plan.items[1].exerciseId, source.id, outcome);
+    }
+  });
+
+  it("selects the exact category level after the parent assessment", () => {
+    const adaptive = assessedAdaptive(2);
+    const plan = createDailyPlan(adaptive, exercises, "2026-07-13");
+    for (const item of plan.items) {
+      const exercise = exercises.find((candidate) => candidate.id === item.exerciseId);
+      assert.equal(exercise.level, adaptive.skillLevels[exercise.category]);
     }
   });
 
