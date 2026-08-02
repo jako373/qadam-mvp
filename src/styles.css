@@ -5454,3 +5454,170 @@ html {
     transition: none !important;
   }
 }
+
+
+/* Batch daily results: review first, practice offline, answer once. */
+.batch-outcome-page {
+  width: min(100%, 820px);
+  margin: 0 auto;
+}
+
+.batch-session-intro,
+.batch-results {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) * 2);
+  box-shadow: var(--shadow);
+  padding: clamp(1.35rem, 4vw, 2.5rem);
+}
+
+.batch-session-intro {
+  display: grid;
+  justify-items: center;
+  gap: 0.85rem;
+  text-align: center;
+}
+
+.batch-session-intro[hidden],
+.batch-results[hidden] {
+  display: none;
+}
+
+.batch-session-icon {
+  display: grid;
+  width: 4.25rem;
+  height: 4.25rem;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--teal);
+  background: var(--mist);
+}
+
+.batch-session-icon svg {
+  width: 2rem;
+  height: 2rem;
+}
+
+.batch-session-intro h1,
+.batch-results-heading h1 {
+  margin: 0;
+}
+
+.batch-session-intro .adaptive-lead {
+  max-width: 620px;
+}
+
+.batch-results-heading {
+  margin-bottom: 1.25rem;
+  text-align: center;
+}
+
+.batch-outcome-grid {
+  display: grid;
+  gap: 1rem;
+  margin: 1.25rem 0;
+}
+
+.batch-outcome-card {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.batch-outcome-card > header {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 0.9rem;
+}
+
+.batch-outcome-card > header > span {
+  display: grid;
+  flex: 0 0 2.25rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--teal);
+  font-weight: 800;
+}
+
+.batch-outcome-card h2 {
+  margin: 0.1rem 0 0;
+  font-size: clamp(1rem, 3vw, 1.2rem);
+}
+
+.batch-outcome-card small {
+  color: var(--muted);
+}
+
+.batch-outcome-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.batch-outcome-button {
+  display: flex;
+  min-height: 3.25rem;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.55rem;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink);
+  background: var(--surface);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.batch-outcome-button svg {
+  flex: 0 0 auto;
+  width: 1.15rem;
+  height: 1.15rem;
+  color: var(--teal);
+}
+
+.batch-outcome-button:hover,
+.batch-outcome-button:focus-visible {
+  border-color: var(--teal);
+}
+
+.batch-outcome-button.selected {
+  border-color: var(--teal);
+  color: var(--teal-dark);
+  background: var(--mist);
+  box-shadow: inset 0 0 0 1px var(--teal);
+}
+
+.batch-outcome-button:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.batch-error {
+  margin: 0 0 0.8rem;
+  color: #a33a2b;
+  font-weight: 700;
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .batch-session-intro,
+  .batch-results {
+    padding: 1.1rem;
+  }
+
+  .batch-outcome-options {
+    grid-template-columns: 1fr;
+  }
+
+  .batch-outcome-button {
+    min-height: 3.5rem;
+  }
+}
