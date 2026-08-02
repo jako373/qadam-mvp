@@ -232,7 +232,7 @@ describe("daily recommendation", () => {
     assert.equal(route, "/daily/1");
   });
 
-  it("asks for one result before opening the next exercise", () => {
+  it("reviews all instructions before asking for the three results together", () => {
     const plan = {
       items: ["first", "second", "third"].map((exerciseId) => ({ exerciseId })),
       results: {},
@@ -241,9 +241,13 @@ describe("daily recommendation", () => {
     };
     assert.equal(nextDailyRoute(plan), "/daily/1");
     plan.viewedCount = 1;
-    assert.equal(nextDailyRoute(plan), "/daily-results/1");
-    plan.results.first = "assisted";
     assert.equal(nextDailyRoute(plan), "/daily/2");
+    plan.viewedCount = 2;
+    assert.equal(nextDailyRoute(plan), "/daily/3");
+    plan.viewedCount = 3;
+    assert.equal(nextDailyRoute(plan), "/daily-results/1");
+    plan.results = { first: "assisted", second: "independent", third: "unable" };
+    assert.equal(nextDailyRoute(plan), "/daily-summary");
   });
 
   it("selects the next exercise immediately from the latest result", () => {
