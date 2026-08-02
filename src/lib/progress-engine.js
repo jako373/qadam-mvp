@@ -11,6 +11,89 @@ function clampLevel(value) {
   return Math.max(1, Math.min(3, Number(value) || 1));
 }
 
+
+function exerciseMetadata(exerciseId, attempts) {
+  const matching = attempts
+    .filter((item) => item.exercise_id === exerciseId)
+    .sort((left, right) => String(left.created_at || "").localeCompare(String(right.created_at || "")));
+  const latest = matching.at(-1);
+  const ordinal = Number(String(exerciseId).match(/-(\d+)$/)?.[1] || 1);
+  return {
+    category: latest?.category || String(exerciseId).replace(/-\d+$/, ""),
+    level: Number(latest?.exercise_level || Math.ceil(ordinal / 5) || 1),
+  };
+}
+
+export function canonicalExerciseHistory(plans = [], attempts = []) {
+  const exactAttempts = new Map();
+  for (const attempt of attempts) {
+    const key = [attempt.exercise_id, attempt.attempted_on, attempt.outcome].join("|");
+    const previous = exactAttempts.get(key);
+    if (!previous || String(previous.created_at || "") < String(attempt.created_at || "")) {
+      exactAttempts.set(key, attempt);
+    }
+  }
+
+  const history = [];
+  const orderedPlans = [...plans].sort((left, right) =>
+    String(left.plan_date || "").localeCompare(String(right.plan_date || "")),
+  );
+  for (const plan of orderedPlans) {
+    const outcomes = Object.entries(plan.results || {});
+    outcomes.forEach(([exerciseId, outcome], index) => {
+      if (!Object.hasOwn(outcomeScores, outcome)) return;
+      const exact = exactAttempts.get([exerciseId, plan.plan_date, outcome].join("|"));
+      const metadata = exact || exerciseMetadata(exerciseId, attempts);
+      const fallbackTime = Date.parse(plan.completed_at || plan.updated_at || `${plan.plan_date}T12:00:00Z`);
+      history.push({
+        exerciseId,
+        category: metadata.category,
+        level: Number(metadata.exercise_level || metadata.level || 1),
+        outcome,
+        score: outcomeScores[outcome],
+        date: plan.plan_date,
+        at: exact?.created_at || new Date(fallbackTime + index).toISOString(),
+      });
+    });
+  }
+  return history.slice(-500);
+}
+
+export function exerciseProgressFromHistory(history = [], knownExerciseIds = []) {
+  const progress = Object.fromEntries(
+    [...new Set(knownExerciseIds)].map((exerciseId) => [exerciseId, {
+      independentCount: 0,
+      unableStreak: 0,
+      attempts: 0,
+      lastOutcome: null,
+      lastDate: null,
+    }]),
+  );
+
+  for (const item of history) {
+    const current = progress[item.exerciseId] || {
+      independentCount: 0,
+      unableStreak: 0,
+      attempts: 0,
+      lastOutcome: null,
+      lastDate: null,
+    };
+    const next = { ...current, attempts: Number(current.attempts || 0) + 1 };
+    if (item.outcome === "independent") {
+      next.independentCount = Number(current.independentCount || 0) + 1;
+      next.unableStreak = 0;
+    } else if (item.outcome === "unable") {
+      next.unableStreak = Number(current.unableStreak || 0) + 1;
+    } else if (item.outcome === "assisted") {
+      next.unableStreak = 0;
+    }
+    next.lastOutcome = item.outcome;
+    next.lastDate = item.date;
+    progress[item.exerciseId] = next;
+  }
+  return progress;
+}
+
 export function calculateSkillLevels(answers, questions) {
   const levels = {};
   for (const category of exerciseCategoryOrder) {
@@ -35,7 +118,7 @@ export function seedFamiliarExercises(skillLevels, exercises) {
       exercises.find(
         (exercise) =>
           exercise.category === category &&
-          exercise.level <= clampLevel(skillLevels[category]) &&
+          exercise.level === clampLevel(skillLevels[category]) &&
           exercise.isActive,
       ),
     )

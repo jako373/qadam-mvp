@@ -33,11 +33,18 @@ function latestCompletedPlan(adaptive, date) {
   return key ? adaptive.dailyPlans[key] : null;
 }
 
-function repeatedThreeDays(adaptive, exerciseId, date) {
-  const dates = recentPlanDates(adaptive, date, 3);
-  return dates.length === 3 && dates.every((key) =>
+function repeatedTooSoon(adaptive, exerciseId, date) {
+  const dates = recentPlanDates(adaptive, date, 2);
+  const plannedDates = dates.filter((key) =>
     adaptive.dailyPlans[key]?.items?.some((item) => item.exerciseId === exerciseId),
   );
+  if (!plannedDates.length) return false;
+  if (plannedDates.length === 2) return true;
+
+  const latestPlanDate = dates.at(-1);
+  if (plannedDates.at(-1) !== latestPlanDate) return false;
+  const attempt = lastAttempt(adaptive, exerciseId);
+  return !(attempt?.date === latestPlanDate && attempt.outcome === "assisted");
 }
 
 function lastAttempt(adaptive, exerciseId) {
@@ -108,8 +115,8 @@ function candidatesFor(adaptive, exercises, category, selected, date, options = 
   const introduced = new Set(adaptive.introducedExerciseIds);
   let candidates = exercises.filter((exercise) => {
     if (!exercise.isActive || exercise.category !== category || selected.has(exercise.id)) return false;
-    if (exercise.level > targetLevel) return false;
-    if (repeatedThreeDays(adaptive, exercise.id, date)) return false;
+    if (exercise.level !== targetLevel) return false;
+    if (repeatedTooSoon(adaptive, exercise.id, date)) return false;
     if (recentlyRefused(adaptive, exercise.id, date)) return false;
     if (Number(adaptive.exerciseProgress[exercise.id]?.independentCount || 0) >= 2) return false;
     if (options.familiarOnly && !introduced.has(exercise.id)) return false;
@@ -250,18 +257,20 @@ function firstAvailable(adaptive, exercises, categories, selected, date, options
 function relaxedFamiliar(adaptive, exercises, categories, selected, date) {
   const introduced = new Set(adaptive.introducedExerciseIds);
   for (const category of categories) {
-    const currentLevel = Number(adaptive.skillLevels[category] || 1);
+    const targetLevel = targetLevelFor(adaptive, category);
     const candidate = rotateForDate(
       exercises.filter(
         (exercise) =>
           exercise.isActive &&
           exercise.category === category &&
-          exercise.level <= currentLevel &&
+          exercise.level === targetLevel &&
           introduced.has(exercise.id) &&
-          !selected.has(exercise.id),
+          !selected.has(exercise.id) &&
+          !repeatedTooSoon(adaptive, exercise.id, date) &&
+          !recentlyRefused(adaptive, exercise.id, date),
       ),
       date,
-      `${category}:relaxed`,
+      `${category}:review`,
     )[0];
     if (candidate) return candidate;
   }
@@ -275,7 +284,7 @@ function ensureMinimumFamiliar(adaptive, exercises) {
     const exercise = byId.get(id);
     return (
       exercise?.isActive &&
-      exercise.level <= Number(adaptive.skillLevels[exercise.category] || 1)
+      exercise.level === targetLevelFor(adaptive, exercise.category)
     );
   }).length;
   if (eligibleCount >= 2) return adaptive;
@@ -285,7 +294,7 @@ function ensureMinimumFamiliar(adaptive, exercises) {
       (item) =>
         item.isActive &&
         item.category === category &&
-        item.level <= Number(adaptive.skillLevels[category] || 1) &&
+        item.level === targetLevelFor(adaptive, category) &&
         !introduced.has(item.id),
     );
     if (exercise) {
@@ -329,20 +338,20 @@ export function createDailyPlan(adaptive, exercises, date) {
     if (!exercise) {
       exercise = firstAvailable(adaptive, exercises, categories, selected, date, { familiarOnly: true });
     }
-    if (!exercise && newCount === 0) {
+    if (!exercise) {
       exercise = firstAvailable(adaptive, exercises, categories, selected, date, { newOnly: true });
     }
     if (!exercise) {
       exercise = firstAvailable(adaptive, exercises, exerciseCategoryOrder, selected, date, { familiarOnly: true });
     }
-    if (!exercise && newCount === 0) {
+    if (!exercise) {
       exercise = firstAvailable(adaptive, exercises, exerciseCategoryOrder, selected, date, { newOnly: true });
     }
     if (!exercise && newCount > 0) {
       exercise = relaxedFamiliar(adaptive, exercises, exerciseCategoryOrder, selected, date);
     }
-    if (!exercise && newCount === 0) {
-      exercise = exercises.find((item) => item.isActive && !selected.has(item.id));
+    if (!exercise) {
+      exercise = firstAvailable(adaptive, exercises, exerciseCategoryOrder, selected, date, { newOnly: true });
     }
     if (!exercise) throw new Error("Not enough active exercises to create a daily plan");
 
@@ -370,12 +379,26 @@ export function createDailyPlan(adaptive, exercises, date) {
 export function ensureDailyPlan(adaptive, exercises, date) {
   const prepared = ensureMinimumFamiliar(adaptive, exercises);
   const saved = prepared.dailyPlans[date];
+  const byId = new Map(exercises.map((exercise) => [exercise.id, exercise]));
   const activeIds = new Set(exercises.filter((exercise) => exercise.isActive).map((exercise) => exercise.id));
-  const validSaved =
+  const validShape =
     saved?.items?.length === 3 &&
     new Set(saved.items.map((item) => item.exerciseId)).size === 3 &&
     saved.items.every((item) => activeIds.has(item.exerciseId));
-  if (validSaved) return { adaptive: prepared, plan: saved };
+  const untouched =
+    validShape &&
+    !saved.completedAt &&
+    Number(saved.viewedCount || 0) === 0 &&
+    Object.keys(saved.results || {}).length === 0;
+  const stillAdaptive = !untouched || saved.items.every((item) => {
+    const exercise = byId.get(item.exerciseId);
+    if (!exercise || exercise.level !== targetLevelFor(prepared, exercise.category)) return false;
+    if (Number(prepared.exerciseProgress[item.exerciseId]?.independentCount || 0) >= 2) return false;
+    if (repeatedTooSoon(prepared, item.exerciseId, date)) return false;
+    if (recentlyRefused(prepared, item.exerciseId, date)) return false;
+    return true;
+  });
+  if (validShape && stillAdaptive) return { adaptive: prepared, plan: saved };
 
   const plan = createDailyPlan(prepared, exercises, date);
   return {
