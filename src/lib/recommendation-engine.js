@@ -338,13 +338,13 @@ export function createDailyPlan(adaptive, exercises, date) {
     if (!exercise) {
       exercise = firstAvailable(adaptive, exercises, categories, selected, date, { familiarOnly: true });
     }
-    if (!exercise && newCount === 0) {
+    if (!exercise) {
       exercise = firstAvailable(adaptive, exercises, categories, selected, date, { newOnly: true });
     }
     if (!exercise) {
       exercise = firstAvailable(adaptive, exercises, exerciseCategoryOrder, selected, date, { familiarOnly: true });
     }
-    if (!exercise && newCount === 0) {
+    if (!exercise) {
       exercise = firstAvailable(adaptive, exercises, exerciseCategoryOrder, selected, date, { newOnly: true });
     }
     if (!exercise && newCount > 0) {
