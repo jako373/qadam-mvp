@@ -33,11 +33,18 @@ function latestCompletedPlan(adaptive, date) {
   return key ? adaptive.dailyPlans[key] : null;
 }
 
-function repeatedThreeDays(adaptive, exerciseId, date) {
-  const dates = recentPlanDates(adaptive, date, 3);
-  return dates.length === 3 && dates.every((key) =>
+function repeatedTooSoon(adaptive, exerciseId, date) {
+  const dates = recentPlanDates(adaptive, date, 2);
+  const plannedDates = dates.filter((key) =>
     adaptive.dailyPlans[key]?.items?.some((item) => item.exerciseId === exerciseId),
   );
+  if (!plannedDates.length) return false;
+  if (plannedDates.length === 2) return true;
+
+  const latestPlanDate = dates.at(-1);
+  if (plannedDates.at(-1) !== latestPlanDate) return false;
+  const attempt = lastAttempt(adaptive, exerciseId);
+  return !(attempt?.date === latestPlanDate && attempt.outcome === "assisted");
 }
 
 function lastAttempt(adaptive, exerciseId) {
@@ -109,7 +116,7 @@ function candidatesFor(adaptive, exercises, category, selected, date, options = 
   let candidates = exercises.filter((exercise) => {
     if (!exercise.isActive || exercise.category !== category || selected.has(exercise.id)) return false;
     if (exercise.level !== targetLevel) return false;
-    if (repeatedThreeDays(adaptive, exercise.id, date)) return false;
+    if (repeatedTooSoon(adaptive, exercise.id, date)) return false;
     if (recentlyRefused(adaptive, exercise.id, date)) return false;
     if (Number(adaptive.exerciseProgress[exercise.id]?.independentCount || 0) >= 2) return false;
     if (options.familiarOnly && !introduced.has(exercise.id)) return false;
@@ -259,7 +266,7 @@ function relaxedFamiliar(adaptive, exercises, categories, selected, date) {
           exercise.level === targetLevel &&
           introduced.has(exercise.id) &&
           !selected.has(exercise.id) &&
-          !repeatedThreeDays(adaptive, exercise.id, date) &&
+          !repeatedTooSoon(adaptive, exercise.id, date) &&
           !recentlyRefused(adaptive, exercise.id, date),
       ),
       date,
@@ -387,7 +394,7 @@ export function ensureDailyPlan(adaptive, exercises, date) {
     const exercise = byId.get(item.exerciseId);
     if (!exercise || exercise.level !== targetLevelFor(prepared, exercise.category)) return false;
     if (Number(prepared.exerciseProgress[item.exerciseId]?.independentCount || 0) >= 2) return false;
-    if (repeatedThreeDays(prepared, item.exerciseId, date)) return false;
+    if (repeatedTooSoon(prepared, item.exerciseId, date)) return false;
     if (recentlyRefused(prepared, item.exerciseId, date)) return false;
     return true;
   });
