@@ -25,9 +25,10 @@ function clearSession() { localStorage.removeItem(SESSION_KEY); }
 function readAccountAccess(session = readSession()) {
   const saved = readJson(ACCESS_KEY, {});
   return {
-    access_tier: saved.access_tier || "standard",
-    access_until: saved.access_until || null,
-    plan_code: saved.plan_code || null,
+    // Center access no longer depends on historic subscription rows.
+    access_tier: saved.access_tier === "blocked" ? "blocked" : "complimentary",
+    access_until: null,
+    plan_code: null,
     role: accountRole(session),
   };
 }
@@ -70,9 +71,10 @@ function isSuperadmin(session) { return accountRole(session) === "superadmin"; }
 function isAdmin(session) { return ["admin", "superadmin"].includes(accountRole(session)); }
 
 async function signIn(email, password) {
-  const session = await apiRequest("/auth/v1/token?grant_type=password", { method: "POST", body: JSON.stringify({ email, password }) });
+  const session = /^[0-9]{12}$/.test(email)
+    ? await apiRequest("/functions/v1/qadam-center-parent", { method: "POST", body: JSON.stringify({ action: "login", iin: email, password }) })
+    : await apiRequest("/auth/v1/token?grant_type=password", { method: "POST", body: JSON.stringify({ email, password }) });
   writeSession(session);
-  await hydrateState(session);
   return session;
 }
 
@@ -141,6 +143,7 @@ async function hydrateState(session) {
     dataRequest(`daily_plans?select=*&child_id=eq.${childId}&order=plan_date.asc`, session),
     dataRequest(`exercise_attempts?select=*&child_id=eq.${childId}&order=created_at.asc&limit=500`, session),
   ]).catch(() => [[], [], [], [], []]);
+  const specialistAssessments = await dataRequest(`specialist_assessments?select=skill_levels,completed_at,specialist_name&child_id=eq.${childId}&order=completed_at.desc&limit=10`, session).catch(() => []);
   const saved = readJson(STATE_KEY, {});
   const adaptive = saved.adaptive && typeof saved.adaptive === "object" ? saved.adaptive : {};
   const initial = assessments.find((item) => item.assessment_type === "initial");
@@ -168,6 +171,7 @@ async function hydrateState(session) {
       meaningfulWords: child.meaningful_words, interests: child.interests || "", dislikes: child.dislikes || "", bestTime: child.best_time || "",
     },
     progress: { onboardingCompleted: true },
+    specialistAssessments,
     adaptive: {
       ...adaptive,
       initialAssessment: initial ? { answers: initial.answers || {}, completedAt: initial.completed_at } : (adaptive.initialAssessment || { answers: {}, completedAt: null }),
@@ -288,16 +292,41 @@ globalThis.qadamAuth = {
   getAccess: () => readAccountAccess(),
   scheduleSync,
   signOut,
-  createPaymentOrder,
-  verifyKaspiReceipt,
-  submitManualReceipt,
-  paymentOrders,
   canBrowseCatalogWithoutOnboarding: () => isSuperadmin(readSession()),
 };
 
 function userDestination() {
   const state = readJson(STATE_KEY, {});
   return state.progress?.onboardingCompleted ? "/today" : "/language";
+}
+
+async function centerMembership(session) {
+  if (!session?.user?.id) return null;
+  const rows = await dataRequest(`center_staff?select=center_id,role,full_name,specialty,centers(name)&user_id=eq.${session.user.id}&limit=1`, session).catch(() => []);
+  if (rows[0]) return { ...rows[0], center_name: rows[0].centers?.name };
+  if (!isSuperadmin(session)) return null;
+  const centers = await dataRequest("centers?select=id,name&order=created_at.asc&limit=1", session).catch(() => []);
+  return centers[0] ? { center_id: centers[0].id, center_name: centers[0].name, role: "admin", full_name: "Суперадмин" } : null;
+}
+
+function loginDestination(session, membership) {
+  if (isSuperadmin(session)) return "/account-mode";
+  if (session?.user?.app_metadata?.center_parent) return "/family";
+  if (membership) return "/center";
+  return isAdmin(session) ? "/admin" : userDestination();
+}
+
+async function renderCenter(session, membership) {
+  if (!session) { location.replace("/login"); return; }
+  if (!membership) { location.replace(userDestination()); return; }
+  const { renderCenterDashboard } = await import("./center-dashboard.js");
+  await renderCenterDashboard({ app, session, membership, dataRequest, apiRequest, signOut });
+}
+
+async function renderFamily(session) {
+  if (!session) { location.replace("/login"); return; }
+  const { renderFamilyDashboard } = await import("./family-dashboard.js");
+  await renderFamilyDashboard({ app, session, dataRequest, apiRequest, signOut });
 }
 
 function authSteps(active) {
@@ -330,7 +359,7 @@ function loginMarkup() {
     <a class="auth-brand" href="/" aria-label="Qadam, на главную"><span>Q</span><strong>Qadam</strong></a>${authSteps(1)}
     <div class="auth-kicker">Личный кабинет</div><h1 id="login-title">Вход в Qadam</h1>
     <p>${passwordReset ? "Пароль обновлён. Теперь войдите с новым паролем." : confirmed ? "Email подтверждён. Теперь войдите в аккаунт." : "Продолжите занятия ребёнка с того места, где остановились."}</p>
-    <form id="login-form" class="auth-form"><label><span>Email</span><input name="email" type="email" autocomplete="username" required /></label><label><span>Пароль</span>${passwordField("password", "current-password")}</label><p id="login-error" class="auth-error" role="alert" hidden></p><button class="auth-primary" type="submit">Войти</button></form>
+    <form id="login-form" class="auth-form"><label><span>Email или ИИН ребёнка</span><input name="email" type="text" autocomplete="username" required /></label><label><span>Пароль</span>${passwordField("password", "current-password")}</label><p id="login-error" class="auth-error" role="alert" hidden></p><button class="auth-primary" type="submit">Войти</button></form>
     <p class="auth-switch"><a href="/forgot-password">Забыли пароль?</a></p>
     <p class="auth-switch">Нет аккаунта? <a href="/register">Зарегистрироваться</a></p><a class="auth-back" href="/">Вернуться на главную</a>
   </section></main>`;
@@ -370,7 +399,7 @@ function mountLogin() {
   mountPasswordToggles(app);
   const form = document.getElementById("login-form"); const errorBox = document.getElementById("login-error");
   form.addEventListener("submit", async (event) => { event.preventDefault(); const button = form.querySelector("button"); const data = new FormData(form); button.disabled = true; button.textContent = "Входим…"; errorBox.hidden = true;
-    try { const session = await signIn(String(data.get("email") || "").trim(), String(data.get("password") || "")); location.replace(isSuperadmin(session) ? "/account-mode" : (isAdmin(session) ? "/admin" : userDestination())); }
+    try { const session = await signIn(String(data.get("email") || "").trim(), String(data.get("password") || "")); const member = await centerMembership(session); if (!member && !isAdmin(session) && !session.user?.app_metadata?.center_parent) await hydrateState(session); location.replace(loginDestination(session, member)); }
     catch (error) { errorBox.textContent = error.message === "Invalid login credentials" ? "Неверный email или пароль" : error.message; errorBox.hidden = false; button.disabled = false; button.textContent = "Войти"; }
   });
 }
@@ -454,7 +483,7 @@ function summaryCard(value, label) { return `<article class="admin-stat"><strong
 
 function adminShell(session) {
   const roleLabel = isSuperadmin(session) ? "Суперадмин" : "Администратор";
-  return `<main class="admin-page"><header class="admin-header"><a class="auth-brand" href="/"><span>Q</span><strong>Qadam</strong></a><nav class="admin-mode-nav" aria-label="Режим аккаунта"><a href="${userDestination()}">Кабинет родителя</a><a class="active" href="/admin">CRM</a></nav><div class="admin-account"><span class="admin-badge">${roleLabel}</span><small>${escapeHtml(session.user?.email || "")}</small><button id="logout-button" type="button">Выйти</button></div></header><section class="admin-content"><div class="admin-title"><div><div class="auth-kicker">Панель управления</div><h1>Qadam CRM</h1><p>Пользователи, детские профили, активность, прогресс и доступы — в одном месте.</p></div><div class="admin-title-actions">${isSuperadmin(session) ? `<a class="auth-secondary admin-parent-link" href="${userDestination()}">Кабинет родителя</a>` : ""}<button id="refresh-admin" class="auth-secondary" type="button">Обновить</button></div></div><div id="admin-status" class="admin-status">Загружаем данные…</div><section id="admin-dashboard" hidden></section></section></main>`;
+  return `<main class="admin-page"><header class="admin-header"><a class="auth-brand" href="/"><span>Q</span><strong>Qadam</strong></a><nav class="admin-mode-nav" aria-label="Режим аккаунта"><a href="${userDestination()}">Кабинет родителя</a><a href="/center">Центр</a><a class="active" href="/admin">CRM</a></nav><div class="admin-account"><span class="admin-badge">${roleLabel}</span><small>${escapeHtml(session.user?.email || "")}</small><button id="logout-button" type="button">Выйти</button></div></header><section class="admin-content"><div class="admin-title"><div><div class="auth-kicker">Панель управления</div><h1>Qadam CRM</h1><p>Пользователи, детские профили, активность и прогресс — в одном месте.</p></div><div class="admin-title-actions">${isSuperadmin(session) ? `<a class="auth-secondary admin-parent-link" href="${userDestination()}">Кабинет родителя</a>` : ""}<button id="refresh-admin" class="auth-secondary" type="button">Обновить</button></div></div><div id="admin-status" class="admin-status">Загружаем данные…</div><section id="admin-dashboard" hidden></section></section></main>`;
 }
 
 async function functionRequest(name, session, body = {}) {
@@ -486,11 +515,10 @@ function participantRows(rows) {
 
 function userRows(rows, canManage) {
   if (!rows.length) return `<div class="admin-empty">Зарегистрированных пользователей пока нет.</div>`;
-  return `<div class="admin-table-wrap"><table class="admin-table admin-users"><thead><tr><th>Пользователь</th><th>Роль</th><th>Доступ</th><th>Дети</th><th>Активность</th>${canManage ? "<th>Управление</th>" : ""}</tr></thead><tbody>${rows.map((row) => {
+  return `<div class="admin-table-wrap"><table class="admin-table admin-users"><thead><tr><th>Пользователь</th><th>Роль</th><th>Дети</th><th>Активность</th>${canManage ? "<th>Управление</th>" : ""}</tr></thead><tbody>${rows.map((row) => {
     const role = row.account_role === "superadmin" ? "Суперадмин" : row.account_role === "admin" ? "Администратор" : "Родитель";
-    const access = row.access_tier === "complimentary" ? `Бесплатно${row.access_until ? ` до ${escapeHtml(row.access_until)}` : " без срока"}` : row.access_tier === "paid" ? `Оплачено${row.access_until ? ` до ${escapeHtml(row.access_until)}` : ""}` : row.access_tier === "blocked" ? "Заблокирован" : "Freemium";
-    const controls = canManage && row.account_role !== "superadmin" ? `<div class="admin-row-actions"><button data-admin-action="${row.account_role === "admin" ? "parent" : "admin"}" data-user-id="${row.user_id}">${row.account_role === "admin" ? "Снять роль" : "Сделать админом"}</button><div class="admin-access-grant"><select data-access-period="${row.user_id}" aria-label="Срок полного доступа для ${escapeHtml(row.email || "пользователя")}"><option value="month">1 месяц</option><option value="quarter">3 месяца</option><option value="half_year">6 месяцев</option><option value="year">1 год</option><option value="lifetime">Безлимитно</option></select><button data-admin-action="grant-access" data-user-id="${row.user_id}">Открыть доступ</button></div><button data-admin-action="standard" data-user-id="${row.user_id}">Вернуть Freemium</button><button class="admin-danger" data-admin-action="delete-user" data-user-id="${row.user_id}" data-user-email="${escapeHtml(row.email || "")}">Удалить аккаунт</button></div>` : "";
-    return `<tr><td><strong>${escapeHtml(row.email || "—")}</strong><small>${row.created_at ? `Регистрация: ${new Date(row.created_at).toLocaleDateString("ru-RU")}` : ""}</small></td><td><span class="admin-role role-${row.account_role}">${role}</span></td><td>${access}</td><td>${Number(row.children_count || 0)}</td><td><strong>${Number(row.exercise_attempts || 0)}</strong> выполнений<small>${row.last_activity_at ? new Date(row.last_activity_at).toLocaleString("ru-RU") : "Нет активности"}</small></td>${canManage ? `<td>${controls}</td>` : ""}</tr>`;
+    const controls = canManage && row.account_role !== "superadmin" ? `<div class="admin-row-actions"><button data-admin-action="${row.account_role === "admin" ? "parent" : "admin"}" data-user-id="${row.user_id}">${row.account_role === "admin" ? "Снять роль" : "Сделать админом"}</button><button class="admin-danger" data-admin-action="delete-user" data-user-id="${row.user_id}" data-user-email="${escapeHtml(row.email || "")}">Удалить аккаунт</button></div>` : "";
+    return `<tr><td><strong>${escapeHtml(row.email || "—")}</strong><small>${row.created_at ? `Регистрация: ${new Date(row.created_at).toLocaleDateString("ru-RU")}` : ""}</small></td><td><span class="admin-role role-${row.account_role}">${role}</span></td><td>${Number(row.children_count || 0)}</td><td><strong>${Number(row.exercise_attempts || 0)}</strong> выполнений<small>${row.last_activity_at ? new Date(row.last_activity_at).toLocaleString("ru-RU") : "Нет активности"}</small></td>${canManage ? `<td>${controls}</td>` : ""}</tr>`;
   }).join("")}</tbody></table></div>`;
 }
 
@@ -507,7 +535,7 @@ function showAdminModal(title, formMarkup) {
 }
 
 function openCreateUserModal() {
-  showAdminModal("Добавить пользователя", `<form class="admin-form" data-admin-form="create-user"><label>Email<input name="email" type="email" required></label><label>Временный пароль<input name="password" type="text" minlength="8" required></label><label>Роль<select name="role"><option value="parent">Родитель</option><option value="admin">Администратор</option></select></label><label class="admin-check"><input name="full_access" type="checkbox" checked> Полный бесплатный доступ без срока</label><p class="admin-form-note">Пользователь сможет сразу войти с указанным паролем. Роль администратора даёт просмотр CRM и каталога, но не управление ролями.</p><button class="auth-primary" type="submit">Создать пользователя</button><p class="auth-error" hidden></p></form>`);
+  showAdminModal("Добавить пользователя", `<form class="admin-form" data-admin-form="create-user"><label>Email<input name="email" type="email" required></label><label>Временный пароль<input name="password" type="text" minlength="8" required></label><label>Роль<select name="role"><option value="parent">Родитель</option><option value="admin">Администратор платформы</option></select></label><p class="admin-form-note">Пользователь сможет сразу войти с указанным паролем. Сотрудников центра назначайте в кабинете центра.</p><button class="auth-primary" type="submit">Создать пользователя</button><p class="auth-error" hidden></p></form>`);
 }
 
 function openDeleteUserModal(userId, email) {
@@ -570,7 +598,7 @@ async function handleAdminForm(event, session) {
   event.preventDefault(); const button = form.querySelector("button[type=submit]"); const errorBox = form.querySelector(".auth-error"); const data = new FormData(form); button.disabled = true; errorBox.hidden = true;
   try {
     if (form.dataset.adminForm === "create-user") {
-      await functionRequest("qadam-admin-create-user", session, { email: data.get("email"), password: data.get("password"), role: data.get("role"), full_access: data.get("full_access") === "on" });
+      await functionRequest("qadam-admin-create-user", session, { email: data.get("email"), password: data.get("password"), role: data.get("role"), full_access: false });
     } else if (form.dataset.adminForm === "delete-user") {
       const confirmationEmail = String(data.get("confirmationEmail") || "").trim().toLowerCase();
       const expectedEmail = String(form.dataset.userEmail || "").trim().toLowerCase();
@@ -603,12 +631,12 @@ async function loadAdmin(session) {
   const dashboard = document.getElementById("admin-dashboard");
   status.hidden = false; status.textContent = "Загружаем данные…"; dashboard.hidden = true;
   try {
-    const [summary, participants, users, exerciseList, payments] = await Promise.all([
-      rpc("admin_dashboard_summary", session), rpc("admin_participant_progress", session), rpc("admin_users", session), rpc("admin_exercises", session), rpc("admin_payment_orders", session),
+    const [summary, participants, users, exerciseList] = await Promise.all([
+      rpc("admin_dashboard_summary", session), rpc("admin_participant_progress", session), rpc("admin_users", session), rpc("admin_exercises", session),
     ]);
     adminExerciseRows = Array.isArray(exerciseList) ? exerciseList : [];
     const outcomes = summary.outcomes || {}; const canManage = isSuperadmin(session);
-    dashboard.innerHTML = `<div class="admin-stats">${summaryCard(summary.registered_users, "Зарегистрировано")}${summaryCard(summary.participants, "Участников")}${summaryCard(summary.children, "Детских профилей")}${summaryCard(summary.active_participants_30d, "Активны за 30 дней")}${summaryCard(summary.assessments, "Оценок навыков")}${summaryCard(summary.exercise_attempts, "Выполнений упражнений")}${summaryCard(summary.completed_plans, "Завершённых планов")}</div><section class="admin-panel admin-panel-head"><div><div class="auth-kicker">Оплаты Kaspi</div><h2>Платёжные заявки</h2><p>Автоматически подтверждённые чеки и приватная очередь тех, где QR не удалось распознать.</p></div></section><section class="admin-panel admin-panel-flush">${paymentRows(Array.isArray(payments) ? payments : [])}</section><section class="admin-panel admin-panel-head"><div><div class="auth-kicker">Mini CRM</div><h2>Пользователи и доступы</h2><p>Назначайте администраторов и открывайте полный доступ на 1, 3, 6, 12 месяцев или без ограничения срока.</p></div>${canManage ? `<button class="auth-primary" data-open-create-user type="button">Добавить пользователя</button>` : ""}</section><section class="admin-panel admin-panel-flush">${userRows(Array.isArray(users) ? users : [], canManage)}</section><section class="admin-panel admin-panel-head"><div><div class="auth-kicker">Каталог</div><h2>Все упражнения</h2><p>Активные упражнения доступны родителям. Черновики и архивные записи видны только в CRM.</p></div>${canManage ? `<button class="auth-primary" data-open-generate type="button">Создать с ИИ</button>` : ""}</section><section class="admin-panel admin-panel-flush">${exerciseRows(adminExerciseRows, canManage)}</section><section class="admin-panel"><h2>Результаты упражнений</h2><div class="admin-outcomes">${summaryCard(outcomes.independent, "Самостоятельно")}${summaryCard(outcomes.assisted, "С помощью")}${summaryCard(outcomes.unable, "Не получилось")}${summaryCard(outcomes.refused, "Отказ")}</div></section><section class="admin-panel"><h2>Прогресс участников</h2>${participantRows(Array.isArray(participants) ? participants : [])}</section>`;
+    dashboard.innerHTML = `<div class="admin-stats">${summaryCard(summary.registered_users, "Зарегистрировано")}${summaryCard(summary.participants, "Участников")}${summaryCard(summary.children, "Детских профилей")}${summaryCard(summary.active_participants_30d, "Активны за 30 дней")}${summaryCard(summary.assessments, "Оценок навыков")}${summaryCard(summary.exercise_attempts, "Выполнений упражнений")}${summaryCard(summary.completed_plans, "Завершённых планов")}</div><section class="admin-panel admin-panel-head"><div><div class="auth-kicker">Mini CRM</div><h2>Пользователи</h2><p>Управление аккаунтами и ролями платформы.</p></div>${canManage ? `<button class="auth-primary" data-open-create-user type="button">Добавить пользователя</button>` : ""}</section><section class="admin-panel admin-panel-flush">${userRows(Array.isArray(users) ? users : [], canManage)}</section><section class="admin-panel admin-panel-head"><div><div class="auth-kicker">Каталог</div><h2>Все упражнения</h2><p>Активные упражнения доступны родителям. Черновики и архивные записи видны только в CRM.</p></div>${canManage ? `<button class="auth-primary" data-open-generate type="button">Создать с ИИ</button>` : ""}</section><section class="admin-panel admin-panel-flush">${exerciseRows(adminExerciseRows, canManage)}</section><section class="admin-panel"><h2>Результаты упражнений</h2><div class="admin-outcomes">${summaryCard(outcomes.independent, "Самостоятельно")}${summaryCard(outcomes.assisted, "С помощью")}${summaryCard(outcomes.unable, "Не получилось")}${summaryCard(outcomes.refused, "Отказ")}</div></section><section class="admin-panel"><h2>Прогресс участников</h2>${participantRows(Array.isArray(participants) ? participants : [])}</section>`;
     dashboard.onclick = (event) => handleAdminAction(event, session); document.onsubmit = (event) => handleAdminForm(event, session); status.hidden = true; dashboard.hidden = false;
   } catch (error) {
     if (/jwt|token|unauthorized/i.test(error.message)) { clearSession(); location.replace("/login"); return; }
@@ -625,7 +653,7 @@ async function renderAdmin() {
 function renderAccountMode(session) {
   if (!session) { location.replace("/login"); return; }
   if (!isSuperadmin(session)) { location.replace(isAdmin(session) ? "/admin" : userDestination()); return; }
-  app.innerHTML = `<main class="auth-page mode-page"><section class="mode-card"><a class="auth-brand" href="/"><span>Q</span><strong>Qadam</strong></a><div class="auth-kicker">Выберите режим</div><h1>Как хотите войти?</h1><p>Один аккаунт — два независимых рабочих пространства. Родительский прогресс вашего ребёнка сохраняется отдельно от CRM.</p><div class="mode-options"><a class="mode-option parent-mode" href="${userDestination()}"><span class="mode-icon">♡</span><strong>Как родитель</strong><small>Профиль вашего ребёнка, ежедневный план, упражнения и прогресс</small><b>Открыть кабинет родителя →</b></a><a class="mode-option admin-mode" href="/admin"><span class="mode-icon">⌘</span><strong>Как суперадмин</strong><small>Пользователи, аналитика, роли, доступы и общий прогресс</small><b>Открыть CRM →</b></a></div><small class="mode-account">${escapeHtml(session.user?.email || "")}</small></section></main>`;
+  app.innerHTML = `<main class="auth-page mode-page"><section class="mode-card"><a class="auth-brand" href="/"><span>Q</span><strong>Qadam</strong></a><div class="auth-kicker">Выберите режим</div><h1>Как хотите войти?</h1><p>Один аккаунт — несколько рабочих пространств.</p><div class="mode-options"><a class="mode-option parent-mode" href="${userDestination()}"><span class="mode-icon">♡</span><strong>Как родитель</strong><small>Профиль ребёнка, упражнения и прогресс</small><b>Открыть кабинет родителя →</b></a><a class="mode-option admin-mode" href="/center"><span class="mode-icon">◎</span><strong>Центр</strong><small>Группы, специалисты и ученики</small><b>Открыть кабинет центра →</b></a><a class="mode-option admin-mode" href="/admin"><span class="mode-icon">⌘</span><strong>Как суперадмин</strong><small>Управление платформой</small><b>Открыть CRM →</b></a></div><small class="mode-account">${escapeHtml(session.user?.email || "")}</small></section></main>`;
 }
 
 function decorateApp(session) {
@@ -641,7 +669,7 @@ function decorateApp(session) {
       controls.dataset.accountControls = "true";
       controls.className = "account-controls";
       if (!session) controls.innerHTML = `<a href="/login">${labels.login}</a><a class="account-register" href="/register">${labels.register}</a>`;
-      else controls.innerHTML = `${isAdmin(session) && !isSuperadmin(session) ? `<a class="admin-badge" href="/admin">${labels.admin}</a>` : ""}<span>${escapeHtml(session.user?.email || "")}</span><button type="button" data-account-logout>${labels.logout}</button>`;
+       else controls.innerHTML = `${centerMember ? `<a class="admin-badge" href="/center">Орталық</a>` : ""}${isAdmin(session) && !isSuperadmin(session) ? `<a class="admin-badge" href="/admin">${labels.admin}</a>` : ""}<span>${escapeHtml(session.user?.email || "")}</span><button type="button" data-account-logout>${labels.logout}</button>`;
       target.append(controls);
       controls.querySelector("[data-account-logout]")?.addEventListener("click", async () => {
         await signOut();
@@ -657,12 +685,16 @@ document.documentElement.lang = "ru";
 const path = location.pathname.replace(/\/$/, "") || "/";
 const publicRoutes = new Set(["/", "/login", "/register", "/forgot-password", "/reset-password"]);
 const session = await getSession();
-if ((path === "/login" || path === "/register") && session) location.replace(isSuperadmin(session) ? "/account-mode" : (isAdmin(session) ? "/admin" : userDestination()));
+const centerMember = session ? await centerMembership(session) : null;
+if ((path === "/login" || path === "/register") && session) location.replace(loginDestination(session, centerMember));
 else if (path === "/login") mountLogin();
 else if (path === "/register") mountRegister();
 else if (path === "/account-mode") renderAccountMode(session);
 else if (path === "/forgot-password") mountForgotPassword();
 else if (path === "/reset-password") mountResetPassword();
 else if (path === "/admin") await renderAdmin();
+else if (path === "/center") await renderCenter(session, centerMember);
+else if (path === "/family") await renderFamily(session);
 else if (!publicRoutes.has(path) && !session) location.replace(`/login?next=${encodeURIComponent(path)}`);
+else if (session?.user?.app_metadata?.center_parent && !publicRoutes.has(path)) location.replace("/family");
 else { if (session) { await Promise.all([hydrateState(session), hydrateAccountAccess(session), hydrateExerciseCatalogue(session)]); } await import("./app.js?v=20260715-superadmin-library"); decorateApp(session); }

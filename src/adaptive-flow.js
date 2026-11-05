@@ -926,6 +926,7 @@ function renderExerciseDetail(context, exerciseId) {
 function renderAdaptiveProgress(context) {
   const { state, pageShell, escapeHtml, icon } = context;
   const ui = labels(state.language);
+  const specialistAssessment = state.specialistAssessments?.[0];
   const summary = weeklySummary(state.adaptive);
   const streak = completionStreak(state.adaptive);
   const progressCopy = state.language === "ru"
@@ -1046,6 +1047,7 @@ function renderAdaptiveProgress(context) {
       }).join("")}
       </div>
     </section>
+    ${specialistAssessment ? `<section class="center-progress-panel" aria-labelledby="center-progress-title"><div class="auth-kicker">${state.language === "ru" ? "Наблюдение специалиста" : "Маманның бақылауы"}</div><h2 id="center-progress-title">${state.language === "ru" ? "Навыки глазами специалиста" : "Маман бағалаған дағдылар"}</h2><p>${escapeHtml(specialistAssessment.specialist_name)} · ${new Date(specialistAssessment.completed_at).toLocaleDateString(state.language === "ru" ? "ru-RU" : "kk-KZ")}</p><div class="center-progress-skills">${exerciseCategoryOrder.map((category) => { const level = Math.max(1, Math.min(3, Number(specialistAssessment.skill_levels?.[category]) || 1)); return `<div><span>${escapeHtml(exerciseCategories[category][state.language].title)}</span><progress max="3" value="${level}">${level}/3</progress><strong>${level}/3</strong></div>`; }).join("")}</div></section>` : ""}
     ${isReassessmentDue(state.adaptive) ? `
       <section class="recheck-band">
         <div><strong>${ui.reassessment}</strong><p>${ui.reassessmentText}</p></div>
