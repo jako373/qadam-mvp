@@ -6,7 +6,7 @@ const escape = (value = "") => String(value).replaceAll("&", "&amp;").replaceAll
 export async function renderCenterDashboard({ app, session, membership, dataRequest, apiRequest, signOut }) {
   const centerId = membership.center_id;
   const admin = membership.role === "admin";
-  const state = { groups: [], staff: [], students: [], groupStudents: [], groupSpecialists: [], assessments: [], selectedChild: null, error: "", newCredentials: null };
+  const state = { groups: [], staff: [], students: [], groupStudents: [], groupSpecialists: [], assessments: [], selectedChild: null, error: "", newCredentials: null, passwordChanged: false };
   const request = (path, options) => dataRequest(path, session, options);
   const write = (table, row) => request(table, { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(row) });
 
@@ -61,18 +61,25 @@ export async function renderCenterDashboard({ app, session, membership, dataRequ
     const enrollment = `<section class="center-card"><h2>Зарегистрировать ребёнка</h2><p class="center-muted">Для семьи создаётся отдельный вход по ИИН ребёнка. ИИН не показывается в списках центра.</p><form class="center-form center-enroll" data-action="enroll"><label>ИИН ребёнка<input name="iin" inputmode="numeric" pattern="[0-9]{12}" minlength="12" maxlength="12" autocomplete="off" required></label><label>Имя ребёнка<input name="name" minlength="1" maxlength="80" required></label><label>Возраст<select name="age" required>${options(["2","3","4","5","6","7"])}</select></label><label>Диагноз или отметка<select name="diagnosis" required>${options(["Диагноз жоқ / Диагноза нет","ЗРР","ЗПР","ЗПРР","ОНР 1","ОНР 2","ОНР 3","ОНР 4","ОНР 1-4 (нақтылау керек / нужно уточнить)","Басқа / Другое"])}</select></label><label>Язык дома<select name="home_language" required>${options(["Қазақша","Русский","Қазақша және Русский","Басқа / Другое"])}</select></label><label>Словарный запас<select name="meaningful_words" required>${options(["Сөз қолданбайды / Не использует слова","1-10 сөз / 1-10 слов","11-30 сөз / 11-30 слов","31-100 сөз / 31-100 слов","100-ден көп / Более 100"])}</select></label><button type="submit">Создать профиль и доступ</button></form></section>`;
     app.innerHTML = `<main class="center-page"><header class="center-header"><a href="/" class="auth-brand"><span>Q</span><strong>Qadam</strong></a><div><span>${escape(membership.full_name || session.user?.email)}</span>${session.user?.app_metadata?.role === "superadmin" ? `<a href="/account-mode">Выбрать кабинет</a>` : ""}<button type="button" data-logout>Выйти</button></div></header>
       <div class="center-main"><div class="auth-kicker">${admin ? "Администратор центра" : "Кабинет специалиста"}</div><h1>${escape(membership.center_name || "Qadam орталығы")}</h1><p class="center-intro">Группы, ученики и оценки навыков в одном месте.</p>
-      ${state.error ? `<p class="auth-error" role="alert">${escape(state.error)}</p>` : ""}
+      ${state.error ? `<p class="auth-error" role="alert">${escape(state.error)}</p>` : ""}${state.passwordChanged ? `<p class="center-success" role="status">Пароль обновлён. Используйте его при следующем входе.</p>` : ""}
       <div class="center-stats"><span><strong>${state.groups.length}</strong> групп</span><span><strong>${state.students.length}</strong> учеников</span><span><strong>${state.staff.length}</strong> сотрудников</span></div>${credentials}${enrollment}
       ${admin ? `<section class="center-card"><h2>Сотрудники и роли</h2><ul class="center-staff">${state.staff.map((item) => `<li><span><strong>${escape(item.full_name)}</strong><small>${escape(item.specialty || "")} · ${item.role === "admin" ? "Администратор" : "Специалист"}</small></span>${item.user_id !== session.user.id ? `<button type="button" data-remove-staff="${item.user_id}">Удалить роль</button>` : ""}</li>`).join("")}</ul><form class="center-form" data-action="set-staff"><label>Email сотрудника<input name="email" type="email" required></label><label>ФИО<input name="full_name" required minlength="2" maxlength="160"></label><label>Специальность<input name="specialty" maxlength="120"></label><label>Роль<select name="role"><option value="specialist">Специалист</option><option value="admin">Администратор</option></select></label><button type="submit">Добавить или изменить роль</button></form><p class="center-muted">Сотрудник сначала должен зарегистрироваться с этим email. Удаление роли не удаляет его аккаунт.</p></section>
       <section class="center-card"><h2>Новая группа</h2><form class="center-form" data-action="create-group"><label>Название группы<input name="name" required maxlength="120"></label><button type="submit">Создать группу</button></form></section>` : ""}
-      <h2 class="center-section-title">Группы</h2><div class="center-grid">${state.groups.map(groupCard).join("") || `<p class="center-empty">Групп пока нет.</p>`}</div>${assessmentMarkup()}</div></main>`;
+      <h2 class="center-section-title">Группы</h2><div class="center-grid">${state.groups.map(groupCard).join("") || `<p class="center-empty">Групп пока нет.</p>`}</div>${assessmentMarkup()}<details class="center-card center-password"><summary>Сменить пароль своего аккаунта</summary><form class="center-form" data-action="change-password"><label>Новый пароль<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="72" required></label><label>Повторите пароль<input name="confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="72" required></label><button type="button" data-toggle-password aria-pressed="false">Показать пароли</button><button type="submit">Сохранить пароль</button></form></details></div></main>`;
   }
 
   app.addEventListener("click", async (event) => {
-    const target = event.target.closest("[data-logout],[data-assess],[data-close-assessment],[data-remove-staff],[data-dismiss-credentials]");
+    const target = event.target.closest("[data-logout],[data-assess],[data-close-assessment],[data-remove-staff],[data-dismiss-credentials],[data-toggle-password]");
     if (!target) return;
     if (target.hasAttribute("data-logout")) { await signOut(); location.replace("/login"); return; }
     if (target.hasAttribute("data-dismiss-credentials")) { state.newCredentials = null; paint(); return; }
+    if (target.hasAttribute("data-toggle-password")) {
+      const visible = target.getAttribute("aria-pressed") === "true";
+      target.closest("form").querySelectorAll('input[name="password"],input[name="confirmation"]').forEach((input) => { input.type = visible ? "password" : "text"; });
+      target.setAttribute("aria-pressed", String(!visible));
+      target.textContent = visible ? "Показать пароли" : "Скрыть пароли";
+      return;
+    }
     if (target.hasAttribute("data-assess")) { state.selectedChild = target.dataset.assess; paint(); document.querySelector(".center-assessment")?.scrollIntoView({ behavior: "smooth" }); return; }
     if (target.hasAttribute("data-close-assessment")) { state.selectedChild = null; paint(); return; }
     if (target.hasAttribute("data-remove-staff") && admin && confirm("Снять роль сотрудника в этом центре?")) {
@@ -90,6 +97,13 @@ export async function renderCenterDashboard({ app, session, membership, dataRequ
     button.disabled = true;
     try {
       switch (form.dataset.action) {
+        case "change-password": {
+          const password = String(data.get("password") || "");
+          if (password.length < 12 || password !== data.get("confirmation")) throw new Error("Пароли не совпадают или короче 12 символов");
+          await apiRequest("/auth/v1/user", { method: "PUT", headers: { Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ password }) });
+          state.passwordChanged = true;
+          break;
+        }
         case "enroll": {
           const child = Object.fromEntries(["name", "age", "diagnosis", "home_language", "meaningful_words"].map((key) => [key, data.get(key)]));
           state.newCredentials = await apiRequest("/functions/v1/qadam-center-parent", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ action: "enroll", center_id: centerId, iin: data.get("iin"), child }) });
