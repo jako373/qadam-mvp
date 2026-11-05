@@ -1,12 +1,41 @@
 import { assessmentQuestions } from "./data/assessment-questions.js";
+import { diagnosisOptions, homeLanguageOptions, wordOptions } from "./data/app-data.js";
 import { calculateSkillLevels } from "./lib/progress-engine.js";
 
 const escape = (value = "") => String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+const OTHER_DIAGNOSIS = "Басқа / Другое";
+const CENTER_AGE_OPTIONS = Array.from({ length: 17 }, (_, index) => index + 2);
+const copy = {
+  ru: {
+    roleAdmin: "Администратор центра", roleSpecialist: "Кабинет специалиста", greeting: "Рабочее пространство", intro: "Ваши группы, ученики и оценки навыков — в одном месте.", logout: "Выйти", switchMode: "Выбрать кабинет",
+    overview: "Обзор", groups: "Группы", students: "Ученики", team: "Команда", settings: "Настройки", groupsCount: "групп", studentsCount: "учеников", assessmentsCount: "оценок", pendingCount: "ждут оценки",
+    nextStep: "На что обратить внимание", pendingTitle: "Дети без первой оценки", pendingIntro: "Откройте вопросы, чтобы родитель увидел первые результаты.", allDone: "Все зарегистрированные дети уже получили первую оценку.", recent: "Последние оценки", noRecent: "Оценок пока нет — начните с первого ученика.", openStudents: "К ученикам", assess: "Оценить навыки", latest: "Последняя оценка", noAssessment: "Оценка пока не заполнена",
+    groupIntro: "Состав и занятия каждой группы", groupEmpty: "Групп пока нет. Администратор может создать первую.", groupStudents: "учеников", groupSpecialists: "специалистов", noSpecialist: "Специалист пока не назначен", noGroupStudents: "В этой группе пока нет учеников.", addSpecialist: "Добавить специалиста", addStudent: "Добавить ученика", chooseStaff: "Выберите сотрудника", chooseStudent: "Выберите ученика", assign: "Назначить", add: "Добавить",
+    studentIntro: "Профили и индивидуальные оценки", noStudents: "Учеников пока нет. Зарегистрируйте первого ребёнка или попросите администратора назначить группу.", registerChild: "Зарегистрировать ребёнка", registerHint: "Семья получит отдельный вход по ИИН ребёнка. ИИН не показывается в списках центра.", noAssignedGroup: "Сначала попросите администратора назначить вам группу.", iin: "ИИН ребёнка", name: "Имя ребёнка", age: "Возраст", diagnosis: "Диагноз или отметка", diagnosisDetails: "Уточните вариант «Другое»", diagnosisHint: "До 160 символов. Укажите формулировку специалиста, без лишних персональных данных.", homeLanguage: "Язык дома", words: "Словарный запас", childGroup: "Группа", chooseGroup: "Выберите группу", groupLater: "Распределить позже", createProfile: "Создать профиль и доступ", years: "лет", noDiagnosis: "Не указан",
+    credentialsTitle: "Доступ для семьи создан", credentialsHint: "Передайте данные родителю лично. Пароль показывается только сейчас.", login: "Логин", temporaryPassword: "Временный пароль", hideCredentials: "Скрыть данные",
+    assessmentTitle: "Оценка навыков", assessmentHint: "Ответы специалиста сохраняются отдельно от ответов родителя.", close: "Закрыть вопросы", saveAssessment: "Сохранить оценку", answerAll: "Ответьте на все вопросы", noChild: "Ученик не выбран",
+    staffTitle: "Сотрудники и роли", staffIntro: "Администратор назначает роли, не удаляя аккаунт сотрудника.", removeRole: "Удалить роль", removeConfirm: "Снять роль сотрудника в этом центре?", staffEmail: "Email сотрудника", fullName: "ФИО", specialty: "Специальность", role: "Роль", specialist: "Специалист", administrator: "Администратор", setRole: "Добавить или изменить роль", staffHint: "Сотрудник сначала регистрируется с этим email.", newGroup: "Новая группа", groupName: "Название группы", createGroup: "Создать группу",
+    settingsIntro: "Ваш аккаунт и безопасность", changePassword: "Сменить пароль", newPassword: "Новый пароль", repeatPassword: "Повторите пароль", showPasswords: "Показать пароли", hidePasswords: "Скрыть пароли", savePassword: "Сохранить пароль", passwordSaved: "Пароль обновлён. Используйте его при следующем входе.", passwordMismatch: "Пароли не совпадают или короче 12 символов", noPermission: "Недостаточно прав", saveFailed: "Не удалось сохранить", otherSpecialist: "Другой специалист",
+  },
+  kk: {
+    roleAdmin: "Орталық әкімшісі", roleSpecialist: "Маман кабинеті", greeting: "Жұмыс кеңістігі", intro: "Топтар, оқушылар және дағды бағалауы — бір жерде.", logout: "Шығу", switchMode: "Кабинетті таңдау",
+    overview: "Шолу", groups: "Топтар", students: "Оқушылар", team: "Команда", settings: "Баптаулар", groupsCount: "топ", studentsCount: "оқушы", assessmentsCount: "бағалау", pendingCount: "бағалауды күтеді",
+    nextStep: "Неге назар аудару керек", pendingTitle: "Алғашқы бағалауы жоқ балалар", pendingIntro: "Ата-ана нәтижені көруі үшін сұрақтарға жауап беріңіз.", allDone: "Тіркелген балалардың барлығы алғашқы бағалаудан өтті.", recent: "Соңғы бағалаулар", noRecent: "Әзірге бағалау жоқ — алғашқы оқушыдан бастаңыз.", openStudents: "Оқушыларға өту", assess: "Дағдыны бағалау", latest: "Соңғы бағалау", noAssessment: "Әзірге бағаланбаған",
+    groupIntro: "Әр топтың құрамы мен жұмысы", groupEmpty: "Әзірге топ жоқ. Әкімші бірінші топты құра алады.", groupStudents: "оқушы", groupSpecialists: "маман", noSpecialist: "Маман әлі тағайындалмаған", noGroupStudents: "Бұл топта әзірге оқушы жоқ.", addSpecialist: "Маман қосу", addStudent: "Оқушы қосу", chooseStaff: "Қызметкерді таңдаңыз", chooseStudent: "Оқушыны таңдаңыз", assign: "Тағайындау", add: "Қосу",
+    studentIntro: "Жеке профильдер мен бағалау нәтижелері", noStudents: "Әзірге оқушы жоқ. Бірінші баланы тіркеңіз немесе әкімшіден топқа қосуды сұраңыз.", registerChild: "Баланы тіркеу", registerHint: "Отбасы баланың ЖСН-і арқылы жеке кіреді. ЖСН орталық тізімдерінде көрсетілмейді.", noAssignedGroup: "Алдымен әкімшіден сізге топ тағайындауды сұраңыз.", iin: "Баланың ЖСН-і", name: "Баланың аты", age: "Жасы", diagnosis: "Диагноз немесе белгі", diagnosisDetails: "«Басқа» нұсқасын нақтылаңыз", diagnosisHint: "160 таңбаға дейін. Артық жеке деректерді жазбаңыз.", homeLanguage: "Үйдегі тіл", words: "Сөздік қоры", childGroup: "Топ", chooseGroup: "Топты таңдаңыз", groupLater: "Кейін бөлу", createProfile: "Профиль мен кіру деректерін жасау", years: "жаста", noDiagnosis: "Көрсетілмеген",
+    credentialsTitle: "Отбасыға кіру деректері жасалды", credentialsHint: "Деректерді ата-анаға жеке беріңіз. Құпиясөз тек қазір көрсетіледі.", login: "Логин", temporaryPassword: "Уақытша құпиясөз", hideCredentials: "Деректерді жасыру",
+    assessmentTitle: "Дағдыларды бағалау", assessmentHint: "Маманның жауаптары ата-ананың жауаптарынан бөлек сақталады.", close: "Сұрақтарды жабу", saveAssessment: "Бағалауды сақтау", answerAll: "Барлық сұраққа жауап беріңіз", noChild: "Оқушы таңдалмаған",
+    staffTitle: "Қызметкерлер және рөлдер", staffIntro: "Әкімші қызметкердің аккаунтын жоймай, рөлін басқарады.", removeRole: "Рөлді алып тастау", removeConfirm: "Осы орталықтағы қызметкердің рөлін алып тастайсыз ба?", staffEmail: "Қызметкердің email-ы", fullName: "Аты-жөні", specialty: "Мамандығы", role: "Рөлі", specialist: "Маман", administrator: "Әкімші", setRole: "Рөлді қосу немесе өзгерту", staffHint: "Қызметкер алдымен осы email-мен тіркелуі керек.", newGroup: "Жаңа топ", groupName: "Топ атауы", createGroup: "Топ құру",
+    settingsIntro: "Аккаунтыңыз және қауіпсіздік", changePassword: "Құпиясөзді өзгерту", newPassword: "Жаңа құпиясөз", repeatPassword: "Құпиясөзді қайталаңыз", showPasswords: "Құпиясөздерді көрсету", hidePasswords: "Құпиясөздерді жасыру", savePassword: "Құпиясөзді сақтау", passwordSaved: "Құпиясөз жаңартылды. Келесі кіргенде жаңа құпиясөзді қолданыңыз.", passwordMismatch: "Құпиясөздер сәйкес келмейді немесе 12 таңбадан қысқа", noPermission: "Құқық жеткіліксіз", saveFailed: "Сақтау мүмкін болмады", otherSpecialist: "Басқа маман",
+  },
+};
 
 export async function renderCenterDashboard({ app, session, membership, dataRequest, apiRequest, signOut }) {
   const centerId = membership.center_id;
   const admin = membership.role === "admin";
-  const state = { groups: [], staff: [], students: [], groupStudents: [], groupSpecialists: [], assessments: [], selectedChild: null, error: "", newCredentials: null, passwordChanged: false };
+  const state = { language: localStorage.getItem("qadam.center.language") === "kk" ? "kk" : "ru", view: "overview", groups: [], staff: [], students: [], groupStudents: [], groupSpecialists: [], assessments: [], selectedChild: null, error: "", newCredentials: null, passwordChanged: false };
+  const t = () => copy[state.language];
+  const date = (value) => new Date(value).toLocaleDateString(state.language === "ru" ? "ru-RU" : "kk-KZ");
   const request = (path, options) => dataRequest(path, session, options);
   const write = (table, row) => request(table, { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(row) });
 
@@ -18,76 +47,80 @@ export async function renderCenterDashboard({ app, session, membership, dataRequ
       request(`center_students?select=child_id,active&${query}&active=eq.true`),
       request(`center_group_students?select=group_id,child_id&${query}`),
       request(`center_group_specialists?select=group_id,user_id&${query}`),
-      request(`specialist_assessments?select=child_id,completed_at,skill_levels,specialist_name&${query}&order=completed_at.desc&limit=100`),
+      request(`specialist_assessments?select=child_id,completed_at,skill_levels,specialist_name&${query}&order=completed_at.desc&limit=1000`),
     ]);
-    state.groups = groups;
-    state.staff = staff;
-    state.groupStudents = groupStudents;
-    state.groupSpecialists = groupSpecialists;
-    state.assessments = assessments;
+    Object.assign(state, { groups, staff, groupStudents, groupSpecialists, assessments });
     const childIds = students.map((item) => item.child_id);
-    state.students = childIds.length ? await request(`children?select=id,name,age,diagnosis&id=in.(${childIds.join(",")})`) : [];
+    state.students = childIds.length ? await request(`children?select=id,name,age,diagnosis,diagnosis_details&id=in.(${childIds.join(",")})`) : [];
     paint();
   }
 
-  function memberName(id) { return state.staff.find((item) => item.user_id === id)?.full_name || "—"; }
-  function childName(id) { return state.students.find((item) => item.id === id)?.name || "—"; }
-  function latestAssessment(id) { return state.assessments.find((item) => item.child_id === id); }
-
+  function latestAssessment(childId) { return state.assessments.find((item) => item.child_id === childId); }
+  function memberName(userId) { return state.staff.find((item) => item.user_id === userId)?.full_name || t().otherSpecialist; }
+  function options(values) { return values.map((value) => `<option value="${escape(value)}">${escape(value)}</option>`).join(""); }
+  function navButton(view, label) { return `<button type="button" data-view="${view}" class="center-nav-button${state.view === view ? " is-active" : ""}" aria-pressed="${state.view === view}"><span class="center-nav-mark" aria-hidden="true"></span>${label}</button>`; }
+  function childRow(child) {
+    const last = latestAssessment(child.id);
+    return `<li><div class="center-student-avatar" aria-hidden="true">${escape(child.name[0] || "•")}</div><span class="center-child-info"><strong>${escape(child.name)}</strong><small>${child.age} ${t().years} · ${escape(child.diagnosis_details || child.diagnosis || t().noDiagnosis)}</small><small>${last ? `${t().latest}: ${date(last.completed_at)}` : t().noAssessment}</small></span><button type="button" data-assess="${child.id}">${t().assess}</button></li>`;
+  }
   function groupCard(group) {
     const specialists = state.groupSpecialists.filter((item) => item.group_id === group.id);
-    const students = state.groupStudents.filter((item) => item.group_id === group.id && state.students.some((child) => child.id === item.child_id));
-    return `<section class="center-card"><div class="center-card-head"><div><h3>${escape(group.name)}</h3><p>${students.length} учеников · ${specialists.length} специалистов</p></div></div>
-      <p class="center-muted">${specialists.map((item) => escape(memberName(item.user_id))).join(", ") || "Специалист пока не назначен"}</p>
-      ${students.length ? `<ul class="center-children">${students.map((item) => {
-        const last = latestAssessment(item.child_id);
-        return `<li><span><strong>${escape(childName(item.child_id))}</strong><small>${last ? `Последняя оценка: ${new Date(last.completed_at).toLocaleDateString("ru-RU")}` : "Оценка пока не заполнена"}</small></span><button type="button" data-assess="${item.child_id}">Открыть вопросы</button></li>`;
-      }).join("")}</ul>` : `<p class="center-empty">В этой группе пока нет учеников.</p>`}
-      ${admin ? `<div class="center-assign"><form data-action="assign-specialist"><input type="hidden" name="group_id" value="${group.id}"><label>Добавить специалиста<select name="user_id" required><option value="">Выберите сотрудника</option>${state.staff.filter((item) => item.role === "specialist" && !specialists.some((assigned) => assigned.user_id === item.user_id)).map((item) => `<option value="${item.user_id}">${escape(item.full_name)}</option>`).join("")}</select></label><button type="submit">Назначить</button></form>
-      <form data-action="assign-student"><input type="hidden" name="group_id" value="${group.id}"><label>Добавить ученика<select name="child_id" required><option value="">Выберите ученика</option>${state.students.filter((item) => !students.some((assigned) => assigned.child_id === item.id)).map((item) => `<option value="${item.id}">${escape(item.name)}</option>`).join("")}</select></label><button type="submit">Добавить</button></form></div>` : ""}
-    </section>`;
+    const students = state.groupStudents.filter((item) => item.group_id === group.id).map((item) => state.students.find((child) => child.id === item.child_id)).filter(Boolean);
+    return `<section class="center-card center-group-card"><div class="center-card-head"><div><h3>${escape(group.name)}</h3><p>${students.length} ${t().groupStudents} · ${specialists.length} ${t().groupSpecialists}</p></div><span class="center-card-orb" aria-hidden="true"></span></div><p class="center-muted">${specialists.map((item) => escape(memberName(item.user_id))).join(", ") || t().noSpecialist}</p>${students.length ? `<ul class="center-children">${students.map(childRow).join("")}</ul>` : `<p class="center-empty">${t().noGroupStudents}</p>`}${admin ? `<div class="center-assign"><form data-action="assign-specialist"><input type="hidden" name="group_id" value="${group.id}"><label>${t().addSpecialist}<select name="user_id" required><option value="">${t().chooseStaff}</option>${state.staff.filter((item) => item.role === "specialist" && !specialists.some((assigned) => assigned.user_id === item.user_id)).map((item) => `<option value="${item.user_id}">${escape(item.full_name)}</option>`).join("")}</select></label><button type="submit">${t().assign}</button></form><form data-action="assign-student"><input type="hidden" name="group_id" value="${group.id}"><label>${t().addStudent}<select name="child_id" required><option value="">${t().chooseStudent}</option>${state.students.filter((item) => !students.some((assigned) => assigned.id === item.id)).map((item) => `<option value="${item.id}">${escape(item.name)}</option>`).join("")}</select></label><button type="submit">${t().add}</button></form></div>` : ""}</section>`;
   }
-
+  function overview() {
+    const pending = state.students.filter((child) => !latestAssessment(child.id));
+    return `<div class="center-overview-grid"><section class="center-card center-focus-card"><div class="center-card-kicker">${t().nextStep}</div><h2>${t().pendingTitle}</h2><p>${t().pendingIntro}</p>${pending.length ? `<ul class="center-children">${pending.slice(0, 4).map(childRow).join("")}</ul>` : `<p class="center-empty">${t().allDone}</p>`}<button type="button" class="center-plain-action" data-view="students">${t().openStudents} →</button></section><section class="center-card center-recent-card"><div class="center-card-kicker">${t().recent}</div><h2>${t().recent}</h2>${state.assessments.length ? `<ul class="center-recent-list">${state.assessments.slice(0, 5).map((item) => `<li><span>${escape(state.students.find((child) => child.id === item.child_id)?.name || "—")}</span><time datetime="${escape(item.completed_at)}">${date(item.completed_at)}</time></li>`).join("")}</ul>` : `<p class="center-empty">${t().noRecent}</p>`}</section></div>`;
+  }
+  function enrollment() {
+    const selectedGroups = state.groups;
+    if (!admin && !selectedGroups.length) return `<section class="center-card center-enroll-card"><h2>${t().registerChild}</h2><p>${t().noAssignedGroup}</p></section>`;
+    return `<section class="center-card center-enroll-card"><div class="center-card-kicker">${t().registerChild}</div><h2>${t().registerChild}</h2><p class="center-muted">${t().registerHint}</p><form class="center-form center-enroll" data-action="enroll"><label>${t().iin}<input name="iin" inputmode="numeric" pattern="[0-9]{12}" minlength="12" maxlength="12" autocomplete="off" required></label><label>${t().name}<input name="name" minlength="1" maxlength="80" required></label><label>${t().age}<select name="age" required>${options(CENTER_AGE_OPTIONS)}</select></label><label>${t().diagnosis}<select name="diagnosis" required>${options(diagnosisOptions)}</select></label><label class="center-diagnosis-details" data-diagnosis-details hidden>${t().diagnosisDetails}<input name="diagnosis_details" maxlength="160" aria-describedby="center-diagnosis-hint"><small id="center-diagnosis-hint">${t().diagnosisHint}</small></label><label>${t().homeLanguage}<select name="home_language" required>${options(homeLanguageOptions)}</select></label><label>${t().words}<select name="meaningful_words" required>${options(wordOptions)}</select></label><label>${t().childGroup}<select name="group_id" ${admin ? "" : "required"}><option value="">${admin ? t().groupLater : t().chooseGroup}</option>${selectedGroups.map((group) => `<option value="${group.id}">${escape(group.name)}</option>`).join("")}</select></label><button type="submit">${t().createProfile}</button></form></section>`;
+  }
   function assessmentMarkup() {
     const child = state.students.find((item) => item.id === state.selectedChild);
     if (!child) return "";
-    return `<section class="center-card center-assessment" aria-labelledby="assessment-title"><div class="center-card-head"><div><div class="auth-kicker">Оценка навыков</div><h2 id="assessment-title">${escape(child.name)}</h2><p>Ответы специалиста сохраняются отдельно от ответов родителя.</p></div><button type="button" data-close-assessment aria-label="Закрыть вопросы">×</button></div>
-      <form data-action="save-assessment">${assessmentQuestions.map((question, index) => `<fieldset><legend>${index + 1}. ${escape(question.ru)}</legend>${question.answers.map((answer) => `<label><input type="radio" name="${escape(question.id)}" value="${answer.value === null ? "unknown" : answer.value}" required><span>${escape(answer.ru)}</span></label>`).join("")}</fieldset>`).join("")}<button class="auth-primary" type="submit">Сохранить оценку</button></form></section>`;
+    return `<section class="center-card center-assessment" aria-labelledby="assessment-title"><div class="center-card-head"><div><div class="center-card-kicker">${t().assessmentTitle}</div><h2 id="assessment-title">${escape(child.name)}</h2><p>${t().assessmentHint}</p></div><button type="button" data-close-assessment aria-label="${t().close}">×</button></div><form data-action="save-assessment">${assessmentQuestions.map((question, index) => `<fieldset><legend>${index + 1}. ${escape(question[state.language])}</legend>${question.answers.map((answer) => `<label><input type="radio" name="${escape(question.id)}" value="${answer.value === null ? "unknown" : answer.value}" required><span>${escape(answer[state.language])}</span></label>`).join("")}</fieldset>`).join("")}<button class="auth-primary" type="submit">${t().saveAssessment}</button></form></section>`;
   }
-
+  function studentsView() {
+    const credentials = state.newCredentials ? `<section class="center-card center-credentials" role="status"><h2>${t().credentialsTitle}</h2><p>${t().credentialsHint}</p><p><strong>${t().login}:</strong> <code>${escape(state.newCredentials.parent_login)}</code></p><p><strong>${t().temporaryPassword}:</strong> <code>${escape(state.newCredentials.temporary_password)}</code></p><button type="button" data-dismiss-credentials>${t().hideCredentials}</button></section>` : "";
+    return `${credentials}<section class="center-card center-students-card"><div class="center-card-kicker">${t().students}</div><h2>${t().students}</h2><p class="center-muted">${t().studentIntro}</p>${state.students.length ? `<ul class="center-children">${state.students.map(childRow).join("")}</ul>` : `<p class="center-empty">${t().noStudents}</p>`}</section>${assessmentMarkup()}${enrollment()}`;
+  }
+  function teamView() {
+    if (!admin) return "";
+    return `<section class="center-card"><div class="center-card-kicker">${t().team}</div><h2>${t().staffTitle}</h2><p class="center-muted">${t().staffIntro}</p><ul class="center-staff">${state.staff.map((item) => `<li><span><strong>${escape(item.full_name)}</strong><small>${escape(item.specialty || "")} · ${item.role === "admin" ? t().administrator : t().specialist}</small></span>${item.user_id !== session.user.id ? `<button type="button" data-remove-staff="${item.user_id}">${t().removeRole}</button>` : ""}</li>`).join("")}</ul><form class="center-form" data-action="set-staff"><label>${t().staffEmail}<input name="email" type="email" required></label><label>${t().fullName}<input name="full_name" required minlength="2" maxlength="160"></label><label>${t().specialty}<input name="specialty" maxlength="120"></label><label>${t().role}<select name="role"><option value="specialist">${t().specialist}</option><option value="admin">${t().administrator}</option></select></label><button type="submit">${t().setRole}</button></form><p class="center-muted">${t().staffHint}</p></section><section class="center-card"><h2>${t().newGroup}</h2><form class="center-form" data-action="create-group"><label>${t().groupName}<input name="name" required maxlength="120"></label><button type="submit">${t().createGroup}</button></form></section>`;
+  }
+  function settingsView() {
+    return `<section class="center-card center-settings-card"><div class="center-card-kicker">${t().settings}</div><h2>${t().changePassword}</h2><p class="center-muted">${t().settingsIntro}</p><form class="center-form" data-action="change-password"><label>${t().newPassword}<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="72" required></label><label>${t().repeatPassword}<input name="confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="72" required></label><button type="button" data-toggle-password aria-pressed="false">${t().showPasswords}</button><button type="submit">${t().savePassword}</button></form></section>`;
+  }
   function paint() {
-    const credentials = state.newCredentials ? `<section class="center-card center-credentials" role="status"><h2>Доступ для семьи создан</h2><p>Передайте родителю данные лично. Пароль показывается только сейчас.</p><p><strong>Логин:</strong> <code>${escape(state.newCredentials.parent_login)}</code></p><p><strong>Временный пароль:</strong> <code>${escape(state.newCredentials.temporary_password)}</code></p><button type="button" data-dismiss-credentials>Скрыть данные</button></section>` : "";
-    const options = (values) => values.map((value) => `<option value="${escape(value)}">${escape(value)}</option>`).join("");
-    const enrollment = `<section class="center-card"><h2>Зарегистрировать ребёнка</h2><p class="center-muted">Для семьи создаётся отдельный вход по ИИН ребёнка. ИИН не показывается в списках центра.</p><form class="center-form center-enroll" data-action="enroll"><label>ИИН ребёнка<input name="iin" inputmode="numeric" pattern="[0-9]{12}" minlength="12" maxlength="12" autocomplete="off" required></label><label>Имя ребёнка<input name="name" minlength="1" maxlength="80" required></label><label>Возраст<select name="age" required>${options(["2","3","4","5","6","7"])}</select></label><label>Диагноз или отметка<select name="diagnosis" required>${options(["Диагноз жоқ / Диагноза нет","ЗРР","ЗПР","ЗПРР","ОНР 1","ОНР 2","ОНР 3","ОНР 4","ОНР 1-4 (нақтылау керек / нужно уточнить)","Басқа / Другое"])}</select></label><label>Язык дома<select name="home_language" required>${options(["Қазақша","Русский","Қазақша және Русский","Басқа / Другое"])}</select></label><label>Словарный запас<select name="meaningful_words" required>${options(["Сөз қолданбайды / Не использует слова","1-10 сөз / 1-10 слов","11-30 сөз / 11-30 слов","31-100 сөз / 31-100 слов","100-ден көп / Более 100"])}</select></label><button type="submit">Создать профиль и доступ</button></form></section>`;
-    app.innerHTML = `<main class="center-page"><header class="center-header"><a href="/" class="auth-brand"><span>Q</span><strong>Qadam</strong></a><div><span>${escape(membership.full_name || session.user?.email)}</span>${session.user?.app_metadata?.role === "superadmin" ? `<a href="/account-mode">Выбрать кабинет</a>` : ""}<button type="button" data-logout>Выйти</button></div></header>
-      <div class="center-main"><div class="auth-kicker">${admin ? "Администратор центра" : "Кабинет специалиста"}</div><h1>${escape(membership.center_name || "Qadam орталығы")}</h1><p class="center-intro">Группы, ученики и оценки навыков в одном месте.</p>
-      ${state.error ? `<p class="auth-error" role="alert">${escape(state.error)}</p>` : ""}${state.passwordChanged ? `<p class="center-success" role="status">Пароль обновлён. Используйте его при следующем входе.</p>` : ""}
-      <div class="center-stats"><span><strong>${state.groups.length}</strong> групп</span><span><strong>${state.students.length}</strong> учеников</span><span><strong>${state.staff.length}</strong> сотрудников</span></div>${credentials}${enrollment}
-      ${admin ? `<section class="center-card"><h2>Сотрудники и роли</h2><ul class="center-staff">${state.staff.map((item) => `<li><span><strong>${escape(item.full_name)}</strong><small>${escape(item.specialty || "")} · ${item.role === "admin" ? "Администратор" : "Специалист"}</small></span>${item.user_id !== session.user.id ? `<button type="button" data-remove-staff="${item.user_id}">Удалить роль</button>` : ""}</li>`).join("")}</ul><form class="center-form" data-action="set-staff"><label>Email сотрудника<input name="email" type="email" required></label><label>ФИО<input name="full_name" required minlength="2" maxlength="160"></label><label>Специальность<input name="specialty" maxlength="120"></label><label>Роль<select name="role"><option value="specialist">Специалист</option><option value="admin">Администратор</option></select></label><button type="submit">Добавить или изменить роль</button></form><p class="center-muted">Сотрудник сначала должен зарегистрироваться с этим email. Удаление роли не удаляет его аккаунт.</p></section>
-      <section class="center-card"><h2>Новая группа</h2><form class="center-form" data-action="create-group"><label>Название группы<input name="name" required maxlength="120"></label><button type="submit">Создать группу</button></form></section>` : ""}
-      <h2 class="center-section-title">Группы</h2><div class="center-grid">${state.groups.map(groupCard).join("") || `<p class="center-empty">Групп пока нет.</p>`}</div>${assessmentMarkup()}<details class="center-card center-password"><summary>Сменить пароль своего аккаунта</summary><form class="center-form" data-action="change-password"><label>Новый пароль<input name="password" type="password" autocomplete="new-password" minlength="12" maxlength="72" required></label><label>Повторите пароль<input name="confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="72" required></label><button type="button" data-toggle-password aria-pressed="false">Показать пароли</button><button type="submit">Сохранить пароль</button></form></details></div></main>`;
+    document.documentElement.lang = state.language;
+    const nav = [["overview", t().overview], ["groups", t().groups], ["students", t().students], ...(admin ? [["team", t().team]] : []), ["settings", t().settings]];
+    const panel = state.view === "groups" ? `<div class="center-section-head"><h2>${t().groups}</h2><p>${t().groupIntro}</p></div><div class="center-grid">${state.groups.map(groupCard).join("") || `<p class="center-empty">${t().groupEmpty}</p>`}</div>` : state.view === "students" ? studentsView() : state.view === "team" ? teamView() : state.view === "settings" ? settingsView() : overview();
+    const pending = state.students.filter((child) => !latestAssessment(child.id)).length;
+    app.innerHTML = `<main class="center-page"><a class="center-skip" href="#center-content">${t().overview}</a><header class="center-header"><a href="/" class="auth-brand"><span>Q</span><strong>Qadam</strong></a><div class="center-header-actions"><span class="center-account-name">${escape(membership.full_name || session.user?.email)}</span>${session.user?.app_metadata?.role === "superadmin" ? `<a href="/account-mode">${t().switchMode}</a>` : ""}<div class="center-languages" aria-label="Тіл / Язык"><button type="button" data-language="kk" aria-pressed="${state.language === "kk"}" class="${state.language === "kk" ? "is-active" : ""}">Қазақша</button><button type="button" data-language="ru" aria-pressed="${state.language === "ru"}" class="${state.language === "ru" ? "is-active" : ""}">Русский</button></div><button type="button" data-logout>${t().logout}</button></div></header><div class="center-main" id="center-content"><section class="center-hero"><div><div class="center-hero-kicker">${t().greeting} · ${admin ? t().roleAdmin : t().roleSpecialist}</div><h1>${escape(membership.center_name || "Qadam орталығы")}</h1><p>${t().intro}</p></div><div class="center-hero-shapes" aria-hidden="true"><i></i><i></i><i></i></div></section><nav class="center-nav" aria-label="${t().greeting}">${nav.map(([view, label]) => navButton(view, label)).join("")}</nav>${state.error ? `<p class="auth-error" role="alert">${escape(state.error)}</p>` : ""}${state.passwordChanged ? `<p class="center-success" role="status">${t().passwordSaved}</p>` : ""}<div class="center-stats"><span><strong>${state.groups.length}</strong>${t().groupsCount}</span><span><strong>${state.students.length}</strong>${t().studentsCount}</span><span><strong>${state.assessments.length}</strong>${t().assessmentsCount}</span><span><strong>${pending}</strong>${t().pendingCount}</span></div><div class="center-panel-content">${panel}</div></div></main>`;
   }
 
   app.addEventListener("click", async (event) => {
-    const target = event.target.closest("[data-logout],[data-assess],[data-close-assessment],[data-remove-staff],[data-dismiss-credentials],[data-toggle-password]");
+    const target = event.target.closest("[data-view],[data-language],[data-logout],[data-assess],[data-close-assessment],[data-remove-staff],[data-dismiss-credentials],[data-toggle-password]");
     if (!target) return;
+    if (target.hasAttribute("data-view")) { state.view = target.dataset.view; state.selectedChild = null; paint(); app.querySelector(`[data-view="${state.view}"]`)?.focus(); return; }
+    if (target.hasAttribute("data-language")) { state.language = target.dataset.language; localStorage.setItem("qadam.center.language", state.language); paint(); app.querySelector(`[data-language="${state.language}"]`)?.focus(); return; }
     if (target.hasAttribute("data-logout")) { await signOut(); location.replace("/login"); return; }
     if (target.hasAttribute("data-dismiss-credentials")) { state.newCredentials = null; paint(); return; }
-    if (target.hasAttribute("data-toggle-password")) {
-      const visible = target.getAttribute("aria-pressed") === "true";
-      target.closest("form").querySelectorAll('input[name="password"],input[name="confirmation"]').forEach((input) => { input.type = visible ? "password" : "text"; });
-      target.setAttribute("aria-pressed", String(!visible));
-      target.textContent = visible ? "Показать пароли" : "Скрыть пароли";
-      return;
-    }
-    if (target.hasAttribute("data-assess")) { state.selectedChild = target.dataset.assess; paint(); document.querySelector(".center-assessment")?.scrollIntoView({ behavior: "smooth" }); return; }
+    if (target.hasAttribute("data-toggle-password")) { const visible = target.getAttribute("aria-pressed") === "true"; target.closest("form").querySelectorAll('input[name="password"],input[name="confirmation"]').forEach((input) => { input.type = visible ? "password" : "text"; }); target.setAttribute("aria-pressed", String(!visible)); target.textContent = visible ? t().showPasswords : t().hidePasswords; return; }
+    if (target.hasAttribute("data-assess")) { state.view = "students"; state.selectedChild = target.dataset.assess; paint(); app.querySelector(".center-assessment")?.scrollIntoView({ behavior: "smooth" }); return; }
     if (target.hasAttribute("data-close-assessment")) { state.selectedChild = null; paint(); return; }
-    if (target.hasAttribute("data-remove-staff") && admin && confirm("Снять роль сотрудника в этом центре?")) {
-      try { await request("rpc/center_remove_staff", { method: "POST", body: JSON.stringify({ p_center_id: centerId, p_user_id: target.dataset.removeStaff }) }); await load(); }
-      catch (error) { state.error = error.message; paint(); }
-    }
+    if (target.hasAttribute("data-remove-staff") && admin && confirm(t().removeConfirm)) { try { await request("rpc/center_remove_staff", { method: "POST", body: JSON.stringify({ p_center_id: centerId, p_user_id: target.dataset.removeStaff }) }); await load(); } catch (error) { state.error = error.message; paint(); } }
   });
-
+  app.addEventListener("change", (event) => {
+    if (event.target.name !== "diagnosis") return;
+    const details = event.target.form.querySelector("[data-diagnosis-details]");
+    const other = event.target.value === OTHER_DIAGNOSIS;
+    details.hidden = !other;
+    details.querySelector("input").required = other;
+    if (!other) details.querySelector("input").value = "";
+  });
   app.addEventListener("submit", async (event) => {
     const form = event.target.closest("form[data-action]");
     if (!form) return;
@@ -97,47 +130,19 @@ export async function renderCenterDashboard({ app, session, membership, dataRequ
     button.disabled = true;
     try {
       switch (form.dataset.action) {
-        case "change-password": {
-          const password = String(data.get("password") || "");
-          if (password.length < 12 || password !== data.get("confirmation")) throw new Error("Пароли не совпадают или короче 12 символов");
-          await apiRequest("/auth/v1/user", { method: "PUT", headers: { Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ password }) });
-          state.passwordChanged = true;
-          break;
-        }
-        case "enroll": {
-          const child = Object.fromEntries(["name", "age", "diagnosis", "home_language", "meaningful_words"].map((key) => [key, data.get(key)]));
-          state.newCredentials = await apiRequest("/functions/v1/qadam-center-parent", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ action: "enroll", center_id: centerId, iin: data.get("iin"), child }) });
-          break;
-        }
-        case "create-group":
-          if (!admin) throw new Error("Недостаточно прав");
-          await write("center_groups", { center_id: centerId, name: String(data.get("name") || "").trim() }); break;
-        case "set-staff":
-          if (!admin) throw new Error("Недостаточно прав");
-          await request("rpc/center_set_staff", { method: "POST", body: JSON.stringify({ p_center_id: centerId, p_email: data.get("email"), p_role: data.get("role"), p_full_name: data.get("full_name"), p_specialty: data.get("specialty") }) }); break;
-        case "assign-specialist":
-          if (!admin) throw new Error("Недостаточно прав");
-          await write("center_group_specialists", { center_id: centerId, group_id: data.get("group_id"), user_id: data.get("user_id") }); break;
-        case "assign-student":
-          if (!admin) throw new Error("Недостаточно прав");
-          await write("center_group_students", { center_id: centerId, group_id: data.get("group_id"), child_id: data.get("child_id") }); break;
-        case "save-assessment": {
-          if (!state.selectedChild) throw new Error("Ученик не выбран");
-          const answers = Object.fromEntries(assessmentQuestions.map((question) => {
-            const value = data.get(question.id);
-            if (value === null) throw new Error("Ответьте на все вопросы");
-            return [question.id, value === "unknown" ? null : Number(value)];
-          }));
-          await write("specialist_assessments", { center_id: centerId, child_id: state.selectedChild, specialist_id: session.user.id, specialist_name: membership.full_name, assessment_type: state.assessments.some((item) => item.child_id === state.selectedChild) ? "reassessment" : "initial", answers, skill_levels: calculateSkillLevels(answers, assessmentQuestions) });
-          state.selectedChild = null; break;
-        }
+        case "change-password": { const password = String(data.get("password") || ""); if (password.length < 12 || password !== data.get("confirmation")) throw new Error(t().passwordMismatch); await apiRequest("/auth/v1/user", { method: "PUT", headers: { Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ password }) }); state.passwordChanged = true; break; }
+        case "enroll": { const child = Object.fromEntries(["name", "age", "diagnosis", "diagnosis_details", "home_language", "meaningful_words"].map((key) => [key, data.get(key)])); state.newCredentials = await apiRequest("/functions/v1/qadam-center-parent", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ action: "enroll", center_id: centerId, group_id: data.get("group_id"), iin: data.get("iin"), child }) }); state.view = "students"; break; }
+        case "create-group": if (!admin) throw new Error(t().noPermission); await write("center_groups", { center_id: centerId, name: String(data.get("name") || "").trim() }); break;
+        case "set-staff": if (!admin) throw new Error(t().noPermission); await request("rpc/center_set_staff", { method: "POST", body: JSON.stringify({ p_center_id: centerId, p_email: data.get("email"), p_role: data.get("role"), p_full_name: data.get("full_name"), p_specialty: data.get("specialty") }) }); break;
+        case "assign-specialist": if (!admin) throw new Error(t().noPermission); await write("center_group_specialists", { center_id: centerId, group_id: data.get("group_id"), user_id: data.get("user_id") }); break;
+        case "assign-student": if (!admin) throw new Error(t().noPermission); await write("center_group_students", { center_id: centerId, group_id: data.get("group_id"), child_id: data.get("child_id") }); break;
+        case "save-assessment": { if (!state.selectedChild) throw new Error(t().noChild); const answers = Object.fromEntries(assessmentQuestions.map((question) => { const value = data.get(question.id); if (value === null) throw new Error(t().answerAll); return [question.id, value === "unknown" ? null : Number(value)]; })); await write("specialist_assessments", { center_id: centerId, child_id: state.selectedChild, specialist_id: session.user.id, specialist_name: membership.full_name, assessment_type: state.assessments.some((item) => item.child_id === state.selectedChild) ? "reassessment" : "initial", answers, skill_levels: calculateSkillLevels(answers, assessmentQuestions) }); state.selectedChild = null; break; }
         default: return;
       }
       state.error = "";
       await load();
-    } catch (error) { state.error = error.message || "Не удалось сохранить"; paint(); }
+    } catch (error) { state.error = error.message || t().saveFailed; paint(); }
     finally { button.disabled = false; }
   });
-
   await load();
 }
