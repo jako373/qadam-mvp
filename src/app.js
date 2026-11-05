@@ -16,7 +16,6 @@ import {
   renderAdaptiveRoute,
 } from "./adaptive-flow.js";
 import { loadState, resetState, saveState } from "./storage.js";
-import { handlePaymentClick, handlePaymentFile } from "./payments.js";
 
 let state = loadState();
 
@@ -95,7 +94,6 @@ function renderUtilityNav() {
       </a>
       <div class="utility-actions">
         ${renderSuperadminModeSwitch()}
-        <button class="subscription-chip" data-route="/subscription" type="button">${icon("sparkles")}<span>${state.language === "ru" ? "Подписка" : "Жазылым"}</span></button>
         ${renderLanguageSwitcher(true)}
         <div data-account-controls-mount></div>
       </div>
@@ -125,7 +123,6 @@ function renderHeaderActions(scope = "app") {
   return `
     <div class="header-actions-desktop">
       ${renderSuperadminModeSwitch()}
-      <button class="subscription-chip" data-route="/subscription" type="button">${icon("sparkles")}<span>${state.language === "ru" ? "Подписка" : "Жазылым"}</span></button>
       ${renderLanguageSwitcher(true)}
       <div data-account-controls-mount></div>
     </div>
@@ -139,7 +136,6 @@ function renderHeaderActions(scope = "app") {
     >${icon("menu", "header-menu-icon")}</button>
     <div id="${menuId}" class="header-mobile-menu" data-header-menu-panel hidden>
       ${renderSuperadminModeSwitch()}
-      <button class="subscription-chip" data-route="/subscription" type="button">${icon("sparkles")}<span>${state.language === "ru" ? "Подписка" : "Жазылым"}</span></button>
       ${renderLanguageSwitcher(true)}
       <div data-account-controls-mount></div>
     </div>
@@ -224,7 +220,7 @@ function renderLanding() {
               <h1 id="landing-title">${labels.landingTitle}</h1>
               <p class="landing-lead">${labels.landingText}</p>
               <div class="landing-hero-actions">
-                <a class="landing-primary" href="${hasProfile ? "/today" : "/register"}"><span>${hasProfile ? labels.continue : labels.start}</span>${icon("arrow-right")}</a>
+                <a class="landing-primary" href="${hasProfile ? "/today" : "/login"}"><span>${hasProfile ? labels.continue : labels.start}</span>${icon("arrow-right")}</a>
                 <a class="landing-secondary" href="#how-it-works">${landing.secondaryCta}${icon("arrow-down", "landing-link-icon")}</a>
               </div>
               <div class="landing-reassurance" aria-label="${landing.noCard}. ${landing.calmStart}">
@@ -331,7 +327,7 @@ function renderLanding() {
             <figure class="final-visual">
               <img src="${landingImages.cta}" alt="${ctaImageAlt}" width="1672" height="941" loading="lazy" decoding="async">
             </figure>
-            <div class="final-copy"><span class="landing-kicker">${landing.finalEyebrow}</span><h2>${landing.finalTitle}</h2><p>${landing.finalText}</p><div class="landing-final-actions"><a class="landing-primary landing-primary-light" href="/register"><span>${landing.finalCta}</span>${icon("arrow-right")}</a><span>${landing.noCard}</span></div></div>
+            <div class="final-copy"><span class="landing-kicker">${landing.finalEyebrow}</span><h2>${landing.finalTitle}</h2><p>${landing.finalText}</p><div class="landing-final-actions"><a class="landing-primary landing-primary-light" href="/login"><span>${landing.finalCta}</span>${icon("arrow-right")}</a><span>${landing.noCard}</span></div></div>
           </div>
         </section>
       </div>
@@ -525,6 +521,7 @@ function renderNotFound() {
 }
 
 function guardRoute(pathname) {
+  if (pathname === "/subscription") return state.progress.onboardingCompleted ? "/today" : "/language";
   const superadminCatalogAccess = Boolean(
     globalThis.qadamAuth?.canBrowseCatalogWithoutOnboarding?.()
       && (pathname === "/library" || pathname.startsWith("/library/")),
@@ -638,7 +635,6 @@ async function handleClick(event) {
     return;
   }
 
-  if (await handlePaymentClick(event, adaptiveContext())) return;
   if (handleAdaptiveClick(event, adaptiveContext())) return;
 
   const route = event.target.closest("[data-route]");
@@ -669,7 +665,6 @@ async function handleClick(event) {
 }
 
 async function handleFormInput(event) {
-  if (await handlePaymentFile(event, adaptiveContext())) return;
   handleAdaptiveInput(event);
 }
 

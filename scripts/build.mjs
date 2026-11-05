@@ -21,7 +21,7 @@ await mkdir(join(dist, "public", "vendor", "zxing"), { recursive: true });
 await copyFile(join(root, "node_modules", "@zxing", "browser", "umd", "zxing-browser.min.js"), join(dist, "public", "vendor", "zxing", "zxing-browser.min.js"));
 
 const appRoutes = [
-  "login", "register", "forgot-password", "reset-password", "account-mode", "admin", "language", "onboarding", "today", "skill-check", "plan-ready", "daily-summary", "library", "progress", "profile", "subscription",
+  "login", "register", "forgot-password", "reset-password", "account-mode", "admin", "center", "family", "language", "onboarding", "today", "skill-check", "plan-ready", "daily-summary", "library", "progress", "profile", "subscription",
   ...Array.from({ length: 16 }, (_, index) => `skill-check/${index + 1}`),
   ...Array.from({ length: 3 }, (_, index) => `daily/${index + 1}`),
   ...Array.from({ length: 3 }, (_, index) => `daily-results/${index + 1}`),
