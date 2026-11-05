@@ -15,7 +15,7 @@ create table if not exists public.children (
   id uuid primary key default gen_random_uuid(),
   parent_id uuid not null references auth.users(id) on delete cascade,
   name text not null check (char_length(name) between 1 and 80),
-  age smallint not null check (age between 2 and 7),
+  age smallint not null check (age between 2 and 18),
   diagnosis text not null check (
     diagnosis in (
       'ЗРР',
@@ -30,6 +30,7 @@ create table if not exists public.children (
       'Басқа / Другое'
     )
   ),
+  diagnosis_details text check (diagnosis_details is null or char_length(btrim(diagnosis_details)) between 1 and 160),
   home_language text not null,
   meaningful_words text not null,
   interests text check (interests is null or char_length(interests) <= 240),

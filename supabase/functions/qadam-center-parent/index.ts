@@ -49,9 +49,9 @@ async function actorFromRequest(req, centerId) {
   const response = await fetch(`${url}/auth/v1/user`, { headers: { apikey: serviceKey, Authorization: authorization } });
   if (!response.ok) return null;
   const actor = await response.json();
-  if (actor?.app_metadata?.role === "superadmin") return actor;
-  const rows = await service(`/rest/v1/center_staff?select=user_id&center_id=eq.${encodeURIComponent(centerId)}&user_id=eq.${actor.id}&limit=1`);
-  return rows.length ? actor : null;
+  if (actor?.app_metadata?.role === "superadmin") return { ...actor, center_role: "admin" };
+  const rows = await service(`/rest/v1/center_staff?select=user_id,role&center_id=eq.${encodeURIComponent(centerId)}&user_id=eq.${actor.id}&limit=1`);
+  return rows.length ? { ...actor, center_role: rows[0].role } : null;
 }
 
 async function login(req, body) {
@@ -81,9 +81,10 @@ function validChild(child) {
   const languages = ["Қазақша", "Русский", "Қазақша және Русский", "Басқа / Другое"];
   const words = ["Сөз қолданбайды / Не использует слова", "1-10 сөз / 1-10 слов", "11-30 сөз / 11-30 слов", "31-100 сөз / 31-100 слов", "100-ден көп / Более 100"];
   return typeof child?.name === "string" && child.name.trim().length >= 1 && child.name.trim().length <= 80
-    && Number.isInteger(Number(child.age)) && Number(child.age) >= 2 && Number(child.age) <= 7
+    && Number.isInteger(Number(child.age)) && Number(child.age) >= 2 && Number(child.age) <= 18
     && diagnoses.includes(child.diagnosis) && languages.includes(child.home_language)
     && words.includes(child.meaningful_words)
+    && (child.diagnosis !== "Басқа / Другое" || (typeof child.diagnosis_details === "string" && child.diagnosis_details.trim().length >= 2 && child.diagnosis_details.trim().length <= 160))
     && ["interests", "dislikes", "best_time"].every((key) => !child[key] || String(child[key]).length <= (key === "best_time" ? 160 : 240));
 }
 
@@ -94,6 +95,17 @@ async function enroll(req, body) {
     return respond(req, { error: "Проверьте ИИН и данные ребёнка" }, 400);
   const actor = await actorFromRequest(req, centerId);
   if (!actor) return respond(req, { error: "Доступ сотрудника центра не подтверждён" }, 403);
+  const groupId = String(body.group_id || "");
+  if (groupId && !/^[0-9a-f-]{36}$/i.test(groupId)) return respond(req, { error: "Неверная группа" }, 400);
+  if (!groupId && actor.center_role !== "admin") return respond(req, { error: "Выберите свою группу" }, 400);
+  if (groupId) {
+    const groups = await service(`/rest/v1/center_groups?select=id&center_id=eq.${centerId}&id=eq.${groupId}&limit=1`);
+    if (!groups.length) return respond(req, { error: "Группа не найдена" }, 400);
+    if (actor.center_role !== "admin") {
+      const assignments = await service(`/rest/v1/center_group_specialists?select=group_id&center_id=eq.${centerId}&group_id=eq.${groupId}&user_id=eq.${actor.id}&limit=1`);
+      if (!assignments.length) return respond(req, { error: "Эта группа вам не назначена" }, 403);
+    }
+  }
   const digest = await hashIin(iin);
   const existing = await service(`/rest/v1/child_login_accounts?select=child_id&iin_hash=eq.${digest}&limit=1`);
   if (existing.length) return respond(req, { error: "Ребёнок с этим ИИН уже зарегистрирован" }, 409);
@@ -106,6 +118,7 @@ async function enroll(req, body) {
     const child = body.child;
     const rows = await service("/rest/v1/children", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({
       parent_id: newUserId, name: child.name.trim(), age: Number(child.age), diagnosis: child.diagnosis,
+      diagnosis_details: child.diagnosis === "Басқа / Другое" ? child.diagnosis_details.trim() : null,
       home_language: child.home_language, meaningful_words: child.meaningful_words,
       interests: String(child.interests || "").trim(), dislikes: String(child.dislikes || "").trim(), best_time: String(child.best_time || "").trim(),
     }) });
@@ -113,6 +126,7 @@ async function enroll(req, body) {
     if (!childId) throw new Error("child insert failed");
     await service("/rest/v1/child_login_accounts", { method: "POST", body: JSON.stringify({ iin_hash: digest, child_id: childId, parent_id: newUserId }) });
     await service("/rest/v1/center_students", { method: "POST", body: JSON.stringify({ center_id: centerId, child_id: childId }) });
+    if (groupId) await service("/rest/v1/center_group_students", { method: "POST", body: JSON.stringify({ center_id: centerId, group_id: groupId, child_id: childId }) });
     return respond(req, { ok: true, child_id: childId, parent_login: iin, temporary_password: password });
   } catch {
     if (newUserId) await fetch(`${url}/auth/v1/admin/users/${newUserId}`, { method: "DELETE", headers: serviceHeaders() }).catch(() => {});
