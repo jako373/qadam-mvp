@@ -19,10 +19,12 @@ test("other diagnosis requires text and saves it separately", () => {
   assert.match(functionCode, /diagnosis_details: child\.diagnosis === "Басқа \/ Другое"/);
 });
 
-test("specialist enrollment is scoped to an assigned group", () => {
-  assert.match(functionCode, /Выберите свою группу/);
+test("specialist may enroll individually; chosen groups remain scoped", () => {
+  assert.doesNotMatch(functionCode, /Выберите свою группу/);
+  assert.match(functionCode, /if \(groupId\)/);
   assert.match(functionCode, /center_group_specialists\?select=group_id/);
   assert.match(functionCode, /center_group_students/);
+  assert.match(functionCode, /center_specialist_students/);
 });
 
 test("specialist cabinet has bilingual section buttons and localized assessment questions", () => {
