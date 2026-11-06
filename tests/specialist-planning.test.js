@@ -22,6 +22,32 @@ test("specialist calendar renders by section button with a helpful empty state",
   assert.match(app.innerHTML, /Календарь занятий/);
   assert.match(app.innerHTML, /На этот день занятий нет/);
   assert.match(app.innerHTML, /data-week="7"/);
+  assert.match(app.innerHTML, /Сначала зарегистрируйте ученика/);
+  assert.match(app.innerHTML, /class="center-new-session" data-view="students"/);
+});
+
+test("calendar shows a localized month and a visible create-session action", async () => {
+  const listeners = new Map();
+  let scrolled = false;
+  let focused = false;
+  const app = { innerHTML: "", addEventListener: (name, listener) => listeners.set(name, listener), querySelector: (selector) => selector === ".center-schedule-form" ? { scrollIntoView() { scrolled = true; } } : { focus() { focused = true; } } };
+  const dataRequest = async (path) => {
+    if (path.startsWith("center_students?")) return [{ child_id: "child-1" }];
+    if (path.startsWith("children?")) return [{ id: "child-1", name: "Алия", age: 8 }];
+    return [];
+  };
+  await renderCenterDashboard({ app, session, membership: { center_id: "center", role: "specialist" }, dataRequest });
+  const click = async (dataset, attribute) => listeners.get("click")({ target: { closest: () => ({ dataset, hasAttribute: (name) => name === attribute }) } });
+  await click({ view: "schedule" }, "data-view");
+  assert.match(app.innerHTML, /class="center-new-session" data-new-session/);
+  assert.match(app.innerHTML, /data-action="save-session"/);
+  await click({ language: "kk" }, "data-language");
+  await click({ day: "2026-11-06" }, "data-day");
+  assert.match(app.innerHTML, /Қараша 2026/);
+  assert.match(app.innerHTML, /6 қараша · Жм/);
+  await click({}, "data-new-session");
+  assert.equal(scrolled, true);
+  assert.equal(focused, true);
 });
 
 test("specialist can mark attendance for a scheduled child", async () => {
