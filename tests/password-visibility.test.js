@@ -19,3 +19,12 @@ test("login, registration, and password reset mount visibility controls", () => 
   assert.match(authStyles, /\.password-control/);
   assert.match(authStyles, /\.password-toggle\[aria-pressed="true"\]/);
 });
+
+test("parent login offers a distinct child-IIN path without exposing the internal email", () => {
+  assert.match(authSource, /data-login-method="email" aria-pressed="true"/);
+  assert.match(authSource, /data-login-method="iin" aria-pressed="false"/);
+  assert.match(authSource, /identifier\.pattern = iin \? "\[0-9\]\{12\}"/);
+  assert.match(authSource, /action: "login", iin: email, password/);
+  assert.match(authSource, /login-identifier-hint/);
+  assert.match(authStyles, /\.auth-login-method button\[aria-pressed="true"\]/);
+});
