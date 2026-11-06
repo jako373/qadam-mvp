@@ -359,8 +359,9 @@ function loginMarkup() {
     <a class="auth-brand" href="/" aria-label="Qadam, на главную"><span>Q</span><strong>Qadam</strong></a>${authSteps(1)}
     <div class="auth-kicker">Личный кабинет</div><h1 id="login-title">Вход в Qadam</h1>
     <p>${passwordReset ? "Пароль обновлён. Теперь войдите с новым паролем." : confirmed ? "Email подтверждён. Теперь войдите в аккаунт." : "Продолжите занятия ребёнка с того места, где остановились."}</p>
-    <form id="login-form" class="auth-form"><label><span>Email или ИИН ребёнка</span><input name="email" type="text" autocomplete="username" required /></label><label><span>Пароль</span>${passwordField("password", "current-password")}</label><p id="login-error" class="auth-error" role="alert" hidden></p><button class="auth-primary" type="submit">Войти</button></form>
-    <p class="auth-switch"><a href="/forgot-password">Забыли пароль?</a></p>
+    <div class="auth-login-method" role="group" aria-label="Способ входа"><button type="button" data-login-method="email" aria-pressed="true">По email</button><button type="button" data-login-method="iin" aria-pressed="false">По ИИН ребёнка</button></div>
+    <form id="login-form" class="auth-form"><label><span id="login-identifier-label">Email</span><input name="email" type="email" autocomplete="username" required /></label><p id="login-identifier-hint" class="auth-hint" hidden>Введите 12 цифр ИИН ребёнка. Временный пароль вам выдаёт специалист центра.</p><label><span>Пароль</span>${passwordField("password", "current-password")}</label><p id="login-error" class="auth-error" role="alert" hidden></p><button class="auth-primary" type="submit">Войти</button></form>
+    <p class="auth-switch" id="login-email-recovery"><a href="/forgot-password">Забыли пароль?</a></p><p class="auth-hint" id="login-iin-recovery" hidden>Если временный пароль утерян, обратитесь к администратору центра.</p>
     <p class="auth-switch">Нет аккаунта? <a href="/register">Зарегистрироваться</a></p><a class="auth-back" href="/">Вернуться на главную</a>
   </section></main>`;
 }
@@ -398,6 +399,22 @@ function mountLogin() {
   app.innerHTML = loginMarkup();
   mountPasswordToggles(app);
   const form = document.getElementById("login-form"); const errorBox = document.getElementById("login-error");
+  app.querySelectorAll("[data-login-method]").forEach((button) => button.addEventListener("click", () => {
+    const iin = button.dataset.loginMethod === "iin";
+    app.querySelectorAll("[data-login-method]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+    const identifier = form.elements.email;
+    identifier.value = "";
+    identifier.type = iin ? "text" : "email";
+    identifier.inputMode = iin ? "numeric" : "email";
+    identifier.pattern = iin ? "[0-9]{12}" : "";
+    identifier.maxLength = iin ? 12 : 254;
+    document.getElementById("login-identifier-label").textContent = iin ? "ИИН ребёнка" : "Email";
+    document.getElementById("login-identifier-hint").hidden = !iin;
+    document.getElementById("login-email-recovery").hidden = iin;
+    document.getElementById("login-iin-recovery").hidden = !iin;
+    errorBox.hidden = true;
+    identifier.focus();
+  }));
   form.addEventListener("submit", async (event) => { event.preventDefault(); const button = form.querySelector("button"); const data = new FormData(form); button.disabled = true; button.textContent = "Входим…"; errorBox.hidden = true;
     try { const session = await signIn(String(data.get("email") || "").trim(), String(data.get("password") || "")); const member = await centerMembership(session); if (!member && !isAdmin(session) && !session.user?.app_metadata?.center_parent) await hydrateState(session); location.replace(loginDestination(session, member)); }
     catch (error) { errorBox.textContent = error.message === "Invalid login credentials" ? "Неверный email или пароль" : error.message; errorBox.hidden = false; button.disabled = false; button.textContent = "Войти"; }
