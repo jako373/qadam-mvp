@@ -5621,3 +5621,64 @@ html {
     min-height: 3.5rem;
   }
 }
+
+/* Keep exercise imagery and instructions together on desktop; retain the linear mobile reading order. */
+@media (min-width: 1000px) {
+  .daily-exercise {
+    width: min(100% - 64px, 1180px);
+    grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
+    align-content: start;
+    align-items: start;
+    column-gap: 32px;
+    padding: 52px 0 84px;
+  }
+
+  .daily-exercise > .adaptive-progress,
+  .daily-exercise > .lesson-heading {
+    grid-column: 1 / -1;
+  }
+
+  .daily-exercise > .exercise-illustration.full {
+    grid-column: 1;
+    grid-row: 3 / span 6;
+    width: 100%;
+    max-width: none;
+    align-self: start;
+  }
+
+  .daily-exercise > .plan-adjustment,
+  .daily-exercise > .parent-script,
+  .daily-exercise > .lesson-prep-disclosure,
+  .daily-exercise > .three-steps,
+  .daily-exercise > .adaptive-primary,
+  .daily-exercise > .lesson-support {
+    grid-column: 2;
+    min-width: 0;
+  }
+
+  .exercise-detail {
+    grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+    align-items: start;
+    column-gap: 28px;
+  }
+
+  .exercise-detail > .text-back,
+  .exercise-detail > .exercise-detail-head,
+  .exercise-detail > .detail-notes {
+    grid-column: 1 / -1;
+  }
+
+  .exercise-detail > .exercise-illustration.full {
+    grid-column: 1;
+    grid-row: 3 / span 3;
+    width: 100%;
+    max-width: none;
+  }
+
+  .exercise-detail > .exercise-facts,
+  .exercise-detail > .detail-parent-script,
+  .exercise-detail > .detail-steps {
+    grid-column: 2;
+    min-width: 0;
+  }
+}
