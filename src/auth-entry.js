@@ -1,4 +1,5 @@
 import { canonicalExerciseHistory, exerciseProgressFromHistory } from "./lib/progress-engine.js";
+import { homeDestination, workspaceRedirect } from "./lib/workspace-routes.js";
 
 const SUPABASE_URL = "https://iismpbsapzmacxqraecx.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hFMdiuuIp051vWhUE7IQKg_DczXIfmV";
@@ -302,18 +303,15 @@ function userDestination() {
 
 async function centerMembership(session) {
   if (!session?.user?.id) return null;
-  const rows = await dataRequest(`center_staff?select=center_id,role,full_name,specialty,centers(name)&user_id=eq.${session.user.id}&limit=1`, session).catch(() => []);
+  const rows = await dataRequest(`center_staff?select=center_id,role,full_name,specialty,centers(name)&user_id=eq.${session.user.id}&limit=1`, session);
   if (rows[0]) return { ...rows[0], center_name: rows[0].centers?.name };
   if (!isSuperadmin(session)) return null;
-  const centers = await dataRequest("centers?select=id,name&order=created_at.asc&limit=1", session).catch(() => []);
+  const centers = await dataRequest("centers?select=id,name&order=created_at.asc&limit=1", session);
   return centers[0] ? { center_id: centers[0].id, center_name: centers[0].name, role: "admin", full_name: "Суперадмин" } : null;
 }
 
 function loginDestination(session, membership) {
-  if (isSuperadmin(session)) return "/account-mode";
-  if (session?.user?.app_metadata?.center_parent) return "/family";
-  if (membership) return "/center";
-  return isAdmin(session) ? "/admin" : userDestination();
+  return homeDestination(session, membership, Boolean(readJson(STATE_KEY, {}).progress?.onboardingCompleted));
 }
 
 async function renderCenter(session, membership) {
@@ -702,8 +700,15 @@ document.documentElement.lang = "ru";
 const path = location.pathname.replace(/\/$/, "") || "/";
 const publicRoutes = new Set(["/", "/login", "/register", "/forgot-password", "/reset-password"]);
 const session = await getSession();
-const centerMember = session ? await centerMembership(session) : null;
-if ((path === "/login" || path === "/register") && session) location.replace(loginDestination(session, centerMember));
+let centerMember = null;
+let centerLookupError = null;
+try { centerMember = session ? await centerMembership(session) : null; }
+catch (error) { centerLookupError = error; }
+globalThis.qadamAuth.getHomeDestination = () => loginDestination(session, centerMember);
+const workspace = workspaceRedirect(path, session, centerMember, userDestination());
+if (centerLookupError) app.innerHTML = `<main class="auth-page"><section class="auth-card" role="alert"><h1>Не удалось проверить доступ к центру</h1><p>Проверьте соединение и попробуйте ещё раз. Данные других кабинетов не открыты.</p><a class="auth-primary auth-link" href="${escapeHtml(path)}">Повторить</a></section></main>`;
+else if (workspace) location.replace(workspace);
+else if ((path === "/login" || path === "/register") && session) location.replace(loginDestination(session, centerMember));
 else if (path === "/login") mountLogin();
 else if (path === "/register") mountRegister();
 else if (path === "/account-mode") renderAccountMode(session);

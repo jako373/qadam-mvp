@@ -184,6 +184,7 @@ function renderLanding() {
   const labels = t();
   const landing = labels.landing;
   const hasProfile = Boolean(state.progress.onboardingCompleted);
+  const continueHref = globalThis.qadamAuth?.getHomeDestination?.() || (hasProfile ? "/today" : "/login");
   const heroImageAlt = state.language === "kk"
     ? "Ата-анасымен бірге үйде ойын жаттығуын орындап отырған бала"
     : "Ребёнок выполняет игровое упражнение дома вместе с родителем";
@@ -220,7 +221,7 @@ function renderLanding() {
               <h1 id="landing-title">${labels.landingTitle}</h1>
               <p class="landing-lead">${labels.landingText}</p>
               <div class="landing-hero-actions">
-                <a class="landing-primary" href="${hasProfile ? "/today" : "/login"}"><span>${hasProfile ? labels.continue : labels.start}</span>${icon("arrow-right")}</a>
+                <a class="landing-primary" href="${continueHref}"><span>${hasProfile ? labels.continue : labels.start}</span>${icon("arrow-right")}</a>
                 <a class="landing-secondary" href="#how-it-works">${landing.secondaryCta}${icon("arrow-down", "landing-link-icon")}</a>
               </div>
               <div class="landing-reassurance" aria-label="${landing.noCard}. ${landing.calmStart}">
