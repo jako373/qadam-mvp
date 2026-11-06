@@ -1,6 +1,8 @@
 import { assessmentQuestions } from "./data/assessment-questions.js";
 import { diagnosisOptions, homeLanguageOptions, wordOptions } from "./data/app-data.js";
 import { exerciseCategories, exerciseCategoryOrder } from "./data/exercise-localization.js";
+import { exercises, getExerciseById, replaceExercises } from "./data/exercises.js";
+import { renderExerciseIllustration } from "./exercise-illustrations.js";
 import { calculateSkillLevels } from "./lib/progress-engine.js";
 
 const escape = (value = "") => String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
@@ -24,6 +26,7 @@ const copy = {
     staffTitle: "Сотрудники и роли", staffIntro: "Администратор назначает роли, не удаляя аккаунт сотрудника.", removeRole: "Удалить роль", removeConfirm: "Снять роль сотрудника в этом центре?", staffEmail: "Email сотрудника", fullName: "ФИО", specialty: "Специальность", role: "Роль", specialist: "Специалист", administrator: "Администратор", setRole: "Добавить или изменить роль", staffHint: "Сотрудник сначала регистрируется с этим email.", newGroup: "Новая группа", groupName: "Название группы", createGroup: "Создать группу",
     settingsIntro: "Ваш аккаунт и безопасность", changePassword: "Сменить пароль", newPassword: "Новый пароль", repeatPassword: "Повторите пароль", showPasswords: "Показать пароли", hidePasswords: "Скрыть пароли", savePassword: "Сохранить пароль", passwordSaved: "Пароль обновлён. Используйте его при следующем входе.", passwordMismatch: "Пароли не совпадают или короче 12 символов", noPermission: "Недостаточно прав", saveFailed: "Не удалось сохранить", otherSpecialist: "Другой специалист",
     individual: "Индивидуально, без группы", removeStudent: "Убрать из моих учеников", removeStudentConfirm: "Убрать ученика из вашего списка? Аккаунт семьи и история занятий сохранятся.", studentRemoved: "Ученик убран из вашего списка", archivedStudents: "Убраны из списка", restoreStudent: "Вернуть ученика", studentRestored: "Ученик возвращён", editSession: "Изменить расписание", cancelEdit: "Отменить изменение", saveSession: "Сохранить изменения", sessionUpdated: "Занятие обновлено", completeSession: "Провести занятие", sessionSummary: "Краткий итог для семьи", complete: "Завершить занятие", sessionCompleted: "Занятие проведено", sessionSummaryHint: "Что делали и что получилось? 3–500 символов.",
+    exerciseLibrary: "Упражнения Qadam", exerciseSkill: "Направление", exercisePick: "Упражнение", exerciseMaterials: "Подготовить", exerciseWords: "Сказать ребёнку", exerciseSteps: "Как провести", exerciseResult: "Как получилось", exerciseSave: "Сохранить результат", exerciseSaved: "Результат упражнения сохранён", exerciseNone: "Сейчас нет доступных упражнений. Попробуйте позже.", exerciseAgeNote: "Эти упражнения создавались для детей младшего возраста. Адаптируйте задание с учётом возраста ребёнка.", outcomeIndependent: "Самостоятельно", outcomeAssisted: "С помощью", outcomeUnable: "Не получилось", outcomeRefused: "Не захотел", exerciseStop: "Когда остановиться", exerciseDone: "Проведено на занятии", exerciseFirst: "Сначала проведите хотя бы одно упражнение", exerciseOpen: "Открыть упражнение",
   },
   kk: {
     roleAdmin: "Орталық әкімшісі", roleSpecialist: "Маман кабинеті", greeting: "Жұмыс кеңістігі", intro: "Топтар, оқушылар және дағды бағалауы — бір жерде.", logout: "Шығу", switchMode: "Кабинетті таңдау",
@@ -38,13 +41,14 @@ const copy = {
     staffTitle: "Қызметкерлер және рөлдер", staffIntro: "Әкімші қызметкердің аккаунтын жоймай, рөлін басқарады.", removeRole: "Рөлді алып тастау", removeConfirm: "Осы орталықтағы қызметкердің рөлін алып тастайсыз ба?", staffEmail: "Қызметкердің email-ы", fullName: "Аты-жөні", specialty: "Мамандығы", role: "Рөлі", specialist: "Маман", administrator: "Әкімші", setRole: "Рөлді қосу немесе өзгерту", staffHint: "Қызметкер алдымен осы email-мен тіркелуі керек.", newGroup: "Жаңа топ", groupName: "Топ атауы", createGroup: "Топ құру",
     settingsIntro: "Аккаунтыңыз және қауіпсіздік", changePassword: "Құпиясөзді өзгерту", newPassword: "Жаңа құпиясөз", repeatPassword: "Құпиясөзді қайталаңыз", showPasswords: "Құпиясөздерді көрсету", hidePasswords: "Құпиясөздерді жасыру", savePassword: "Құпиясөзді сақтау", passwordSaved: "Құпиясөз жаңартылды. Келесі кіргенде жаңа құпиясөзді қолданыңыз.", passwordMismatch: "Құпиясөздер сәйкес келмейді немесе 12 таңбадан қысқа", noPermission: "Құқық жеткіліксіз", saveFailed: "Сақтау мүмкін болмады", otherSpecialist: "Басқа маман",
     individual: "Жеке, топсыз", removeStudent: "Оқушыны өз тізімімнен алып тастау", removeStudentConfirm: "Оқушыны тізіміңізден алып тастайсыз ба? Отбасы аккаунты мен сабақ тарихы сақталады.", studentRemoved: "Оқушы тізімнен алынды", archivedStudents: "Тізімнен алынғандар", restoreStudent: "Оқушыны қайтару", studentRestored: "Оқушы қайтарылды", editSession: "Кестені өзгерту", cancelEdit: "Өзгертуді тоқтату", saveSession: "Өзгерістерді сақтау", sessionUpdated: "Сабақ жаңартылды", completeSession: "Сабақты өткізу", sessionSummary: "Отбасыға қысқаша нәтиже", complete: "Сабақты аяқтау", sessionCompleted: "Сабақ өткізілді", sessionSummaryHint: "Не істедіңіздер және не орындалды? 3–500 таңба.",
+    exerciseLibrary: "Qadam жаттығулары", exerciseSkill: "Бағыт", exercisePick: "Жаттығу", exerciseMaterials: "Дайындау", exerciseWords: "Балаға айтыңыз", exerciseSteps: "Қалай өткізу керек", exerciseResult: "Қалай орындалды", exerciseSave: "Нәтижені сақтау", exerciseSaved: "Жаттығу нәтижесі сақталды", exerciseNone: "Қазір қолжетімді жаттығулар жоқ. Кейінірек қайталап көріңіз.", exerciseAgeNote: "Бұл жаттығулар кіші жастағы балаларға арналған. Баланың жасына қарай тапсырманы бейімдеңіз.", outcomeIndependent: "Өз бетінше", outcomeAssisted: "Көмекпен", outcomeUnable: "Орындалмады", outcomeRefused: "Қаламады", exerciseStop: "Қашан тоқтату керек", exerciseDone: "Сабақта өткізілді", exerciseFirst: "Алдымен кемінде бір жаттығу өткізіңіз", exerciseOpen: "Жаттығуды ашу",
   },
 };
 
 export async function renderCenterDashboard({ app, session, membership, dataRequest, apiRequest, signOut }) {
   const centerId = membership.center_id;
   const admin = membership.role === "admin";
-  const state = { language: localStorage.getItem("qadam.center.language") === "kk" ? "kk" : "ru", view: "overview", groups: [], staff: [], students: [], assignments: [], groupStudents: [], groupSpecialists: [], assessments: [], sessions: [], goals: [], notes: [], selectedChild: null, selectedPlanChild: null, selectedDay: new Date(), editingSession: null, completingSession: null, error: "", notice: "", newCredentials: null, passwordChanged: false };
+  const state = { language: localStorage.getItem("qadam.center.language") === "kk" ? "kk" : "ru", view: "overview", groups: [], staff: [], students: [], assignments: [], groupStudents: [], groupSpecialists: [], assessments: [], sessions: [], sessionExercises: [], goals: [], notes: [], selectedChild: null, selectedPlanChild: null, selectedDay: new Date(), editingSession: null, completingSession: null, summaryDraft: "", exerciseCategory: exerciseCategoryOrder[0], selectedExercise: null, error: "", notice: "", newCredentials: null, passwordChanged: false };
   const t = () => copy[state.language];
   const date = (value) => new Date(value).toLocaleDateString(state.language === "ru" ? "ru-RU" : "kk-KZ");
   const request = (path, options) => dataRequest(path, session, options);
@@ -52,7 +56,7 @@ export async function renderCenterDashboard({ app, session, membership, dataRequ
 
   async function load() {
     const query = `center_id=eq.${encodeURIComponent(centerId)}`;
-    const [groups, staff, students, assignments, groupStudents, groupSpecialists, assessments, sessions, goals, notes] = await Promise.all([
+    const [groups, staff, students, assignments, groupStudents, groupSpecialists, assessments, sessions, sessionExercises, goals, notes] = await Promise.all([
       request(`center_groups?select=id,name,center_id&${query}&order=created_at.asc`),
       request(`center_staff?select=user_id,role,full_name,specialty&${query}&order=created_at.asc`),
       request(`center_students?select=child_id,active&${query}&active=eq.true`),
@@ -61,10 +65,11 @@ export async function renderCenterDashboard({ app, session, membership, dataRequ
       request(`center_group_specialists?select=group_id,user_id&${query}`),
       request(`specialist_assessments?select=child_id,completed_at,skill_levels,specialist_name&${query}&order=completed_at.desc&limit=1000`),
       request(`center_sessions?select=id,child_id,specialist_id,starts_at,duration_minutes,topic,status,session_summary,completed_at&${query}&order=starts_at.asc&limit=1000`),
+      request(`center_session_exercises?select=session_id,exercise_id,outcome,recorded_at&order=recorded_at.asc&limit=1000`),
       request(`center_skill_goals?select=id,child_id,created_by,skill_key,summary,target_level,target_date,status,created_at&${query}&order=created_at.desc&limit=1000`),
       request(`center_child_notes?select=id,child_id,audience,content,created_at&${query}&order=created_at.desc&limit=1000`),
     ]);
-    Object.assign(state, { groups, staff, assignments, groupStudents, groupSpecialists, assessments, sessions, goals, notes });
+    Object.assign(state, { groups, staff, assignments, groupStudents, groupSpecialists, assessments, sessions, sessionExercises, goals, notes });
     const childIds = students.map((item) => item.child_id);
     state.students = childIds.length ? await request(`children?select=id,name,age,diagnosis,diagnosis_details&id=in.(${childIds.join(",")})`) : [];
     paint();
@@ -100,6 +105,14 @@ export async function renderCenterDashboard({ app, session, membership, dataRequ
     return Array.from({ length: 7 }, (_, offset) => { const day = new Date(monday); day.setDate(monday.getDate() + offset); return day; });
   }
   function sessionStatus(status) { return ({ planned: t().planned, present: t().present, absent: t().absent, cancelled: t().cancelled })[status] || t().planned; }
+  function sessionExercisePanel(item) {
+    const child = state.students.find((student) => student.id === item.child_id);
+    const recorded = state.sessionExercises.filter((entry) => entry.session_id === item.id);
+    const choices = exercises.filter((exercise) => exercise.isActive !== false && exercise.category === state.exerciseCategory);
+    const selected = choices.find((exercise) => exercise.id === state.selectedExercise) || choices[0];
+    const resultLabels = { independent: t().outcomeIndependent, assisted: t().outcomeAssisted, unable: t().outcomeUnable, refused: t().outcomeRefused };
+return `<section class="center-lesson-workspace" aria-label="${t().exerciseLibrary}"><h3>${t().exerciseLibrary}</h3>${Number(child?.age) > 7 ? `<p class="center-age-note">${t().exerciseAgeNote}</p>` : ""}${recorded.length ? `<div class="center-exercise-done"><strong>${t().exerciseDone}</strong><ul>${recorded.map((entry) => `<li>${escape(getExerciseById(entry.exercise_id)?.[state.language]?.title || entry.exercise_id)} — ${resultLabels[entry.outcome] || ""}</li>`).join("")}</ul></div>` : ""}${!exercises.length ? `<p class="center-empty">${t().exerciseNone}</p>` : `<form data-action="record-exercise" class="center-lesson-form"><input type="hidden" name="session_id" value="${item.id}"><div class="center-lesson-pickers"><label>${t().exerciseSkill}<select name="exercise_category">${exerciseCategoryOrder.map((key) => `<option value="${key}" ${key === state.exerciseCategory ? "selected" : ""}>${escape(exerciseCategories[key][state.language].title)}</option>`).join("")}</select></label><label>${t().exercisePick}<select name="exercise_id">${choices.map((exercise) => `<option value="${exercise.id}" ${exercise.id === selected?.id ? "selected" : ""}>${escape(exercise[state.language]?.title || exercise.kk?.title)}</option>`).join("")}</select></label></div>${selected ? `<div class="center-lesson-detail">${renderExerciseIllustration(selected, state.language, escape, true)}<h4>${escape(selected[state.language]?.title || selected.kk?.title)}</h4><p><strong>${t().exerciseMaterials}:</strong> ${escape((selected[state.language]?.materials || selected.kk?.materials || []).join(", "))}</p><p><strong>${t().exerciseWords}:</strong> ${escape(selected[state.language]?.parentWords || selected.kk?.parentWords || "")}</p><strong>${t().exerciseSteps}</strong><ol>${(selected[state.language]?.steps || selected.kk?.steps || []).map((step) => `<li>${escape(step)}</li>`).join("")}</ol><details><summary>${t().exerciseStop}</summary><p>${escape(selected[state.language]?.stopRule || selected.kk?.stopRule || "")}</p></details></div><fieldset><legend>${t().exerciseResult}</legend>${Object.entries(resultLabels).map(([value, label]) => `<label><input type="radio" name="outcome" value="${value}" required> ${label}</label>`).join("")}</fieldset><button type="submit">${t().exerciseSave}</button>` : `<p class="center-empty">${t().exerciseNone}</p>`}</form>`}</section>`;
+  }
   function scheduleView() {
     const calendar = calendarCopy[state.language];
     const selected = dayKey(state.selectedDay);
@@ -114,7 +127,7 @@ export async function renderCenterDashboard({ app, session, membership, dataRequ
     const cards = daily.length ? `<ul class="center-session-list">${daily.map((item) => {
       const child = state.students.find((candidate) => candidate.id === item.child_id);
       const canEdit = admin || item.specialist_id === session.user.id;
-      return `<li><div class="center-session-time">${localTime(item.starts_at).slice(11)}</div><div class="center-session-info"><strong>${escape(child?.name || "—")}</strong><span>${escape(item.topic)} · ${item.duration_minutes} ${t().minutes}</span><small>${sessionStatus(item.status)}</small>${item.session_summary ? `<p>${escape(item.session_summary)}</p>` : ""}</div>${canEdit ? `<div class="center-attendance" aria-label="${t().attendance}"><button type="button" data-edit-session="${item.id}">${t().editSession}</button><button type="button" data-complete-session="${item.id}">${t().completeSession}</button>${["absent", "cancelled"].map((status) => `<button type="button" data-session-id="${item.id}" data-session-status="${status}" aria-pressed="${item.status === status}">${sessionStatus(status)}</button>`).join("")}</div>` : ""}${state.completingSession === item.id ? `<form class="center-complete-form" data-action="complete-session"><input type="hidden" name="session_id" value="${item.id}"><label>${t().sessionSummary}<textarea name="session_summary" minlength="3" maxlength="500" required>${escape(item.session_summary || "")}</textarea><small>${t().sessionSummaryHint}</small></label><button type="submit">${t().complete}</button></form>` : ""}</li>`;
+return `<li><div class="center-session-time">${localTime(item.starts_at).slice(11)}</div><div class="center-session-info"><strong>${escape(child?.name || "—")}</strong><span>${escape(item.topic)} · ${item.duration_minutes} ${t().minutes}</span><small>${sessionStatus(item.status)}</small>${item.session_summary ? `<p>${escape(item.session_summary)}</p>` : ""}</div>${canEdit ? `<div class="center-attendance" aria-label="${t().attendance}"><button type="button" data-edit-session="${item.id}">${t().editSession}</button><button type="button" data-complete-session="${item.id}">${t().completeSession}</button>${["absent", "cancelled"].map((status) => `<button type="button" data-session-id="${item.id}" data-session-status="${status}" aria-pressed="${item.status === status}">${sessionStatus(status)}</button>`).join("")}</div>` : ""}${state.completingSession === item.id ? sessionExercisePanel(item) : ""}${state.completingSession === item.id ? `<form class="center-complete-form" data-action="complete-session"><input type="hidden" name="session_id" value="${item.id}"><label>${t().sessionSummary}<textarea name="session_summary" minlength="3" maxlength="500" required>${escape(state.summaryDraft)}</textarea><small>${t().sessionSummaryHint}</small></label><button type="submit">${t().complete}</button></form>` : ""}</li>`;
     }).join("")}</ul>` : `<p class="center-empty">${t().noSessions}</p>`;
     const form = state.students.length ? `<section class="center-card center-schedule-form"><h2>${editing ? t().editSession : t().addSession}</h2><form class="center-form" data-action="save-session">${editing ? `<input type="hidden" name="session_id" value="${editing.id}">` : ""}<label>${t().chooseChild}<select name="child_id" required ${editing ? "disabled" : ""}><option value="">${t().chooseChild}</option>${state.students.map((child) => `<option value="${child.id}" ${editing?.child_id === child.id ? "selected" : ""}>${escape(child.name)}</option>`).join("")}</select></label><label>${t().sessionTopic}<input name="topic" minlength="2" maxlength="120" value="${escape(editing?.topic || "")}" required></label><label>${t().sessionDate}<input name="starts_at" type="datetime-local" value="${localTime(editing?.starts_at || state.selectedDay)}" lang="${state.language === "ru" ? "ru" : "kk"}" required></label><label>${t().sessionDuration}<select name="duration_minutes">${[30, 45, 60, 90].map((minutes) => `<option value="${minutes}" ${minutes === (editing?.duration_minutes || 45) ? "selected" : ""}>${minutes} ${t().minutes}</option>`).join("")}</select></label><button type="submit">${editing ? t().saveSession : t().addSession}</button>${editing ? `<button type="button" data-cancel-edit>${t().cancelEdit}</button>` : ""}</form></section>` : `<section class="center-card center-schedule-form"><h2>${t().addSession}</h2><p class="center-empty">${t().addFirstStudent}</p></section>`;
     return `<section class="center-card center-calendar"><div class="center-card-head"><div><div class="center-card-kicker">${t().schedule}</div><h2>${t().sessionTitle}</h2><p class="center-muted">${t().sessionIntro}</p></div><button type="button" class="center-new-session" ${state.students.length ? "data-new-session" : 'data-view="students"'}>${state.students.length ? t().addSession : t().registerChild}</button></div><div class="center-calendar-toolbar"><h3 class="center-month-title" aria-live="polite">${calendar.months[state.selectedDay.getMonth()]} ${state.selectedDay.getFullYear()}</h3><div class="center-week-actions"><button type="button" data-week="-7" aria-label="${t().previousWeek}">←</button><button type="button" data-week="7" aria-label="${t().nextWeek}">→</button></div></div><div class="center-week">${week.map((day) => { const key = dayKey(day); const count = state.sessions.filter((item) => dayKey(item.starts_at) === key).length; return `<button type="button" data-day="${key}" aria-pressed="${key === selected}" class="${key === selected ? "is-active" : ""}"><small>${calendar.days[day.getDay()]}</small><strong>${day.getDate()}</strong><span>${count || ""}</span></button>`; }).join("")}</div><h4 class="center-selected-day">${state.selectedDay.getDate()} ${calendar.monthDays[state.selectedDay.getMonth()]} · ${calendar.days[state.selectedDay.getDay()]}</h4>${cards}</section>${form}`;
@@ -182,7 +195,7 @@ export async function renderCenterDashboard({ app, session, membership, dataRequ
     if (target.hasAttribute("data-day")) { state.selectedDay = new Date(`${target.dataset.day}T12:00:00`); paint(); app.querySelector(`[data-day="${target.dataset.day}"]`)?.focus(); return; }
     if (target.hasAttribute("data-new-session")) { app.querySelector(".center-schedule-form")?.scrollIntoView({ behavior: "smooth", block: "start" }); app.querySelector('.center-schedule-form select[name="child_id"]')?.focus(); return; }
     if (target.hasAttribute("data-edit-session")) { const item = state.sessions.find((row) => row.id === target.dataset.editSession); if (!item || (!admin && item.specialist_id !== session.user.id)) return; state.editingSession = item.id; state.completingSession = null; paint(); app.querySelector(".center-schedule-form")?.scrollIntoView({ behavior: "smooth" }); return; }
-    if (target.hasAttribute("data-complete-session")) { const item = state.sessions.find((row) => row.id === target.dataset.completeSession); if (!item || (!admin && item.specialist_id !== session.user.id)) return; state.completingSession = item.id; paint(); return; }
+    if (target.hasAttribute("data-complete-session")) { const item = state.sessions.find((row) => row.id === target.dataset.completeSession); if (!item || (!admin && item.specialist_id !== session.user.id)) return; state.completingSession = item.id; state.summaryDraft = item.session_summary || ""; state.selectedExercise = null; paint(); app.querySelector(".center-lesson-workspace")?.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
     if (target.hasAttribute("data-cancel-edit")) { state.editingSession = null; paint(); return; }
     if (target.hasAttribute("data-remove-student") || target.hasAttribute("data-restore-student")) {
       const removing = target.hasAttribute("data-remove-student");
@@ -219,6 +232,8 @@ export async function renderCenterDashboard({ app, session, membership, dataRequ
     if (target.hasAttribute("data-remove-staff") && admin && confirm(t().removeConfirm)) { try { await request("rpc/center_remove_staff", { method: "POST", body: JSON.stringify({ p_center_id: centerId, p_user_id: target.dataset.removeStaff }) }); await load(); } catch (error) { state.error = error.message; paint(); } }
   });
   app.addEventListener("change", (event) => {
+    if (event.target.name === "exercise_category") { state.exerciseCategory = event.target.value; state.selectedExercise = null; paint(); return; }
+    if (event.target.name === "exercise_id") { state.selectedExercise = event.target.value; paint(); return; }
     if (event.target.name !== "diagnosis") return;
     const details = event.target.form.querySelector("[data-diagnosis-details]");
     const other = event.target.value === OTHER_DIAGNOSIS;
@@ -226,6 +241,7 @@ export async function renderCenterDashboard({ app, session, membership, dataRequ
     details.querySelector("input").required = other;
     if (!other) details.querySelector("input").value = "";
   });
+  app.addEventListener("input", (event) => { if (event.target.name === "session_summary") state.summaryDraft = event.target.value; });
   app.addEventListener("submit", async (event) => {
     const form = event.target.closest("form[data-action]");
     if (!form) return;
@@ -235,6 +251,17 @@ export async function renderCenterDashboard({ app, session, membership, dataRequ
     button.disabled = true;
     try {
       switch (form.dataset.action) {
+        case "record-exercise": {
+          const item = state.sessions.find((row) => row.id === data.get("session_id") && row.id === state.completingSession);
+          const exercise = getExerciseById(String(data.get("exercise_id") || ""));
+          const outcome = String(data.get("outcome") || "");
+          if (!item || !state.students.some((child) => child.id === item.child_id) || (!admin && item.specialist_id !== session.user.id) || ["absent", "cancelled"].includes(item.status) || !exercise?.isActive || !["independent", "assisted", "unable", "refused"].includes(outcome)) throw new Error(t().saveFailed);
+          const prior = state.sessionExercises.some((entry) => entry.session_id === item.id && entry.exercise_id === exercise.id);
+          if (prior) await request(`center_session_exercises?session_id=eq.${item.id}&exercise_id=eq.${exercise.id}`, { method: "PATCH", body: JSON.stringify({ outcome, recorded_at: new Date().toISOString() }) });
+          else await write("center_session_exercises", { session_id: item.id, exercise_id: exercise.id, outcome, recorded_by: session.user.id });
+          state.notice = t().exerciseSaved;
+          break;
+        }
         case "change-password": { const password = String(data.get("password") || ""); if (password.length < 12 || password !== data.get("confirmation")) throw new Error(t().passwordMismatch); await apiRequest("/auth/v1/user", { method: "PUT", headers: { Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ password }) }); state.passwordChanged = true; break; }
         case "enroll": { const child = Object.fromEntries(["age", "diagnosis", "diagnosis_details", "home_language", "meaningful_words"].map((key) => [key, data.get(key)])); child.name = [data.get("surname"), data.get("name")].map((part) => String(part || "").trim()).filter(Boolean).join(" "); state.newCredentials = await apiRequest("/functions/v1/qadam-center-parent", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ action: "enroll", center_id: centerId, group_id: data.get("group_id"), iin: data.get("iin"), child }) }); state.view = "students"; break; }
         case "save-session": {
@@ -254,7 +281,7 @@ export async function renderCenterDashboard({ app, session, membership, dataRequ
           const summary = String(data.get("session_summary") || "").trim();
           if (!item || (!admin && item.specialist_id !== session.user.id) || summary.length < 3 || summary.length > 500) throw new Error(t().saveFailed);
           await request(`center_sessions?id=eq.${item.id}&center_id=eq.${centerId}`, { method: "PATCH", body: JSON.stringify({ status: "present", session_summary: summary, completed_at: new Date().toISOString() }) });
-          state.completingSession = null; state.notice = t().sessionCompleted; break;
+          state.completingSession = null; state.summaryDraft = ""; state.notice = t().sessionCompleted; break;
         }
         case "add-goal": { const skillKey = String(data.get("skill_key") || ""); const summary = String(data.get("summary") || "").trim(); const targetLevel = Number(data.get("target_level")); const targetDate = String(data.get("target_date") || ""); if (!state.students.some((child) => child.id === state.selectedPlanChild) || !exerciseCategoryOrder.includes(skillKey) || summary.length < 5 || summary.length > 180 || ![1, 2, 3].includes(targetLevel) || (targetDate && !/^\d{4}-\d{2}-\d{2}$/.test(targetDate))) throw new Error(t().saveFailed); await write("center_skill_goals", { center_id: centerId, child_id: state.selectedPlanChild, created_by: session.user.id, skill_key: skillKey, summary, target_level: targetLevel, target_date: targetDate || null }); state.notice = t().goalSaved; break; }
         case "add-note": { const content = String(data.get("content") || "").trim(); const audience = String(data.get("audience") || ""); if (!state.students.some((child) => child.id === state.selectedPlanChild) || content.length < 3 || content.length > 500 || !["team", "family"].includes(audience)) throw new Error(t().saveFailed); await write("center_child_notes", { center_id: centerId, child_id: state.selectedPlanChild, author_id: session.user.id, audience, content }); state.notice = t().noteSaved; break; }
@@ -270,5 +297,12 @@ export async function renderCenterDashboard({ app, session, membership, dataRequ
     } catch (error) { state.error = error.message || t().saveFailed; paint(); }
     finally { button.disabled = false; }
   });
+  try {
+    const rows = await request("rpc/active_exercises", { method: "POST", body: "{}" });
+    replaceExercises(rows.map((row) => row.content).filter(Boolean));
+  } catch (error) {
+    console.warn("Qadam specialist catalogue:", error.message);
+    replaceExercises([]);
+  }
   await load();
 }
