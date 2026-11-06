@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="kk">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/src/styles.css">
+<link rel="stylesheet" href="/src/auth.css">
+<link rel="stylesheet" href="/src/center.css">
+<div id="app"></div>
+<script type="module">
+  import { exercises } from "/src/data/exercises.js";
+  import { renderExerciseIllustration } from "/src/exercise-illustrations.js";
+  import { renderCenterDashboard } from "/src/center-dashboard.js";
+
+  const exercise = exercises[0];
+  const app = document.querySelector("#app");
+  if (new URLSearchParams(location.search).get("mode") === "parent") {
+    const copy = exercise.kk;
+app.innerHTML = `<main class="page"><section class="daily-exercise"><div class="adaptive-progress"><span>1 / 3</span><progress max="3" value="1"></progress></div><header class="lesson-heading"><span class="adaptive-eyebrow">1-күн · Бірлескен зейін</span><h1>${copy.title}</h1></header>${renderExerciseIllustration(exercise, "kk", String)}<section class="parent-script"><svg class="instruction-icon" aria-hidden="true" width="32" height="32" viewBox="0 0 32 32"></svg><div><span>Балаға айтыңыз</span><blockquote>${copy.parentWords}</blockquote></div></section><details class="lesson-disclosure lesson-prep-disclosure"><summary><span><strong>Дайындау</strong></span></summary><p>${copy.preparation}</p></details><section class="three-steps"><h2>Қалай өткізу керек</h2><ol>${copy.steps.map((step) => `<li><span>${step}</span></li>`).join("")}</ol></section><button class="primary adaptive-primary full">Нәтижені белгілеу</button><section class="lesson-support"><h2>Көмек</h2><p>${copy.parentTip}</p></section></section></main>`;
+  } else {
+    localStorage.setItem("qadam.center.language", "kk");
+    const item = { id: "lesson", child_id: "child", specialist_id: "staff", starts_at: new Date().toISOString(), duration_minutes: 45, topic: "Бірлескен зейін", status: "planned" };
+    await renderCenterDashboard({
+      app,
+      session: { access_token: "fixture", user: { id: "staff", email: "staff@example.test" } },
+      membership: { center_id: "center", role: "specialist", full_name: "Маман", center_name: "Qadam орталығы" },
+      dataRequest: async (path) => {
+        if (path === "rpc/active_exercises") return [{ content: { ...exercise, isActive: true } }];
+        if (path.startsWith("center_sessions?")) return [item];
+        if (path.startsWith("center_students?")) return [{ child_id: "child" }];
+        if (path.startsWith("children?")) return [{ id: "child", name: "Мұслим", age: 8 }];
+        return [];
+      },
+    });
+    app.querySelector('[data-view="schedule"]').click();
+    app.querySelector('[data-complete-session="lesson"]').click();
+  }
+  document.documentElement.dataset.ready = "true";
+</script>
