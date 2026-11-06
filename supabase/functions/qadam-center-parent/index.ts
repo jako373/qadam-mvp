@@ -97,7 +97,6 @@ async function enroll(req, body) {
   if (!actor) return respond(req, { error: "Доступ сотрудника центра не подтверждён" }, 403);
   const groupId = String(body.group_id || "");
   if (groupId && !/^[0-9a-f-]{36}$/i.test(groupId)) return respond(req, { error: "Неверная группа" }, 400);
-  if (!groupId && actor.center_role !== "admin") return respond(req, { error: "Выберите свою группу" }, 400);
   if (groupId) {
     const groups = await service(`/rest/v1/center_groups?select=id&center_id=eq.${centerId}&id=eq.${groupId}&limit=1`);
     if (!groups.length) return respond(req, { error: "Группа не найдена" }, 400);
@@ -126,6 +125,7 @@ async function enroll(req, body) {
     if (!childId) throw new Error("child insert failed");
     await service("/rest/v1/child_login_accounts", { method: "POST", body: JSON.stringify({ iin_hash: digest, child_id: childId, parent_id: newUserId }) });
     await service("/rest/v1/center_students", { method: "POST", body: JSON.stringify({ center_id: centerId, child_id: childId }) });
+    if (actor.center_role === "specialist") await service("/rest/v1/center_specialist_students", { method: "POST", body: JSON.stringify({ center_id: centerId, child_id: childId, specialist_id: actor.id, child_name: child.name.trim() }) });
     if (groupId) await service("/rest/v1/center_group_students", { method: "POST", body: JSON.stringify({ center_id: centerId, group_id: groupId, child_id: childId }) });
     return respond(req, { ok: true, child_id: childId, parent_login: iin, temporary_password: password });
   } catch {
