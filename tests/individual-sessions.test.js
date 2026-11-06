@@ -2,9 +2,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { renderCenterDashboard } from "../src/center-dashboard.js";
+import { exercises } from "../src/data/exercises.js";
 
 const migration = readFileSync(new URL("../supabase/migrations/20261106094114_individual_center_students.sql", import.meta.url), "utf8");
 const edge = readFileSync(new URL("../supabase/functions/qadam-center-parent/index.ts", import.meta.url), "utf8");
+const exerciseMigration = readFileSync(new URL("../supabase/migrations/20261106121212_specialist_session_exercises.sql", import.meta.url), "utf8");
+const catalogueAccess = readFileSync(new URL("../supabase/migrations/20261106122625_allow_active_exercise_ids_for_session_results.sql", import.meta.url), "utf8");
+const sampleExercise = structuredClone(exercises[0]);
 const session = { access_token: "test", user: { id: "staff", email: "staff@example.test" } };
 globalThis.localStorage = { getItem: () => "ru", setItem: () => {} };
 globalThis.document = { documentElement: { lang: "ru" } };
@@ -72,6 +76,49 @@ test("calendar exposes rescheduling and lesson completion", async () => {
   await listeners.get("click")(button({ editSession: "lesson" }, "data-edit-session"));
   assert.match(app.innerHTML, /data-action="save-session"/);
   assert.match(app.innerHTML, /value="Речь"/);
+});
+
+test("specialist opens the shared exercise and records the child's lesson result", async () => {
+  const listeners = new Map();
+  const app = { innerHTML: "", addEventListener: (name, fn) => listeners.set(name, fn), querySelector: () => ({ focus() {}, scrollIntoView() {} }) };
+  const lesson = { id: "lesson", child_id: "child", specialist_id: "staff", starts_at: new Date().toISOString(), duration_minutes: 45, topic: "Внимание", status: "planned" };
+  const saved = [];
+  const dataRequest = async (path, _session, options = {}) => {
+    if (path === "rpc/active_exercises") return [{ content: { ...sampleExercise, isActive: true } }];
+    if (path.startsWith("center_sessions?")) return [lesson];
+    if (path.startsWith("center_session_exercises?")) return saved;
+    if (path.startsWith("center_students?")) return [{ child_id: "child" }];
+    if (path.startsWith("children?")) return [{ id: "child", name: "Алия", age: 8 }];
+    if (path === "center_session_exercises" && options.method === "POST") { saved.push(JSON.parse(options.body)); return {}; }
+    return [];
+  };
+  const oldFormData = globalThis.FormData;
+  globalThis.FormData = class { get(key) { return { session_id: "lesson", exercise_id: sampleExercise.id, outcome: "assisted" }[key] ?? null; } };
+  try {
+    await renderCenterDashboard({ app, session, membership: { center_id: "center", role: "specialist" }, dataRequest });
+    await listeners.get("click")(button({ view: "schedule" }, "data-view"));
+    await listeners.get("click")(button({ completeSession: "lesson" }, "data-complete-session"));
+    assert.match(app.innerHTML, new RegExp(sampleExercise.ru.title));
+    assert.match(app.innerHTML, /class="exercise-illustration compact"/);
+    assert.match(app.innerHTML, /data-action="record-exercise"/);
+    assert.match(app.innerHTML, /Эти упражнения создавались для детей младшего возраста/);
+    const form = { dataset: { action: "record-exercise" }, querySelector: () => ({ disabled: false }) };
+    await listeners.get("submit")({ target: { closest: () => form }, preventDefault() {} });
+    assert.equal(saved[0].exercise_id, sampleExercise.id);
+    assert.equal(saved[0].outcome, "assisted");
+    assert.match(app.innerHTML, /Проведено на занятии/);
+  } finally { globalThis.FormData = oldFormData; }
+});
+
+test("lesson exercise results are scoped by the lesson and visible only to assigned staff or the parent", () => {
+  assert.match(exerciseMigration, /enable row level security/);
+  assert.match(exerciseMigration, /center_can_view_child\(s\.center_id, s\.child_id\)/);
+  assert.match(exerciseMigration, /c\.parent_id = \(select auth\.uid\(\)\)/);
+  assert.match(exerciseMigration, /recorded_by = \(select auth\.uid\(\)\)/);
+  assert.match(exerciseMigration, /e\.status = 'active'/);
+  assert.match(catalogueAccess, /grant select\(id, status\)/);
+  assert.match(catalogueAccess, /using \(status = 'active'\)/);
+  assert.doesNotMatch(catalogueAccess, /select\(content\)/);
 });
 
 test("assignment RLS and session updates retain ownership boundaries", () => {
