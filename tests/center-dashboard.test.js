@@ -27,6 +27,13 @@ test("specialist may enroll individually; chosen groups remain scoped", () => {
   assert.match(functionCode, /center_specialist_students/);
 });
 
+test("child registration asks for name and optional surname before IIN", () => {
+  assert.match(dashboard, /name: "Имя ребёнка", surname: "Фамилия ребёнка \(необязательно\)"/);
+  assert.match(dashboard, /name: "Баланың аты", surname: "Баланың тегі \(міндетті емес\)"/);
+  assert.match(dashboard, /name="name"[^>]*required><\/label>.*name="surname".*name="iin"/);
+  assert.match(dashboard, /child\.name = \[data\.get\("surname"\), data\.get\("name"\)\].*\.join\(" "\)/);
+});
+
 test("specialist cabinet has bilingual section buttons and localized assessment questions", () => {
   assert.match(dashboard, /data-language="kk"/);
   assert.match(dashboard, /data-language="ru"/);
