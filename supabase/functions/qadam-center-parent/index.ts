@@ -134,6 +134,26 @@ async function enroll(req, body) {
   }
 }
 
+async function reissuePassword(req, body) {
+  const centerId = String(body.center_id || "");
+  const childId = String(body.child_id || "");
+  if (!/^[0-9a-f-]{36}$/i.test(centerId) || !/^[0-9a-f-]{36}$/i.test(childId))
+    return respond(req, { error: "Неверный запрос" }, 400);
+  const actor = await actorFromRequest(req, centerId);
+  if (!actor) return respond(req, { error: "Доступ сотрудника не подтверждён" }, 403);
+  const students = await service(`/rest/v1/center_students?select=child_id&center_id=eq.${centerId}&child_id=eq.${childId}&active=eq.true&limit=1`);
+  if (!students.length) return respond(req, { error: "Ученик не найден в центре" }, 404);
+  if (actor.center_role !== "admin") {
+    const own = await service(`/rest/v1/center_specialist_students?select=child_id&center_id=eq.${centerId}&child_id=eq.${childId}&specialist_id=eq.${actor.id}&active=eq.true&limit=1`);
+    if (!own.length) return respond(req, { error: "Можно выдать пароль только своему ученику" }, 403);
+  }
+  const accounts = await service(`/rest/v1/child_login_accounts?select=parent_id&child_id=eq.${childId}&limit=1`);
+  if (!accounts.length) return respond(req, { error: "Семейный аккаунт не найден" }, 404);
+  const password = crypto.randomUUID().replaceAll("-", "");
+  await service(`/auth/v1/admin/users/${accounts[0].parent_id}`, { method: "PUT", body: JSON.stringify({ password }) });
+  return respond(req, { ok: true, child_id: childId, temporary_password: password });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: headers(req) });
   if (req.method !== "POST") return respond(req, { error: "Метод не поддерживается" }, 405);
@@ -144,6 +164,7 @@ Deno.serve(async (req) => {
     const body = JSON.parse(raw);
     if (body.action === "login") return await login(req, body);
     if (body.action === "enroll") return await enroll(req, body);
+    if (body.action === "reissue_password") return await reissuePassword(req, body);
     return respond(req, { error: "Неизвестное действие" }, 400);
   } catch {
     return respond(req, { error: "Сервис временно недоступен" }, 503);

@@ -81,3 +81,38 @@ test("assignment RLS and session updates retain ownership boundaries", () => {
   assert.match(migration, /grant update\(starts_at, duration_minutes, topic, status, session_summary, completed_at\)/);
   assert.doesNotMatch(migration, /delete from public\.children/i);
 });
+
+test("family password can be reissued only by center staff assigned to this child", () => {
+  assert.match(edge, /async function reissuePassword\(req, body\)/);
+  assert.match(edge, /actorFromRequest\(req, centerId\)/);
+  assert.match(edge, /center_students\?select=child_id[^\n]*active=eq\.true/);
+  assert.match(edge, /center_specialist_students\?select=child_id[^\n]*specialist_id=eq\.\$\{actor\.id\}[^\n]*active=eq\.true/);
+  assert.match(edge, /child_login_accounts\?select=parent_id&child_id=eq\.\$\{childId\}/);
+  assert.match(edge, /method: "PUT", body: JSON\.stringify\(\{ password \}\)/);
+  assert.match(edge, /action === "reissue_password"/);
+});
+
+test("specialist sees a reset button and gets a new temporary password once", async () => {
+  const listeners = new Map();
+  const app = { innerHTML: "", addEventListener: (name, fn) => listeners.set(name, fn), querySelector: () => ({ focus() {}, scrollIntoView() {} }) };
+  const dataRequest = async (path) => {
+    if (path.startsWith("center_students?")) return [{ child_id: "child" }];
+    if (path.startsWith("center_specialist_students?")) return [{ child_id: "child", specialist_id: "staff", child_name: "Алия", active: true }];
+    if (path.startsWith("children?")) return [{ id: "child", name: "Алия", age: 8 }];
+    return [];
+  };
+  const calls = [];
+  const oldConfirm = globalThis.confirm;
+  globalThis.confirm = () => true;
+  try {
+    await renderCenterDashboard({ app, session, membership: { center_id: "center", role: "specialist" }, dataRequest, apiRequest: async (path, options) => { calls.push({ path, body: JSON.parse(options.body) }); return { temporary_password: "one-time-secret" }; } });
+    await listeners.get("click")(button({ view: "students" }, "data-view"));
+    assert.match(app.innerHTML, /data-reissue-password="child"/);
+    const action = button({ reissuePassword: "child" }, "data-reissue-password");
+    await listeners.get("click")(action);
+    assert.equal(calls[0].body.action, "reissue_password");
+    assert.equal(calls[0].body.child_id, "child");
+    assert.match(app.innerHTML, /one-time-secret/);
+    assert.doesNotMatch(app.innerHTML, /undefined/);
+  } finally { globalThis.confirm = oldConfirm; }
+});
