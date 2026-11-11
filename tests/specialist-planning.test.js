@@ -9,14 +9,14 @@ const session = { access_token: "test", user: { id: "staff", email: "staff@examp
 globalThis.localStorage = { getItem: () => "ru", setItem: () => {} };
 globalThis.document = { documentElement: { lang: "ru" } };
 
-test("specialist calendar renders by section button with a helpful empty state", async () => {
+test("center admin retains the existing calendar with a helpful empty state", async () => {
   const listeners = new Map();
   const app = { innerHTML: "", addEventListener: (name, listener) => listeners.set(name, listener), querySelector: () => ({ focus() {} }) };
   const dataRequest = async (path) => {
     if (path.startsWith("center_staff?")) return [{ user_id: "staff", role: "specialist", full_name: "Маман" }];
     return [];
   };
-  await renderCenterDashboard({ app, session, membership: { center_id: "center", role: "specialist", full_name: "Маман", center_name: "Qadam" }, dataRequest });
+  await renderCenterDashboard({ app, session, membership: { center_id: "center", role: "admin", full_name: "Маман", center_name: "Qadam" }, dataRequest });
   assert.match(app.innerHTML, /data-view="schedule"/);
   await listeners.get("click")({ target: { closest: () => ({ dataset: { view: "schedule" }, hasAttribute: (name) => name === "data-view" }) } });
   assert.match(app.innerHTML, /Календарь занятий/);
