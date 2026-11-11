@@ -1,5 +1,6 @@
 import { canonicalExerciseHistory, exerciseProgressFromHistory } from "./lib/progress-engine.js";
 import { homeDestination, workspaceRedirect } from "./lib/workspace-routes.js";
+import { exerciseSpecialties, exerciseDifficulties, exerciseSpecialtyLabels, exerciseDifficultyLabels, updateExerciseCuration } from "./lib/exercise-curation.js";
 
 const SUPABASE_URL = "https://iismpbsapzmacxqraecx.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hFMdiuuIp051vWhUE7IQKg_DczXIfmV";
@@ -565,7 +566,8 @@ function openGenerateModal() {
 function openExerciseEditor(id) {
   const row = adminExerciseRows.find((item) => item.id === id); if (!row) return;
   const c = row.content; const field = (name, label, value, area = false) => `<label>${label}${area ? `<textarea name="${name}" rows="3">${escapeHtml(value || "")}</textarea>` : `<input name="${name}" value="${escapeHtml(value || "")}" required>`}</label>`;
-  showAdminModal(`Редактировать ${id}`, `<form class="admin-form exercise-editor" data-admin-form="edit-exercise" data-exercise-id="${id}"><div class="editor-language"><h3>Русский</h3>${field("ru_title","Название",c.ru?.title)}${field("ru_preparation","Подготовка",c.ru?.preparation,true)}${field("ru_parentWords","Что сказать",c.ru?.parentWords,true)}${field("ru_steps","Три шага — каждый с новой строки",(c.ru?.steps || []).join("\n"),true)}${field("ru_benefit","Польза",c.ru?.benefit,true)}${field("ru_stopRule","Когда остановиться",c.ru?.stopRule,true)}</div><div class="editor-language"><h3>Қазақша</h3>${field("kk_title","Атауы",c.kk?.title)}${field("kk_preparation","Дайындау",c.kk?.preparation,true)}${field("kk_parentWords","Не айту керек",c.kk?.parentWords,true)}${field("kk_steps","Үш қадам — әрқайсысы жаңа жолда",(c.kk?.steps || []).join("\n"),true)}${field("kk_benefit","Пайдасы",c.kk?.benefit,true)}${field("kk_stopRule","Қашан тоқтау керек",c.kk?.stopRule,true)}</div><button class="auth-primary" type="submit">Сохранить изменения</button><p class="auth-error" hidden></p></form>`);
+  const curation = `<fieldset class="editor-curation"><legend>Проверенная разметка для фильтров</legend><p>Возраст и специальность указывайте только после проверки упражнения. Пустые поля означают «не размечено».</p><div class="editor-age"><label>Возраст от<input name="age_min" type="number" min="2" max="18" value="${escapeHtml(c.ageMin ?? "")}"></label><label>До<input name="age_max" type="number" min="2" max="18" value="${escapeHtml(c.ageMax ?? "")}"></label></div><label>Сложность<select name="difficulty"><option value="">Не размечено</option>${exerciseDifficulties.map((key) => `<option value="${key}" ${c.difficulty === key ? "selected" : ""}>${exerciseDifficultyLabels[key].ru}</option>`).join("")}</select></label><div class="editor-specialties"><strong>Направление специалиста</strong>${exerciseSpecialties.map((key) => `<label class="admin-check"><input type="checkbox" name="specialty" value="${key}" ${c.specialties?.includes(key) ? "checked" : ""}>${exerciseSpecialtyLabels[key].ru}</label>`).join("")}</div></fieldset>`;
+  showAdminModal(`Редактировать ${id}`, `<form class="admin-form exercise-editor" data-admin-form="edit-exercise" data-exercise-id="${id}"><div class="editor-language"><h3>Русский</h3>${field("ru_title","Название",c.ru?.title)}${field("ru_preparation","Подготовка",c.ru?.preparation,true)}${field("ru_parentWords","Что сказать",c.ru?.parentWords,true)}${field("ru_steps","Три шага — каждый с новой строки",(c.ru?.steps || []).join("\n"),true)}${field("ru_benefit","Польза",c.ru?.benefit,true)}${field("ru_stopRule","Когда остановиться",c.ru?.stopRule,true)}</div><div class="editor-language"><h3>Қазақша</h3>${field("kk_title","Атауы",c.kk?.title)}${field("kk_preparation","Дайындау",c.kk?.preparation,true)}${field("kk_parentWords","Не айту керек",c.kk?.parentWords,true)}${field("kk_steps","Үш қадам — әрқайсысы жаңа жолда",(c.kk?.steps || []).join("\n"),true)}${field("kk_benefit","Пайдасы",c.kk?.benefit,true)}${field("kk_stopRule","Қашан тоқтау керек",c.kk?.stopRule,true)}</div>${curation}<button class="auth-primary" type="submit">Сохранить изменения</button><p class="auth-error" hidden></p></form>`);
 }
 
 async function handleAdminAction(event, session) {
@@ -623,7 +625,7 @@ async function handleAdminForm(event, session) {
       await functionRequest("qadam-generate-exercise", session, { category: data.get("category"), level: Number(data.get("level")), focus: data.get("focus") });
     } else if (form.dataset.adminForm === "edit-exercise") {
       const row = adminExerciseRows.find((item) => item.id === form.dataset.exerciseId); if (!row) throw new Error("Упражнение не найдено");
-      const content = structuredClone(row.content);
+      const content = updateExerciseCuration(structuredClone(row.content), data);
       for (const language of ["ru", "kk"]) {
         for (const key of ["title", "preparation", "parentWords", "benefit", "stopRule"]) content[language][key] = String(data.get(`${language}_${key}`) || "").trim();
         content[language].steps = String(data.get(`${language}_steps`) || "").split("\n").map((item) => item.trim()).filter(Boolean).slice(0, 3);
