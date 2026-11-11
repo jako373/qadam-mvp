@@ -4,6 +4,7 @@ import { exerciseCategories, exerciseCategoryOrder } from "./data/exercise-local
 import { exercises, getExerciseById, replaceExercises } from "./data/exercises.js";
 import { renderExerciseIllustration } from "./exercise-illustrations.js";
 import { assessedSkillLevels } from "./lib/progress-engine.js";
+import { homeworkStatus } from "./lib/center-homework.js";
 
 const escape = (value = "") => String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const OTHER_DIAGNOSIS = "Басқа / Другое";
@@ -48,7 +49,7 @@ const copy = {
 export async function renderCenterDashboard({ app, session, membership, dataRequest, apiRequest, signOut }) {
   const centerId = membership.center_id;
   const admin = membership.role === "admin";
-  const state = { language: localStorage.getItem("qadam.center.language") === "kk" ? "kk" : "ru", view: admin ? "overview" : "students", groups: [], staff: [], students: [], assignments: [], sessions: [], sessionExercises: [], goals: [], notes: [], selectedChild: null, selectedPlanChild: null, assessmentMode: "quick", selectedDay: new Date(), editingSession: null, completingSession: null, summaryDraft: "", exerciseCategory: exerciseCategoryOrder[0], selectedExercise: null, libraryCategory: "", libraryLevel: "", error: "", notice: "", newCredentials: null, passwordChanged: false };
+  const state = { language: localStorage.getItem("qadam.center.language") === "kk" ? "kk" : "ru", view: admin ? "overview" : "students", groups: [], staff: [], students: [], assignments: [], sessions: [], sessionExercises: [], goals: [], notes: [], homework: [], selectedChild: null, selectedPlanChild: null, selectedHomeworkChild: null, assessmentMode: "quick", selectedDay: new Date(), editingSession: null, completingSession: null, summaryDraft: "", exerciseCategory: exerciseCategoryOrder[0], selectedExercise: null, libraryCategory: "", libraryLevel: "", error: "", notice: "", newCredentials: null, passwordChanged: false };
   const t = () => copy[state.language];
   const date = (value) => new Date(value).toLocaleDateString(state.language === "ru" ? "ru-RU" : "kk-KZ");
   const request = (path, options) => dataRequest(path, session, options);
@@ -56,7 +57,7 @@ export async function renderCenterDashboard({ app, session, membership, dataRequ
 
   async function load() {
     const query = `center_id=eq.${encodeURIComponent(centerId)}`;
-    const [groups, staff, students, assignments, groupStudents, groupSpecialists, assessments, sessions, sessionExercises, goals, notes] = await Promise.all([
+    const [groups, staff, students, assignments, groupStudents, groupSpecialists, assessments, sessions, sessionExercises, goals, notes, homework] = await Promise.all([
       request(`center_groups?select=id,name,center_id&${query}&order=created_at.asc`),
       request(`center_staff?select=user_id,role,full_name,specialty&${query}&order=created_at.asc`),
       request(`center_students?select=child_id,active&${query}&active=eq.true`),
@@ -68,8 +69,9 @@ export async function renderCenterDashboard({ app, session, membership, dataRequ
       request(`center_session_exercises?select=session_id,exercise_id,outcome,recorded_at&order=recorded_at.asc&limit=1000`),
       request(`center_skill_goals?select=id,child_id,created_by,skill_key,summary,target_level,target_date,status,created_at&${query}&order=created_at.desc&limit=1000`),
       request(`center_child_notes?select=id,child_id,audience,content,created_at&${query}&order=created_at.desc&limit=1000`),
+      request(`center_homework?select=id,child_id,specialist_id,exercise_ids,responses,assigned_at&${query}&order=assigned_at.desc&limit=500`),
     ]);
-    Object.assign(state, { groups, staff, assignments, groupStudents, groupSpecialists, assessments, sessions, sessionExercises, goals, notes });
+    Object.assign(state, { groups, staff, assignments, groupStudents, groupSpecialists, assessments, sessions, sessionExercises, goals, notes, homework });
     const childIds = students.map((item) => item.child_id);
     state.students = childIds.length ? await request(`children?select=id,name,age,diagnosis,diagnosis_details&id=in.(${childIds.join(",")})`) : [];
     paint();
@@ -83,7 +85,7 @@ export async function renderCenterDashboard({ app, session, membership, dataRequ
     const last = latestAssessment(child.id);
     const ownIndividual = !admin && state.assignments.some((item) => item.child_id === child.id && item.specialist_id === session.user.id && item.active);
     const sharedGroup = state.groupStudents.some((item) => item.child_id === child.id);
-    return `<li><div class="center-student-avatar" aria-hidden="true">${escape(child.name[0] || "•")}</div><span class="center-child-info"><strong>${escape(child.name)}</strong><small>${child.age} ${t().years} · ${escape(child.diagnosis_details || child.diagnosis || t().noDiagnosis)}</small><small>${last ? `${t().latest}: ${date(last.completed_at)}` : t().noAssessment}</small></span><span class="center-child-actions"><button type="button" data-plan="${child.id}">${t().childPlan}</button><button type="button" data-assess="${child.id}">${t().assess}</button>${admin || ownIndividual ? `<button type="button" data-reissue-password="${child.id}">${t().reissuePassword}</button>` : ""}${ownIndividual && !sharedGroup ? `<button type="button" data-remove-student="${child.id}">${t().removeStudent}</button>` : ""}</span></li>`;
+    return `<li><div class="center-student-avatar" aria-hidden="true">${escape(child.name[0] || "•")}</div><span class="center-child-info"><strong>${escape(child.name)}</strong><small>${child.age} ${t().years} · ${escape(child.diagnosis_details || child.diagnosis || t().noDiagnosis)}</small><small>${last ? `${t().latest}: ${date(last.completed_at)}` : t().noAssessment}</small></span><span class="center-child-actions"><button type="button" data-plan="${child.id}">${t().childPlan}</button><button type="button" data-assess="${child.id}">${t().assess}</button><button type="button" data-homework="${child.id}">${state.language === "kk" ? "Үй тапсырмасы" : "Домашнее задание"}</button>${admin || ownIndividual ? `<button type="button" data-reissue-password="${child.id}">${t().reissuePassword}</button>` : ""}${ownIndividual && !sharedGroup ? `<button type="button" data-remove-student="${child.id}">${t().removeStudent}</button>` : ""}</span></li>`;
   }
   function groupCard(group) {
     const specialists = state.groupSpecialists.filter((item) => item.group_id === group.id);
@@ -154,7 +156,17 @@ return `<li><div class="center-session-time">${localTime(item.starts_at).slice(1
   function studentsView() {
     const credentials = state.newCredentials ? `<section class="center-card center-credentials" role="status"><h2>${t().credentialsTitle}</h2><p>${state.newCredentials.reset ? t().resetHint : t().credentialsHint}</p>${state.newCredentials.parent_login ? `<p><strong>${t().login}:</strong> <code>${escape(state.newCredentials.parent_login)}</code></p>` : ""}<p><strong>${t().temporaryPassword}:</strong> <code>${escape(state.newCredentials.temporary_password)}</code></p><p><a href="/login" target="_blank" rel="noopener">${state.language === "ru" ? "Открыть страницу входа" : "Кіру бетін ашу"}</a></p><button type="button" data-dismiss-credentials>${t().hideCredentials}</button></section>` : "";
     const archived = state.assignments.filter((item) => item.specialist_id === session.user.id && !item.active);
-    return `${credentials}<section class="center-card center-students-card"><div class="center-card-kicker">${t().students}</div><h2>${t().students}</h2><p class="center-muted">${t().studentIntro}</p>${state.students.length ? `<ul class="center-children">${state.students.map(childRow).join("")}</ul>` : `<p class="center-empty">${t().noStudents}</p>`}</section>${assessmentMarkup()}${planMarkup()}${enrollment()}${archived.length ? `<section class="center-card"><h2>${t().archivedStudents}</h2><ul class="center-children">${archived.map((item) => `<li><strong>${escape(item.child_name)}</strong><button type="button" data-restore-student="${item.child_id}">${t().restoreStudent}</button></li>`).join("")}</ul></section>` : ""}`;
+    return `${credentials}<section class="center-card center-students-card"><div class="center-card-kicker">${t().students}</div><h2>${t().students}</h2><p class="center-muted">${t().studentIntro}</p>${state.students.length ? `<ul class="center-children">${state.students.map(childRow).join("")}</ul>` : `<p class="center-empty">${t().noStudents}</p>`}</section>${assessmentMarkup()}${homeworkMarkup()}${planMarkup()}${enrollment()}${archived.length ? `<section class="center-card"><h2>${t().archivedStudents}</h2><ul class="center-children">${archived.map((item) => `<li><strong>${escape(item.child_name)}</strong><button type="button" data-restore-student="${item.child_id}">${t().restoreStudent}</button></li>`).join("")}</ul></section>` : ""}`;
+  }
+  function homeworkMarkup() {
+    const child = state.students.find((item) => item.id === state.selectedHomeworkChild);
+    if (!child) return "";
+    const own = state.homework.filter((item) => item.child_id === child.id && (admin || item.specialist_id === session.user.id));
+    const labels = state.language === "kk"
+      ? { title: "Үй тапсырмасы", hint: "Ата-анаға 1–6 жаттығу жіберіңіз. Нәтижелер осы жерде көрінеді.", send: "Ата-анаға жіберу", empty: "Әлі тапсырма берілмеген.", repeat: "Қайта жіберу", share: "WhatsApp арқылы бөлісу", pending: "Жауап жоқ", partial: "Жартылай орындалды", unable: "Орындалмады", complete: "Жауап берілді", done: "Орындалды", difficult: "Қиын болды", noResult: "Жауап жоқ" }
+      : { title: "Домашнее задание", hint: "Отправьте родителю 1–6 упражнений. Результаты появятся здесь.", send: "Отправить родителю", empty: "Заданий пока нет.", repeat: "Отправить снова", share: "Поделиться в WhatsApp", pending: "Нет ответа", partial: "Частично", unable: "Не получилось", complete: "Ответ получен", done: "Сделано", difficult: "Было трудно", noResult: "Нет ответа" };
+    const share = (id) => `https://wa.me/?text=${encodeURIComponent(`${state.language === "kk" ? "Qadam үй тапсырмасы" : "Домашнее задание Qadam"}: ${globalThis.location?.origin || "https://qadam-mvp.vercel.app"}/family?homework=${id}`)}`;
+    return `<section class="center-card center-homework" aria-label="${labels.title}"><div class="center-card-head"><div><div class="center-card-kicker">QADAM</div><h2>${labels.title}: ${escape(child.name)}</h2><p>${labels.hint}</p></div><button type="button" data-close-homework aria-label="${t().close}">×</button></div><form data-action="assign-homework"><input type="hidden" name="child_id" value="${child.id}"><div class="center-homework-options">${exercises.filter((item) => item.isActive !== false).map((item) => `<label><input type="checkbox" name="exercise_id" value="${escape(item.id)}"><span><strong>${escape(item[state.language]?.title || item.kk?.title)}</strong><small>${escape(exerciseCategories[item.category]?.[state.language]?.title || item.category)} · ${item.level}</small></span></label>`).join("")}</div><button type="submit">${labels.send}</button></form><h3>${state.language === "kk" ? "Жіберілген тапсырмалар" : "Отправленные задания"}</h3>${own.length ? `<ul class="center-homework-history">${own.map((item) => { const status = homeworkStatus(item.exercise_ids, item.responses); return `<li><div><strong>${date(item.assigned_at)} · ${labels[status]}</strong><ul>${item.exercise_ids.map((id) => { const response = item.responses?.[id]?.result; return `<li>${escape(getExerciseById(id)?.[state.language]?.title || id)} — ${labels[response] || labels.noResult}</li>`; }).join("")}</ul></div><div class="center-homework-actions"><button type="button" data-repeat-homework="${item.id}">${labels.repeat}</button><a href="${share(item.id)}" target="_blank" rel="noopener noreferrer">${labels.share}</a></div></li>`; }).join("")}</ul>` : `<p class="center-empty">${labels.empty}</p>`}</section>`;
   }
   function teamView() {
     if (!admin) return "";
@@ -179,10 +191,13 @@ return `<li><div class="center-session-time">${localTime(item.starts_at).slice(1
   }
 
   app.addEventListener("click", async (event) => {
-    const target = event.target.closest("[data-view],[data-language],[data-logout],[data-assess],[data-plan],[data-close-plan],[data-close-assessment],[data-assessment-mode],[data-remove-staff],[data-remove-student],[data-restore-student],[data-reissue-password],[data-dismiss-credentials],[data-toggle-password],[data-day],[data-week],[data-new-session],[data-session-id],[data-edit-session],[data-complete-session],[data-cancel-edit],[data-goal-id],[data-library-exercise]");
+    const target = event.target.closest("[data-view],[data-language],[data-logout],[data-assess],[data-plan],[data-homework],[data-close-homework],[data-repeat-homework],[data-close-plan],[data-close-assessment],[data-assessment-mode],[data-remove-staff],[data-remove-student],[data-restore-student],[data-reissue-password],[data-dismiss-credentials],[data-toggle-password],[data-day],[data-week],[data-new-session],[data-session-id],[data-edit-session],[data-complete-session],[data-cancel-edit],[data-goal-id],[data-library-exercise]");
     if (!target) return;
     if (target.hasAttribute("data-view")) { state.view = target.dataset.view; state.selectedChild = null; state.selectedPlanChild = null; state.notice = ""; paint(); app.querySelector(`[data-view="${state.view}"]`)?.focus(); return; }
     if (target.hasAttribute("data-library-exercise")) { state.selectedExercise = target.dataset.libraryExercise; paint(); app.querySelector(`[data-library-exercise="${state.selectedExercise}"]`)?.focus(); return; }
+    if (target.hasAttribute("data-homework")) { if (!state.students.some((child) => child.id === target.dataset.homework)) return; state.view = "students"; state.selectedHomeworkChild = target.dataset.homework; state.selectedChild = null; state.selectedPlanChild = null; paint(); app.querySelector(".center-homework")?.scrollIntoView({ behavior: "smooth" }); return; }
+    if (target.hasAttribute("data-close-homework")) { state.selectedHomeworkChild = null; paint(); return; }
+    if (target.hasAttribute("data-repeat-homework")) { const original = state.homework.find((item) => item.id === target.dataset.repeatHomework && item.child_id === state.selectedHomeworkChild && (admin || item.specialist_id === session.user.id)); if (!original) return; target.disabled = true; try { await request("rpc/assign_center_homework", { method: "POST", body: JSON.stringify({ p_center_id: centerId, p_child_id: original.child_id, p_exercise_ids: original.exercise_ids }) }); state.notice = state.language === "kk" ? "Тапсырма қайта жіберілді" : "Задание отправлено снова"; await load(); } catch (error) { state.error = error.message || t().saveFailed; paint(); } return; }
     if (target.hasAttribute("data-assessment-mode")) { state.assessmentMode = target.dataset.assessmentMode === "full" ? "full" : "quick"; paint(); return; }
     if (target.hasAttribute("data-language")) { state.language = target.dataset.language; localStorage.setItem("qadam.center.language", state.language); paint(); app.querySelector(`[data-language="${state.language}"]`)?.focus(); return; }
     if (target.hasAttribute("data-logout")) { await signOut(); location.replace("/login"); return; }
@@ -263,6 +278,7 @@ return `<li><div class="center-session-time">${localTime(item.starts_at).slice(1
     button.disabled = true;
     try {
       switch (form.dataset.action) {
+        case "assign-homework": { const childId = String(data.get("child_id") || ""); const ids = data.getAll("exercise_id").map(String); if (!state.students.some((child) => child.id === childId) || childId !== state.selectedHomeworkChild || ids.length < 1 || ids.length > 6 || new Set(ids).size !== ids.length || ids.some((id) => !getExerciseById(id)?.isActive)) throw new Error(state.language === "kk" ? "1–6 жаттығу таңдаңыз" : "Выберите 1–6 упражнений"); await request("rpc/assign_center_homework", { method: "POST", body: JSON.stringify({ p_center_id: centerId, p_child_id: childId, p_exercise_ids: ids }) }); state.notice = state.language === "kk" ? "Тапсырма ата-ана кабинетіне жіберілді" : "Задание отправлено в кабинет родителя"; break; }
         case "record-exercise": {
           const item = state.sessions.find((row) => row.id === data.get("session_id") && row.id === state.completingSession);
           const exercise = getExerciseById(String(data.get("exercise_id") || ""));
