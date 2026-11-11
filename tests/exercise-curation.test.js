@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { filterCuratedExercises, readExerciseCuration, updateExerciseCuration } from "../src/lib/exercise-curation.js";
 import { renderCenterDashboard } from "../src/center-dashboard.js";
+import { exercises } from "../src/data/exercises.js";
 
 const items = [
   { id: "a", category: "imitation", level: 1, ageMin: 2, ageMax: 5, specialties: ["speech"], difficulty: "intro", isActive: true },
@@ -9,6 +10,20 @@ const items = [
   { id: "c", category: "imitation", level: 1, isActive: true },
   { id: "d", category: "imitation", level: 1, ageMin: 2, ageMax: 5, specialties: ["speech"], difficulty: "intro", isActive: false },
 ];
+
+test("all imported exercises have provisional age, difficulty and suitable practice directions", () => {
+  assert.equal(exercises.length, 120);
+  for (const item of exercises) {
+    assert.equal(item.ageMin, item.level + 1, item.id);
+    assert.equal(item.ageMax, 18, item.id);
+    assert.equal(item.difficulty, ["intro", "standard", "advanced"][item.level - 1], item.id);
+    assert.ok(item.specialties.length > 0, item.id);
+    assert.equal(item.specialties.includes("biofeedback"), false, item.id);
+  }
+  assert.deepEqual(exercises.find((item) => item.id === "imitation-07").specialties, ["development", "speech"]);
+  assert.deepEqual(exercises.find((item) => item.id === "imitation-01").specialties, ["development"]);
+  assert.deepEqual(exercises.find((item) => item.id === "regulation-01").specialties, ["general"]);
+});
 
 test("age, specialty and difficulty filters exclude unreviewed and inactive exercises", () => {
   assert.deepEqual(filterCuratedExercises(items, { age: "5", specialty: "speech", difficulty: "intro" }).map((item) => item.id), ["a"]);
