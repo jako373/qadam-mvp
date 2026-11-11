@@ -60,6 +60,7 @@ test("specialist library offers curation filters without silently hiding unrevie
   assert.match(app.innerHTML, /name="library_specialty"/);
   assert.match(app.innerHTML, /name="library_difficulty"/);
   assert.match(app.innerHTML, /data-library-exercise="c"/);
+  assert.match(app.innerHTML, /data-library-exercise="a" aria-pressed="true"/);
   listeners.get("change")({ target: { name: "library_age", value: "5" } });
   assert.match(app.innerHTML, /data-library-exercise="a"/);
   assert.doesNotMatch(app.innerHTML, /data-library-exercise="c"/);
