@@ -593,10 +593,28 @@ function buildInstruction(language, source, categoryIndex, title) {
 
 export function localizeExercise(source, categoryIndex) {
   const russianTitle = russianTitles[source.category][categoryIndex];
+  // ponystack: provisional catalogue guidance; upgrade to per-exercise specialist review when available.
+  const specialties = {
+    joint_attention: ["speech", "development"],
+    understanding: ["speech", "development"],
+    imitation: ["development"],
+    communication: ["speech", "development"],
+    play_thinking: ["development"],
+    fine_motor: ["general"],
+    regulation: ["general"],
+    daily_social: ["general"],
+  }[source.category];
+  if (source.category === "imitation" && ["imitation-07", "imitation-08", "imitation-15"].includes(source.id)) {
+    specialties.push("speech");
+  }
   return {
     id: source.id,
     category: source.category,
     level: source.level,
+    ageMin: source.level + 1,
+    ageMax: 18,
+    specialties,
+    difficulty: ["intro", "standard", "advanced"][source.level - 1],
     durationMinutes: source.durationMinutes,
     tags: source.tags,
     isActive: source.isActive,

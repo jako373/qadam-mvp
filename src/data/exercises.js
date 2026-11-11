@@ -6,6 +6,13 @@ export const exercises = [
     "id": "joint_attention-01",
     "category": "joint_attention",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -60,6 +67,13 @@ export const exercises = [
     "id": "joint_attention-02",
     "category": "joint_attention",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -114,6 +128,13 @@ export const exercises = [
     "id": "joint_attention-03",
     "category": "joint_attention",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -168,6 +189,13 @@ export const exercises = [
     "id": "joint_attention-04",
     "category": "joint_attention",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -222,6 +250,13 @@ export const exercises = [
     "id": "joint_attention-05",
     "category": "joint_attention",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -276,6 +311,13 @@ export const exercises = [
     "id": "joint_attention-06",
     "category": "joint_attention",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -330,6 +372,13 @@ export const exercises = [
     "id": "joint_attention-07",
     "category": "joint_attention",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -384,6 +433,13 @@ export const exercises = [
     "id": "joint_attention-08",
     "category": "joint_attention",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -438,6 +494,13 @@ export const exercises = [
     "id": "joint_attention-09",
     "category": "joint_attention",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -492,6 +555,13 @@ export const exercises = [
     "id": "joint_attention-10",
     "category": "joint_attention",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -546,6 +616,13 @@ export const exercises = [
     "id": "joint_attention-11",
     "category": "joint_attention",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -600,6 +677,13 @@ export const exercises = [
     "id": "joint_attention-12",
     "category": "joint_attention",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -654,6 +738,13 @@ export const exercises = [
     "id": "joint_attention-13",
     "category": "joint_attention",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -708,6 +799,13 @@ export const exercises = [
     "id": "joint_attention-14",
     "category": "joint_attention",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -762,6 +860,13 @@ export const exercises = [
     "id": "joint_attention-15",
     "category": "joint_attention",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -816,6 +921,13 @@ export const exercises = [
     "id": "understanding-01",
     "category": "understanding",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -870,6 +982,13 @@ export const exercises = [
     "id": "understanding-02",
     "category": "understanding",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -924,6 +1043,13 @@ export const exercises = [
     "id": "understanding-03",
     "category": "understanding",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -978,6 +1104,13 @@ export const exercises = [
     "id": "understanding-04",
     "category": "understanding",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -1032,6 +1165,13 @@ export const exercises = [
     "id": "understanding-05",
     "category": "understanding",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -1086,6 +1226,13 @@ export const exercises = [
     "id": "understanding-06",
     "category": "understanding",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -1140,6 +1287,13 @@ export const exercises = [
     "id": "understanding-07",
     "category": "understanding",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -1194,6 +1348,13 @@ export const exercises = [
     "id": "understanding-08",
     "category": "understanding",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -1248,6 +1409,13 @@ export const exercises = [
     "id": "understanding-09",
     "category": "understanding",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -1302,6 +1470,13 @@ export const exercises = [
     "id": "understanding-10",
     "category": "understanding",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -1356,6 +1531,13 @@ export const exercises = [
     "id": "understanding-11",
     "category": "understanding",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -1410,6 +1592,13 @@ export const exercises = [
     "id": "understanding-12",
     "category": "understanding",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -1464,6 +1653,13 @@ export const exercises = [
     "id": "understanding-13",
     "category": "understanding",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -1518,6 +1714,13 @@ export const exercises = [
     "id": "understanding-14",
     "category": "understanding",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -1572,6 +1775,13 @@ export const exercises = [
     "id": "understanding-15",
     "category": "understanding",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -1626,6 +1836,12 @@ export const exercises = [
     "id": "imitation-01",
     "category": "imitation",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -1680,6 +1896,12 @@ export const exercises = [
     "id": "imitation-02",
     "category": "imitation",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -1734,6 +1956,12 @@ export const exercises = [
     "id": "imitation-03",
     "category": "imitation",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -1788,6 +2016,12 @@ export const exercises = [
     "id": "imitation-04",
     "category": "imitation",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -1842,6 +2076,12 @@ export const exercises = [
     "id": "imitation-05",
     "category": "imitation",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -1896,6 +2136,12 @@ export const exercises = [
     "id": "imitation-06",
     "category": "imitation",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -1950,6 +2196,13 @@ export const exercises = [
     "id": "imitation-07",
     "category": "imitation",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "development",
+      "speech"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -2004,6 +2257,13 @@ export const exercises = [
     "id": "imitation-08",
     "category": "imitation",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "development",
+      "speech"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -2058,6 +2318,12 @@ export const exercises = [
     "id": "imitation-09",
     "category": "imitation",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -2112,6 +2378,12 @@ export const exercises = [
     "id": "imitation-10",
     "category": "imitation",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -2166,6 +2438,12 @@ export const exercises = [
     "id": "imitation-11",
     "category": "imitation",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -2220,6 +2498,12 @@ export const exercises = [
     "id": "imitation-12",
     "category": "imitation",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -2274,6 +2558,12 @@ export const exercises = [
     "id": "imitation-13",
     "category": "imitation",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -2328,6 +2618,12 @@ export const exercises = [
     "id": "imitation-14",
     "category": "imitation",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -2382,6 +2678,13 @@ export const exercises = [
     "id": "imitation-15",
     "category": "imitation",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "development",
+      "speech"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -2436,6 +2739,13 @@ export const exercises = [
     "id": "communication-01",
     "category": "communication",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -2490,6 +2800,13 @@ export const exercises = [
     "id": "communication-02",
     "category": "communication",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -2544,6 +2861,13 @@ export const exercises = [
     "id": "communication-03",
     "category": "communication",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -2598,6 +2922,13 @@ export const exercises = [
     "id": "communication-04",
     "category": "communication",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -2652,6 +2983,13 @@ export const exercises = [
     "id": "communication-05",
     "category": "communication",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -2706,6 +3044,13 @@ export const exercises = [
     "id": "communication-06",
     "category": "communication",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -2760,6 +3105,13 @@ export const exercises = [
     "id": "communication-07",
     "category": "communication",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -2814,6 +3166,13 @@ export const exercises = [
     "id": "communication-08",
     "category": "communication",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -2868,6 +3227,13 @@ export const exercises = [
     "id": "communication-09",
     "category": "communication",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -2922,6 +3288,13 @@ export const exercises = [
     "id": "communication-10",
     "category": "communication",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -2976,6 +3349,13 @@ export const exercises = [
     "id": "communication-11",
     "category": "communication",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -3030,6 +3410,13 @@ export const exercises = [
     "id": "communication-12",
     "category": "communication",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -3084,6 +3471,13 @@ export const exercises = [
     "id": "communication-13",
     "category": "communication",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -3138,6 +3532,13 @@ export const exercises = [
     "id": "communication-14",
     "category": "communication",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -3192,6 +3593,13 @@ export const exercises = [
     "id": "communication-15",
     "category": "communication",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "speech",
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -3246,6 +3654,12 @@ export const exercises = [
     "id": "play_thinking-01",
     "category": "play_thinking",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -3300,6 +3714,12 @@ export const exercises = [
     "id": "play_thinking-02",
     "category": "play_thinking",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -3354,6 +3774,12 @@ export const exercises = [
     "id": "play_thinking-03",
     "category": "play_thinking",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -3408,6 +3834,12 @@ export const exercises = [
     "id": "play_thinking-04",
     "category": "play_thinking",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -3462,6 +3894,12 @@ export const exercises = [
     "id": "play_thinking-05",
     "category": "play_thinking",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -3516,6 +3954,12 @@ export const exercises = [
     "id": "play_thinking-06",
     "category": "play_thinking",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -3570,6 +4014,12 @@ export const exercises = [
     "id": "play_thinking-07",
     "category": "play_thinking",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -3624,6 +4074,12 @@ export const exercises = [
     "id": "play_thinking-08",
     "category": "play_thinking",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -3678,6 +4134,12 @@ export const exercises = [
     "id": "play_thinking-09",
     "category": "play_thinking",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -3732,6 +4194,12 @@ export const exercises = [
     "id": "play_thinking-10",
     "category": "play_thinking",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -3786,6 +4254,12 @@ export const exercises = [
     "id": "play_thinking-11",
     "category": "play_thinking",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -3840,6 +4314,12 @@ export const exercises = [
     "id": "play_thinking-12",
     "category": "play_thinking",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -3894,6 +4374,12 @@ export const exercises = [
     "id": "play_thinking-13",
     "category": "play_thinking",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -3948,6 +4434,12 @@ export const exercises = [
     "id": "play_thinking-14",
     "category": "play_thinking",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -4002,6 +4494,12 @@ export const exercises = [
     "id": "play_thinking-15",
     "category": "play_thinking",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "development"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -4056,6 +4554,12 @@ export const exercises = [
     "id": "fine_motor-01",
     "category": "fine_motor",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -4110,6 +4614,12 @@ export const exercises = [
     "id": "fine_motor-02",
     "category": "fine_motor",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -4164,6 +4674,12 @@ export const exercises = [
     "id": "fine_motor-03",
     "category": "fine_motor",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -4218,6 +4734,12 @@ export const exercises = [
     "id": "fine_motor-04",
     "category": "fine_motor",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -4272,6 +4794,12 @@ export const exercises = [
     "id": "fine_motor-05",
     "category": "fine_motor",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -4326,6 +4854,12 @@ export const exercises = [
     "id": "fine_motor-06",
     "category": "fine_motor",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -4380,6 +4914,12 @@ export const exercises = [
     "id": "fine_motor-07",
     "category": "fine_motor",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -4434,6 +4974,12 @@ export const exercises = [
     "id": "fine_motor-08",
     "category": "fine_motor",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -4488,6 +5034,12 @@ export const exercises = [
     "id": "fine_motor-09",
     "category": "fine_motor",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -4542,6 +5094,12 @@ export const exercises = [
     "id": "fine_motor-10",
     "category": "fine_motor",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -4596,6 +5154,12 @@ export const exercises = [
     "id": "fine_motor-11",
     "category": "fine_motor",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -4650,6 +5214,12 @@ export const exercises = [
     "id": "fine_motor-12",
     "category": "fine_motor",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -4704,6 +5274,12 @@ export const exercises = [
     "id": "fine_motor-13",
     "category": "fine_motor",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -4758,6 +5334,12 @@ export const exercises = [
     "id": "fine_motor-14",
     "category": "fine_motor",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -4812,6 +5394,12 @@ export const exercises = [
     "id": "fine_motor-15",
     "category": "fine_motor",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -4866,6 +5454,12 @@ export const exercises = [
     "id": "regulation-01",
     "category": "regulation",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -4920,6 +5514,12 @@ export const exercises = [
     "id": "regulation-02",
     "category": "regulation",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -4974,6 +5574,12 @@ export const exercises = [
     "id": "regulation-03",
     "category": "regulation",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -5028,6 +5634,12 @@ export const exercises = [
     "id": "regulation-04",
     "category": "regulation",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -5082,6 +5694,12 @@ export const exercises = [
     "id": "regulation-05",
     "category": "regulation",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -5136,6 +5754,12 @@ export const exercises = [
     "id": "regulation-06",
     "category": "regulation",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -5190,6 +5814,12 @@ export const exercises = [
     "id": "regulation-07",
     "category": "regulation",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -5244,6 +5874,12 @@ export const exercises = [
     "id": "regulation-08",
     "category": "regulation",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -5298,6 +5934,12 @@ export const exercises = [
     "id": "regulation-09",
     "category": "regulation",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -5352,6 +5994,12 @@ export const exercises = [
     "id": "regulation-10",
     "category": "regulation",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -5406,6 +6054,12 @@ export const exercises = [
     "id": "regulation-11",
     "category": "regulation",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -5460,6 +6114,12 @@ export const exercises = [
     "id": "regulation-12",
     "category": "regulation",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -5514,6 +6174,12 @@ export const exercises = [
     "id": "regulation-13",
     "category": "regulation",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -5568,6 +6234,12 @@ export const exercises = [
     "id": "regulation-14",
     "category": "regulation",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -5622,6 +6294,12 @@ export const exercises = [
     "id": "regulation-15",
     "category": "regulation",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -5676,6 +6354,12 @@ export const exercises = [
     "id": "daily_social-01",
     "category": "daily_social",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -5730,6 +6414,12 @@ export const exercises = [
     "id": "daily_social-02",
     "category": "daily_social",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -5784,6 +6474,12 @@ export const exercises = [
     "id": "daily_social-03",
     "category": "daily_social",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -5838,6 +6534,12 @@ export const exercises = [
     "id": "daily_social-04",
     "category": "daily_social",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -5892,6 +6594,12 @@ export const exercises = [
     "id": "daily_social-05",
     "category": "daily_social",
     "level": 1,
+    "ageMin": 2,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "intro",
     "durationMinutes": 3,
     "tags": [
       "үйде",
@@ -5946,6 +6654,12 @@ export const exercises = [
     "id": "daily_social-06",
     "category": "daily_social",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -6000,6 +6714,12 @@ export const exercises = [
     "id": "daily_social-07",
     "category": "daily_social",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -6054,6 +6774,12 @@ export const exercises = [
     "id": "daily_social-08",
     "category": "daily_social",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -6108,6 +6834,12 @@ export const exercises = [
     "id": "daily_social-09",
     "category": "daily_social",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -6162,6 +6894,12 @@ export const exercises = [
     "id": "daily_social-10",
     "category": "daily_social",
     "level": 2,
+    "ageMin": 3,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "standard",
     "durationMinutes": 4,
     "tags": [
       "үйде",
@@ -6216,6 +6954,12 @@ export const exercises = [
     "id": "daily_social-11",
     "category": "daily_social",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -6270,6 +7014,12 @@ export const exercises = [
     "id": "daily_social-12",
     "category": "daily_social",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -6324,6 +7074,12 @@ export const exercises = [
     "id": "daily_social-13",
     "category": "daily_social",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -6378,6 +7134,12 @@ export const exercises = [
     "id": "daily_social-14",
     "category": "daily_social",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
@@ -6432,6 +7194,12 @@ export const exercises = [
     "id": "daily_social-15",
     "category": "daily_social",
     "level": 3,
+    "ageMin": 4,
+    "ageMax": 18,
+    "specialties": [
+      "general"
+    ],
+    "difficulty": "advanced",
     "durationMinutes": 5,
     "tags": [
       "үйде",
