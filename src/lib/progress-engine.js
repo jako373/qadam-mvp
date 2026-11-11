@@ -111,6 +111,14 @@ export function calculateSkillLevels(answers, questions) {
   return levels;
 }
 
+export function assessedSkillLevels(answers, questions) {
+  const levels = calculateSkillLevels(answers, questions);
+  for (const category of exerciseCategoryOrder) {
+    if (!questions.some((question) => question.category === category && [0, 1, 2].includes(answers[question.id]))) levels[category] = null;
+  }
+  return levels;
+}
+
 export function seedFamiliarExercises(skillLevels, exercises) {
   const seedCategories = ["understanding", "regulation"];
   return seedCategories
