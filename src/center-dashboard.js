@@ -426,5 +426,10 @@ app.innerHTML = `<main class="center-page center-view-${state.view}"><a class="c
     console.warn("Qadam specialist catalogue:", error.message);
     replaceExercises([]);
   }
-  await load();
+  try { await load(); }
+  catch (error) {
+    console.warn("Qadam center load:", error.message);
+    const kk = state.language === "kk";
+    app.innerHTML = `<main class="center-page"><section class="center-card" role="alert"><h1>${kk ? "Кабинет жүктелмеді" : "Кабинет не загрузился"}</h1><p>${kk ? "Байланысты тексеріп, қайта көріңіз. Деректеріңіз сақталған." : "Проверьте соединение и повторите попытку. Ваши данные сохранены."}</p><a href="/center">${kk ? "Қайталау" : "Повторить"}</a></section></main>`;
+  }
 }
