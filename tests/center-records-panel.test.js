@@ -57,3 +57,9 @@ test("student profile shows current manual payment mark without exposing amounts
   assert.match(html, /2026-11/);
   assert.doesNotMatch(html, /name="amount_kzt"/);
 });
+
+test("past planned lesson is shown as unmarked, not a future appointment", () => {
+  const html = renderCenterChildRecords({ ...base, sessions: [{ ...sessions[0], status: "planned", starts_at: "2026-11-11T09:00:00Z" }] });
+  assert.match(html, /data-record-day="2026-11-11"[^>]*is-unmarked|is-unmarked[^>]*data-record-day="2026-11-11"/);
+  assert.match(html, /Не отмечено/);
+});
