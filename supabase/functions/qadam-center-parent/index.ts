@@ -81,8 +81,10 @@ function validChild(child) {
   const diagnoses = ["ЗРР", "ЗПР", "ЗПРР", "ОНР 1", "ОНР 2", "ОНР 3", "ОНР 4", "ОНР 1-4 (нақтылау керек / нужно уточнить)", "Диагноз жоқ / Диагноза нет", "Басқа / Другое"];
   const languages = ["Қазақша", "Русский", "Қазақша және Русский", "Басқа / Другое"];
   const words = ["Сөз қолданбайды / Не использует слова", "1-10 сөз / 1-10 слов", "11-30 сөз / 11-30 слов", "31-100 сөз / 31-100 слов", "100-ден көп / Более 100"];
+  // ponystack: accept legacy age-only enrollment until all open clients have refreshed.
+  const age = child?.birth_date ? childAge(child.birth_date) : Number(child?.age);
   return typeof child?.name === "string" && child.name.trim().length >= 1 && child.name.trim().length <= 80
-    && childAge(child.birth_date) >= 2 && childAge(child.birth_date) <= 18
+    && Number.isInteger(age) && age >= 2 && age <= 18
     && diagnoses.includes(child.diagnosis) && languages.includes(child.home_language)
     && words.includes(child.meaningful_words)
     && (child.diagnosis !== "Басқа / Другое" || (typeof child.diagnosis_details === "string" && child.diagnosis_details.trim().length >= 2 && child.diagnosis_details.trim().length <= 160))
@@ -118,8 +120,10 @@ async function enroll(req, body) {
   const iin = String(body.iin || "").trim();
   const guardianName = String(body.guardian_name || "").trim();
   const guardianPhone = phoneE164(body.guardian_phone);
+  const hasGuardian = Boolean(guardianName || body.guardian_phone);
   if (!/^[0-9a-f-]{36}$/i.test(centerId) || !validIin(iin) || !validChild(body.child)
-      || guardianName.length < 2 || guardianName.length > 160 || !guardianPhone)
+      || (body.child.birth_date && !hasGuardian)
+      || (hasGuardian && (guardianName.length < 2 || guardianName.length > 160 || !guardianPhone)))
     return respond(req, { error: "Проверьте ИИН и данные ребёнка" }, 400);
   const actor = await actorFromRequest(req, centerId);
   if (!actor) return respond(req, { error: "Доступ сотрудника центра не подтверждён" }, 403);
@@ -144,7 +148,7 @@ async function enroll(req, body) {
     newUserId = created.id;
     const child = body.child;
     const rows = await service("/rest/v1/children", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({
-      parent_id: newUserId, name: child.name.trim(), age: childAge(child.birth_date), birth_date: child.birth_date, diagnosis: child.diagnosis,
+      parent_id: newUserId, name: child.name.trim(), age: child.birth_date ? childAge(child.birth_date) : Number(child.age), birth_date: child.birth_date || null, diagnosis: child.diagnosis,
       diagnosis_details: child.diagnosis === "Басқа / Другое" ? child.diagnosis_details.trim() : null,
       home_language: child.home_language, meaningful_words: child.meaningful_words,
       interests: String(child.interests || "").trim(), dislikes: String(child.dislikes || "").trim(), best_time: String(child.best_time || "").trim(),
@@ -153,7 +157,7 @@ async function enroll(req, body) {
     if (!childId) throw new Error("child insert failed");
     await service("/rest/v1/child_login_accounts", { method: "POST", body: JSON.stringify({ iin_hash: digest, child_id: childId, parent_id: newUserId }) });
     await service("/rest/v1/center_students", { method: "POST", body: JSON.stringify({ center_id: centerId, child_id: childId }) });
-    await service("/rest/v1/center_guardians", { method: "POST", body: JSON.stringify({ center_id: centerId, child_id: childId, full_name: guardianName, phone_e164: guardianPhone, updated_by: actor.id }) });
+    if (hasGuardian) await service("/rest/v1/center_guardians", { method: "POST", body: JSON.stringify({ center_id: centerId, child_id: childId, full_name: guardianName, phone_e164: guardianPhone, updated_by: actor.id }) });
     if (actor.center_role === "specialist") await service("/rest/v1/center_specialist_students", { method: "POST", body: JSON.stringify({ center_id: centerId, child_id: childId, specialist_id: actor.id, child_name: child.name.trim() }) });
     if (groupId) await service("/rest/v1/center_group_students", { method: "POST", body: JSON.stringify({ center_id: centerId, group_id: groupId, child_id: childId }) });
     return respond(req, { ok: true, child_id: childId, parent_login: iin, temporary_password: password });

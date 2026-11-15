@@ -9,7 +9,8 @@ const migration = readFileSync(new URL("../supabase/migrations/20261105180000_ex
 test("center registration derives age from a required birth date, without changing legacy records", () => {
   assert.match(dashboard, /name="birth_date"/);
   assert.match(functionCode, /child\.birth_date/);
-  assert.match(functionCode, /age: childAge/);
+  assert.match(functionCode, /age: child\.birth_date \? childAge\(child\.birth_date\) : Number\(child\.age\)/);
+  assert.match(functionCode, /body\.child\.birth_date && !hasGuardian/);
   assert.match(migration, /age between 2 and 18/);
 });
 
