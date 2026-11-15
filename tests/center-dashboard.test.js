@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
+const paymentMigration = readFileSync(new URL("../supabase/migrations/20261115194103_center_monthly_payment_marks.sql", import.meta.url), "utf8");
+
 const dashboard = readFileSync(new URL("../src/center-dashboard.js", import.meta.url), "utf8");
 const functionCode = readFileSync(new URL("../supabase/functions/qadam-center-parent/index.ts", import.meta.url), "utf8");
 const migration = readFileSync(new URL("../supabase/migrations/20261105180000_expand_child_age_and_diagnosis_details.sql", import.meta.url), "utf8");
@@ -40,6 +42,18 @@ test("specialist may enroll individually; chosen groups remain scoped", () => {
   assert.match(functionCode, /center_group_specialists\?select=group_id/);
   assert.match(functionCode, /center_group_students/);
   assert.match(functionCode, /center_specialist_students/);
+});
+
+test("manual monthly payment marks are admin-only writes and preserve the financial ledger", () => {
+  assert.match(paymentMigration, /create table public\.center_monthly_payment_marks/);
+  assert.match(paymentMigration, /enable row level security/);
+  assert.match(paymentMigration, /center_payment_marks_insert[\s\S]*private\.center_role\(center_id\)\) = 'admin'/);
+  assert.match(paymentMigration, /center_payment_marks_update[\s\S]*private\.center_role\(center_id\)\) = 'admin'/);
+  assert.match(dashboard, /state\.view === "payments" && admin \? paymentsView\(\)/);
+  assert.match(dashboard, /if \(!admin \|\| !state\.students\.some/);
+  assert.match(dashboard, /center_monthly_payment_marks\?center_id=eq\./);
+  assert.match(dashboard, /write\("center_monthly_payment_marks"/);
+  assert.doesNotMatch(paymentMigration, /drop table|truncate table|delete from public\.center_tuition/);
 });
 
 test("child registration asks for name and optional surname before IIN", () => {

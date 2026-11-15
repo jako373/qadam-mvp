@@ -29,3 +29,30 @@ test("center loading failure replaces the Qadam splash with a retry message", as
   assert.match(app.innerHTML, /href="\/center"/);
   assert.doesNotMatch(app.innerHTML, /class="boot"/);
 });
+
+test("only center admin gets the payment tab and monthly status controls", async () => {
+  globalThis.localStorage = { getItem: () => "kk", setItem() {} };
+  globalThis.document = { documentElement: { lang: "kk" } };
+  const rows = { center_students: [{ child_id: "child-1", active: true }], children: [{ id: "child-1", name: "Сынақ", age: 7 }], center_monthly_payment_marks: [{ child_id: "child-1", period_month: "2026-11-01", status: "paid" }] };
+  const makeApp = () => { const listeners = new Map(); return { listeners, app: { innerHTML: "", addEventListener: (name, listener) => listeners.set(name, listener), querySelector: () => ({ focus() {} }) } }; };
+  const writes = [];
+  const dataRequest = async (path, _session, options) => {
+    if (options?.method === "PATCH") { writes.push({ path, body: JSON.parse(options.body) }); rows.center_monthly_payment_marks[0].status = writes.at(-1).body.status; return []; }
+    return path === "rpc/active_exercises" || path === "rpc/center_tuition_overview" ? [] : rows[path.split("?")[0]] || [];
+  };
+  const admin = makeApp();
+  await renderCenterDashboard({ app: admin.app, session: { user: { id: "admin" } }, membership: { center_id: "center", role: "admin" }, dataRequest });
+  assert.match(admin.app.innerHTML, /data-view="payments"/);
+  await admin.listeners.get("click")({ target: { closest: () => ({ dataset: { view: "payments" }, hasAttribute: (name) => name === "data-view" }) } });
+  assert.match(admin.app.innerHTML, /data-payment-child="child-1"/);
+  assert.match(admin.app.innerHTML, /Төленді/);
+  const mark = { dataset: { paymentChild: "child-1", paymentStatus: "unpaid" }, hasAttribute: (name) => name === "data-payment-child", disabled: false };
+  await admin.listeners.get("click")({ target: { closest: () => mark } });
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].body.status, "unpaid");
+  assert.match(admin.app.innerHTML, /Төленбеді/);
+  const specialist = makeApp();
+  await renderCenterDashboard({ app: specialist.app, session: { user: { id: "staff" } }, membership: { center_id: "center", role: "specialist" }, dataRequest });
+  assert.doesNotMatch(specialist.app.innerHTML, /data-view="payments"|data-payment-child=/);
+  assert.match(specialist.app.innerHTML, /Оқу ақысы: төленбеген/);
+});

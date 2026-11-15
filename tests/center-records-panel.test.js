@@ -42,3 +42,18 @@ test("pause preview counts selected billing period only up to chosen date", () =
   const later = renderCenterChildRecords({ ...base, admin: true, tuition, selectedPeriodId: "old", pauseDate: "2026-11-15" });
   assert.match(later, /2026-11-15\): <strong>2<\/strong>/);
 });
+
+test("attendance calendar shows exact days, times and filters the selected day", () => {
+  const html = renderCenterChildRecords({ ...base, language: "ru", from: "2026-11-15", to: "2026-11-15" });
+  assert.match(html, /center-record-calendar/);
+  assert.match(html, /data-record-day="2026-11-15"[^>]*aria-pressed="true"/);
+  assert.match(html, /2026-11-15 · 06:00/);
+  assert.match(html, /2026-11-15 · 15:00/);
+});
+
+test("student profile shows current manual payment mark without exposing amounts to specialist", () => {
+  const html = renderCenterChildRecords({ ...base, admin: false, paymentStatus: "paid", paymentMonth: "2026-11", tuition: [] });
+  assert.match(html, /Оплачено/);
+  assert.match(html, /2026-11/);
+  assert.doesNotMatch(html, /name="amount_kzt"/);
+});
