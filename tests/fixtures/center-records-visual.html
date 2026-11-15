@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Center records visual check</title><link rel="stylesheet" href="/src/styles.css"><link rel="stylesheet" href="/src/auth.css"><link rel="stylesheet" href="/src/center.css"></head>
+<body><main class="center-page"><div class="center-main" id="app"></div></main><script type="module">
+import { renderCenterChildRecords } from "/src/center-records-panel.js";
+const language = new URLSearchParams(location.search).get("language") === "kk" ? "kk" : "ru";
+const admin = new URLSearchParams(location.search).get("role") !== "specialist";
+const child = { id: "00000000-0000-0000-0000-000000000001", name: "Айсултан Тест", age: 7, birth_date: "2019-11-15" };
+const sessions = [
+  { id: "s1", child_id: child.id, starts_at: "2026-11-11T09:00:00Z", status: "present", topic: "Бірге ойнау / Игра вместе", duration_minutes: 45, specialist_id: "u1" },
+  { id: "s2", child_id: child.id, starts_at: "2026-11-11T13:00:00Z", status: "present", topic: "Сөйлеу / Речь", duration_minutes: 45, specialist_id: "u1" },
+  { id: "s3", child_id: child.id, starts_at: "2026-11-12T09:00:00Z", status: "absent", topic: "Моторика", duration_minutes: 45, specialist_id: "u1" },
+];
+document.getElementById("app").innerHTML = renderCenterChildRecords({ child, guardian: { full_name: "Тест Ата-ана", phone_e164: "+77000000000" }, sessions, tuition: [{ id: "c1", period_start: "2026-11-01", period_end: "2026-11-30", description: "Қараша сабақтары", status: "partial", charged: admin ? 10000 : null, paid: admin ? 4000 : null, due: admin ? 6000 : null, overpaid: 0 }], charges: admin ? [{ id: "c1", description: "Қараша сабақтары", period_start: "2026-11-01", period_end: "2026-11-30" }] : [], paymentEvents: [], enrollmentEvents: [], admin, language, month: "2026-11", from: "", to: "", memberName: () => "Маман", today: "2026-11-15" });
+</script></body></html>

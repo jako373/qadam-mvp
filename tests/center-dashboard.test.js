@@ -6,10 +6,25 @@ const dashboard = readFileSync(new URL("../src/center-dashboard.js", import.meta
 const functionCode = readFileSync(new URL("../supabase/functions/qadam-center-parent/index.ts", import.meta.url), "utf8");
 const migration = readFileSync(new URL("../supabase/migrations/20261105180000_expand_child_age_and_diagnosis_details.sql", import.meta.url), "utf8");
 
-test("center registration supports ages 2–18 without changing the legacy exercise age range", () => {
-  assert.match(dashboard, /length: 17.*index \+ 2/);
-  assert.match(functionCode, /Number\(child\.age\) <= 18/);
+test("center registration derives age from a required birth date, without changing legacy records", () => {
+  assert.match(dashboard, /name="birth_date"/);
+  assert.match(functionCode, /child\.birth_date/);
+  assert.match(functionCode, /age: child\.birth_date \? childAge\(child\.birth_date\) : Number\(child\.age\)/);
+  assert.match(functionCode, /body\.child\.birth_date && !hasGuardian/);
   assert.match(migration, /age between 2 and 18/);
+});
+
+test("new enrollment records guardian contact without changing parent login", () => {
+  assert.match(dashboard, /name="guardian_name"/);
+  assert.match(dashboard, /name="guardian_phone"/);
+  assert.match(functionCode, /center_guardians/);
+  assert.match(functionCode, /phone_e164/);
+});
+
+test("editing a legacy child is scoped to the assigned staff member", () => {
+  assert.match(functionCode, /async function updateProfile/);
+  assert.match(functionCode, /await canEditChild\(actor, centerId, childId\)/);
+  assert.match(functionCode, /body\.action === "update_profile"/);
 });
 
 test("other diagnosis requires text and saves it separately", () => {
