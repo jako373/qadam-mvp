@@ -1,5 +1,5 @@
-const allowedOrigins = new Set(["https://qadam-mvp.vercel.app", "http://localhost:3000"]);
-const previewOrigin = /^https:\/\/qadam-mvp-[a-z0-9-]+\.vercel\.app$/;
+const allowedOrigins = new Set(["https://qadam-mvp.vercel.app", "https://qadam-mvp-git-agent-center-records-jako373s-projects.vercel.app", "http://localhost:3000"]);
+const previewOrigin = /^https:\/\/qadam-[a-z0-9]+-jako373s-projects\.vercel\.app$/;
 const url = Deno.env.get("SUPABASE_URL") || "";
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
