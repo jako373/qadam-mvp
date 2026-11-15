@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="kk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>QADAM LMS visual check</title><link rel="stylesheet" href="/src/styles.css"><link rel="stylesheet" href="/src/auth.css"><link rel="stylesheet" href="/src/center.css"></head>
+<body><div id="app"></div><script type="module">
+import { renderCenterDashboard } from "/src/center-dashboard.js";
+const childId = "00000000-0000-0000-0000-000000000001";
+localStorage.setItem("qadam.center.language", "kk");
+const rows = {
+  center_students: [{ child_id: childId, active: true }],
+  children: [{ id: childId, name: "Айсултан Тест", age: 7, birth_date: "2019-11-15", diagnosis: "Сөйлеу дамуы" }],
+  center_staff: [{ user_id: "admin", role: "admin", full_name: "Әкімші", specialty: "" }],
+  center_sessions: [
+    { id: "s1", child_id: childId, specialist_id: "admin", starts_at: "2026-11-11T09:00:00Z", duration_minutes: 45, topic: "Сөйлеу сабағы", status: "present" },
+    { id: "s2", child_id: childId, specialist_id: "admin", starts_at: "2026-11-12T09:00:00Z", duration_minutes: 45, topic: "Қимыл-қозғалыс", status: "absent" },
+    { id: "s3", child_id: childId, specialist_id: "admin", starts_at: "2026-11-19T09:00:00Z", duration_minutes: 45, topic: "Ойын арқылы үйрену", status: "planned" }
+  ],
+  center_monthly_payment_marks: [{ center_id: "center", child_id: childId, period_month: "2026-11-01", status: "paid", marked_at: "2026-11-15T12:00:00Z" }],
+  center_guardians: [{ center_id: "center", child_id: childId, full_name: "Ата-ана Тест", phone_e164: "+77000000000" }]
+};
+await renderCenterDashboard({ app: document.getElementById("app"), session: { access_token: "demo", user: { id: "admin", email: "admin@example.test" } }, membership: { center_id: "center", center_name: "Qadam орталығы", role: "admin", full_name: "Әкімші" }, dataRequest: async (path) => path === "rpc/active_exercises" || path === "rpc/center_tuition_overview" ? [] : rows[path.split("?")[0]] || [] });
+</script></body></html>
