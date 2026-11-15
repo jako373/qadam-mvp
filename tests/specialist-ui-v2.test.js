@@ -56,3 +56,21 @@ test("only center admin gets the payment tab and monthly status controls", async
   assert.doesNotMatch(specialist.app.innerHTML, /data-view="payments"|data-payment-child=/);
   assert.match(specialist.app.innerHTML, /Оқу ақысы: төленбеген/);
 });
+
+test("partially paid ledger period counts as unsettled, not unmarked", async () => {
+  const currentMonth = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Qyzylorda", year: "numeric", month: "2-digit" }).format(new Date());
+  globalThis.localStorage = { getItem: () => "ru", setItem() {} };
+  globalThis.document = { documentElement: { lang: "ru" } };
+  const listeners = new Map();
+  const app = { innerHTML: "", addEventListener: (name, listener) => listeners.set(name, listener), querySelector: () => ({ focus() {} }) };
+  await renderCenterDashboard({ app, session: { user: { id: "admin" } }, membership: { center_id: "center", role: "admin" }, dataRequest: async (path) => {
+    if (path === "rpc/center_tuition_overview") return [{ status: "partial", period_start: `${currentMonth}-01`, period_end: `${currentMonth}-28` }];
+    if (path.startsWith("center_students?")) return [{ child_id: "child-1", active: true }];
+    if (path.startsWith("children?")) return [{ id: "child-1", name: "Test", age: 7 }];
+    return [];
+  } });
+  await listeners.get("click")({ target: { closest: () => ({ dataset: { view: "payments" }, hasAttribute: (name) => name === "data-view" }) } });
+  assert.match(app.innerHTML, /Не оплачено<strong>1<\/strong>/);
+  assert.match(app.innerHTML, /Не отмечено<strong>0<\/strong>/);
+  assert.match(app.innerHTML, /Частично/);
+});
