@@ -10,15 +10,19 @@ let browser;
 try {
   for (let i = 0; i < 50; i++) { try { if ((await fetch('http://localhost:3097/tests/fixtures/center-workflows.html')).ok) break; } catch {} await setTimeout(100); }
   browser = await chromium.launch({ headless: true, ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}) });
-  for (const language of ['kk', 'ru']) for (const width of [1440, 375]) {
+  for (const role of ['specialist', 'admin']) for (const language of ['kk', 'ru']) for (const width of [1440, 375]) {
     const page = await browser.newPage({ viewport: { width, height: 1000 }, timezoneId: 'Asia/Qyzylorda' });
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     await page.addInitScript(lang => localStorage.setItem('qadam.center.language', lang), language);
-    await page.goto('http://localhost:3097/tests/fixtures/center-workflows.html');
+    await page.goto(`http://localhost:3097/tests/fixtures/center-workflows.html?role=${role}`);
     await page.waitForLoadState('networkidle');
     assert.equal(await page.locator('.center-hero-logo').count(), 1);
     assert.ok(await page.locator('.center-hero-logo').evaluate(img => img.complete && img.naturalWidth > 0));
+    await page.locator('.center-nav [data-view="students"]').click();
     await page.locator('[data-records]').click();
+    assert.equal(await page.locator('.center-students-card').count(), 0, 'child workspace replaces the directory');
+    assert.equal(await page.locator('.center-record-calendar').count(), 0, 'profile does not stack attendance');
+    await page.locator('[data-child-section="attendance"]').click();
     await page.locator('[data-record-day="2026-11-24"]').click();
     await page.locator('[data-session-status="present"]').click();
     await page.waitForFunction(() => window.testWrites.some(row => row.status === 'present'));
@@ -30,8 +34,10 @@ try {
     await page.locator('[data-record-add-session]').click();
     assert.equal(await page.locator('[data-action="save-session"] [name="child_id"]').inputValue(), 'test-child');
     assert.match(await page.locator('[name="starts_at"]').inputValue(), /^2026-11-25/);
-    await page.locator('[data-view="students"]').click();
-    await page.locator('[data-homework]').click();
+    await page.locator('.center-nav [data-view="students"]').click();
+    await page.locator('[data-records]').click();
+    await page.locator('[data-child-section="homework"]').click();
+    assert.equal(await page.locator('#center-records').count(), 0, 'previous panel is unmounted');
     await page.locator('.center-homework-options input[value="communication-01"]').check();
     const spoon = page.locator('.center-homework-options input[value="imitation-09"]');
     await spoon.focus(); await page.keyboard.press('Space');
@@ -42,16 +48,44 @@ try {
     await page.locator(`[data-language="${language === 'kk' ? 'ru' : 'kk'}"]`).click();
     assert.equal(await page.locator('.center-homework-options input:checked').count(), 2);
     assert.equal(await page.locator('[name="homework_note"]').inputValue(), 'Күніне бірге орындаңыз');
+    await page.locator('[data-child-section="access"]').click();
+    assert.equal(await page.locator('.center-homework').count(), 0);
+    assert.equal(await page.locator('[data-reissue-password]').count(), 1, 'parent credentials action is discoverable');
+    assert.ok(await page.locator('.center-parent-access').innerText().then(text => /ИИН|ЖСН/.test(text)));
+    assert.equal(await page.locator('[data-child-section="billing"]').count(), role === 'admin' ? 1 : 0);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'access page overflow');
+    await page.screenshot({ path: `tests/child-access-${role}-${language}-${width}.png`, fullPage: true });
+    page.once('dialog', dialog => dialog.dismiss());
+    await page.locator('[data-reissue-password]').click();
+    assert.equal(await page.evaluate(() => window.testWrites.filter(row => row.action === 'reissue_password').length), 0, 'cancel must not reset password');
+    page.once('dialog', dialog => dialog.accept());
+    await page.locator('[data-reissue-password]').click();
+    assert.equal(await page.locator('.center-credentials code').last().textContent(), 'synthetic-password-for-ui-test-only');
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'http://localhost:3097' });
+    await page.locator('[data-copy-credentials]').click();
+    assert.match(await page.evaluate(() => navigator.clipboard.readText()), /synthetic-password-for-ui-test-only/);
+    await page.locator('[data-child-section="homework"]').click();
+    assert.equal(await page.locator('.center-homework-options input:checked').count(), 2, 'draft survives section navigation');
     await page.locator('[data-action="assign-homework"] button[type="submit"]').click();
     await page.waitForFunction(() => window.testWrites.some(row => row.p_child_id === 'test-child'));
     const payload = await page.evaluate(() => window.testWrites.find(row => row.p_child_id));
     assert.equal(payload.p_exercise_ids.length, 2); assert.equal(payload.p_due_on, '2026-11-30');
     assert.deepEqual(payload.p_exercise_ids.sort(), ['communication-01', 'imitation-09']);
     assert.equal(await page.locator('.center-homework-history > li').count(), 1);
+    await page.locator('[data-child-section="profile"]').click();
+    const phone = page.locator('[data-action="save-child-record"] [name="guardian_phone"]');
+    await phone.fill('8 (701) 234-56-78');
+    await page.locator('[name="guardian_name"]').fill('Тест ата-ана');
+    await page.locator('[data-action="save-child-record"] button[type="submit"]').click();
+    await page.waitForFunction(() => window.testWrites.some(row => row.action === 'update_profile'));
+    assert.equal((await page.evaluate(() => window.testWrites.find(row => row.action === 'update_profile'))).guardian_phone, '+77012345678');
+    await phone.fill('+7 (701) 234-56-78');
+    await page.locator('[data-action="save-child-record"] button[type="submit"]').click();
+    await page.waitForFunction(() => window.testWrites.filter(row => row.action === 'update_profile').length === 2);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'horizontal overflow');
     assert.deepEqual(errors, []);
-    await page.screenshot({ path: `tests/center-workflows-${language}-${width}.png`, fullPage: true });
-    console.log(`PASS ${language} ${width}: attendance correction, empty date, scheduling, selection, draft, assignment, layout`);
+    await page.screenshot({ path: `tests/center-workflows-${role}-${language}-${width}.png`, fullPage: true });
+    console.log(`PASS ${role} ${language} ${width}: single panel, access/reset confirmation, phones, attendance, homework draft, assignment, layout`);
     await page.close();
   }
 } finally { await browser?.close(); server.kill(); }

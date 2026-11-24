@@ -47,6 +47,7 @@ test("specialist removes and restores only their individual assignment", async (
   try {
     await renderCenterDashboard({ app, session, membership: { center_id: "center", role: "specialist" }, dataRequest });
     await listeners.get("click")(button({ view: "students" }, "data-view"));
+    await listeners.get("click")(button({ parentAccess: "child" }, "data-parent-access"));
     assert.match(app.innerHTML, /data-remove-student="child"/);
     await listeners.get("click")(button({ removeStudent: "child" }, "data-remove-student"));
     assert.deepEqual(writes[0], { active: false });
@@ -154,6 +155,7 @@ test("specialist sees a reset button and gets a new temporary password once", as
   try {
     await renderCenterDashboard({ app, session, membership: { center_id: "center", role: "specialist" }, dataRequest, apiRequest: async (path, options) => { calls.push({ path, body: JSON.parse(options.body) }); return { temporary_password: "one-time-secret" }; } });
     await listeners.get("click")(button({ view: "students" }, "data-view"));
+    await listeners.get("click")(button({ parentAccess: "child" }, "data-parent-access"));
     assert.match(app.innerHTML, /data-reissue-password="child"/);
     const action = button({ reissuePassword: "child" }, "data-reissue-password");
     await listeners.get("click")(action);

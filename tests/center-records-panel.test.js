@@ -9,6 +9,15 @@ const sessions = [
 ];
 const base = { child, guardian: null, sessions, tuition: [], charges: [], paymentEvents: [], enrollmentEvents: [], month: "2026-11", from: "", to: "", memberName: () => "Маман", today: "2026-11-15" };
 
+test("child sections do not stack unrelated forms and calendars", () => {
+  const profile = renderCenterChildRecords({ ...base, admin: true, section: "profile" });
+  assert.match(profile, /data-action="save-child-record"/);
+  assert.doesNotMatch(profile, /class="center-record-calendar"|data-action="add-center-charge"|data-action="change-enrollment"/);
+  const attendance = renderCenterChildRecords({ ...base, admin: true, section: "attendance" });
+  assert.match(attendance, /class="center-record-calendar"/);
+  assert.doesNotMatch(attendance, /data-action="save-child-record"|data-action="add-center-charge"/);
+});
+
 test("legacy child remains readable and attendance counts sessions and days", () => {
   const html = renderCenterChildRecords({ ...base, admin: false, language: "ru" });
   assert.match(html, /Дата рождения не указана/);
