@@ -24,6 +24,7 @@ test('center parent hydration ignores stale browser state and retains server chi
 
 test('failed writes retain the current child draft for explicit retry', async () => {
   const f = setup(); const state = await f.store.hydrate(f.session, 'ru');
+  state.adaptive.initialAssessment.completedAt = '2026-11-24T10:00:00Z';
   f.onWrite(() => { throw new Error('offline'); });
   await assert.rejects(f.store.save(state), /offline/);
   assert.equal(f.store.hasPending(), true);
@@ -32,6 +33,7 @@ test('failed writes retain the current child draft for explicit retry', async ()
 
 test('an older in-flight save cannot delete a newer staged answer', async () => {
   const f = setup(); const state = await f.store.hydrate(f.session, 'ru');
+  state.adaptive.initialAssessment.completedAt = '2026-11-24T10:00:00Z';
   let first = true;
   const newer = structuredClone(state); newer.adaptive.initialAssessment.answers = { a: 2 };
   f.onWrite(() => { if (first) { first = false; f.store.stage(newer); } });
@@ -39,6 +41,14 @@ test('an older in-flight save cannot delete a newer staged answer', async () => 
   assert.equal(f.store.hasPending(), true);
   const draft = JSON.parse([...f.values.values()][0]);
   assert.equal(draft.state.adaptive.initialAssessment.answers.a, 2);
+});
+
+test('unfinished parent questionnaire stays in the scoped draft instead of being discarded', async () => {
+  const f = setup(); const state = await f.store.hydrate(f.session, 'ru');
+  state.adaptive.initialAssessment.answers = { a: 2 };
+  await f.store.save(state);
+  assert.equal(f.store.hasPending(), true);
+  assert.equal((await f.store.hydrate(f.session, 'ru')).adaptive.initialAssessment.answers.a, 2);
 });
 
 test('wrong parent or failed server hydration never falls back to cache', async () => {

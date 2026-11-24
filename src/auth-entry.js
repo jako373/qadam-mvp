@@ -258,7 +258,7 @@ function practiceSyncMessage(message, failed = false) {
   if (!banner) { banner = document.createElement("div"); banner.id = "practice-sync-status"; banner.setAttribute("role", "status"); banner.className = "center-card"; document.body.append(banner); }
   banner.replaceChildren();
   const text = document.createElement("span"); text.textContent = message; banner.append(text);
-  if (failed) { const retry = document.createElement("button"); retry.type = "button"; retry.textContent = "Қайталау / Повторить"; retry.onclick = () => { practiceSaves = practiceSaves.catch(() => {}).then(() => practiceStore.retryPending()).then(() => practiceSyncMessage("Сақталды / Сохранено")).catch(error => practiceSyncMessage(error.message, true)); }; banner.append(retry); }
+  if (failed) { const retry = document.createElement("button"); retry.type = "button"; retry.textContent = "Қайталау / Повторить"; retry.onclick = () => { practiceSaves = practiceSaves.catch(() => {}).then(() => practiceStore.retryPending()).then(() => practiceSyncMessage(practiceStore.hasPending() ? "Черновик осы құрылғыда сақталды / Черновик сохранён на этом устройстве" : "Сақталды / Сохранено")).catch(error => practiceSyncMessage(error.message, true)); }; banner.append(retry); }
 }
 function scheduleSync(state) {
   clearTimeout(syncTimer);
@@ -270,7 +270,7 @@ function scheduleSync(state) {
     syncTimer = setTimeout(() => {
       if (capturedOwner !== readSession()?.user?.id) return;
       practiceSaves = practiceSaves.catch(() => {}).then(() => practiceStore.save(snapshot))
-        .then(() => { if (capturedOwner === readSession()?.user?.id) practiceSyncMessage("Сақталды / Сохранено"); })
+        .then(() => { if (capturedOwner === readSession()?.user?.id) practiceSyncMessage(practiceStore.hasPending() ? "Черновик осы құрылғыда сақталды / Черновик сохранён на этом устройстве" : "Сақталды / Сохранено"); })
         .catch(error => { if (capturedOwner === readSession()?.user?.id) practiceSyncMessage(error.message, true); });
     }, 650);
     return;
@@ -317,6 +317,7 @@ async function paymentOrders() {
 
 globalThis.qadamAuth = {
   getSession,
+  isCenterParent: () => Boolean(readSession()?.user?.app_metadata?.center_parent),
   getAccess: () => readAccountAccess(),
   scheduleSync,
   signOut,
@@ -747,6 +748,7 @@ else if (path === "/center") await renderCenter(session, centerMember);
 else if (path === "/family") await renderFamily(session);
 else if (!publicRoutes.has(path) && !session) location.replace(`/login?next=${encodeURIComponent(path)}`);
 else if (session?.user?.app_metadata?.center_parent && !publicRoutes.has(path) && !isCenterPracticeRoute(path)) location.replace("/family");
+else if (session?.user?.app_metadata?.center_parent && path === "/") location.replace("/family");
 else if (session?.user?.app_metadata?.center_parent && isCenterPracticeRoute(path)) {
   try {
     practiceStore = createCenterParentPractice({ request: dataRequest, storage: localStorage, getSession });

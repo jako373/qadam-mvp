@@ -86,6 +86,7 @@ export function createCenterParentPractice({ request, storage, getSession }) {
       const snapshot = JSON.parse(JSON.stringify(state));
       if (!storage.getItem(key())) storage.setItem(key(), JSON.stringify({ base, state: snapshot }));
       const a = normalizeAdaptiveState(snapshot.adaptive);
+      if (!a.initialAssessment.completedAt) return;
       const identity = { parent_id: owner, child_id: childId };
       const assessment = a.initialAssessment;
       if (assessment.completedAt && assessment.completedAt !== knownAssessment) await upsert('skill_assessments', [{ ...identity, id: await stableId('assessment', assessment.completedAt), assessment_type: 'initial', answers: assessment.answers, skill_levels: a.skillLevels, completed_at: assessment.completedAt }], 'id', session);
@@ -99,7 +100,7 @@ export function createCenterParentPractice({ request, storage, getSession }) {
       knownAttempts = new Set([...knownAttempts, ...newAttempts.map(item => item.at)]);
       knownAssessment = assessment.completedAt; base = fingerprint(snapshot); remoteState = snapshot;
       const pending = JSON.parse(storage.getItem(key()) || 'null');
-      if (pending && JSON.stringify(pending.state) !== JSON.stringify(snapshot)) storage.setItem(key(), JSON.stringify({ ...pending, base }));
+      if (pending && (JSON.stringify(pending.state) !== JSON.stringify(snapshot) || snapshot.adaptive.reassessment?.startedAt)) storage.setItem(key(), JSON.stringify({ ...pending, base }));
       else storage.removeItem(key());
     },
   };

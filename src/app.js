@@ -1,3 +1,4 @@
+import { isCenterPracticeRoute } from "./lib/workspace-routes.js";
 import {
   ageOptions,
   appUi,
@@ -49,6 +50,7 @@ function mountIcons() {
 }
 
 function routeTo(path) {
+  if (globalThis.qadamAuth?.isCenterParent?.() && !isCenterPracticeRoute(path)) { location.assign("/family"); return; }
   window.history.pushState({}, "", path);
   render();
 }
@@ -602,6 +604,9 @@ function mountProfileForm() {
 }
 
 function normalizeState() {
+  // Center profiles were loaded and ownership-checked on the server; they do
+  // not use the legacy 2–7-year-old onboarding option lists.
+  if (globalThis.qadamAuth?.isCenterParent?.()) return;
   if (state.childProfile?.diagnosis === "ОНР") {
     state.childProfile = {
       ...state.childProfile,
