@@ -22,18 +22,23 @@ test("specialist can open a child's homework composer without another child's da
   assert.match(app.innerHTML, /data-homework="mine"/);
   await listeners.get("click")({ target: { closest: () => ({ dataset: { homework: "mine" }, hasAttribute: (name) => name === "data-homework" }) } });
   assert.match(app.innerHTML, /data-action="assign-homework"/);
+  const before = app.innerHTML;
+  await listeners.get("change")({ target: { name: "exercise_id", value: "joint_attention-01", type: "checkbox", checked: true, closest: () => ({ dataset: { action: "assign-homework" } }) } });
+  assert.equal(app.innerHTML, before, "selecting homework must not repaint and erase checked inputs");
   assert.doesNotMatch(app.innerHTML, /чужой ребёнок/);
 });
 
 test("parent sees assigned homework before progress and can report each exercise", async () => {
   globalThis.localStorage = { getItem: () => "ru", setItem() {} };
   const app = { innerHTML: "", querySelector: () => ({ addEventListener() {} }), addEventListener() {} };
-  const dataRequest = async (path) => path.startsWith("children?") ? [{ id: "child", name: "Ребёнок", age: 4 }] : path.startsWith("center_homework?") ? [{ id: "task", exercise_ids: ["joint_attention-01"], responses: {}, assigned_at: "2026-11-11T10:00:00Z" }] : [];
+  const dataRequest = async (path) => path.startsWith("children?") ? [{ id: "child", name: "Ребёнок", age: 4 }] : path.startsWith("center_homework?") ? [{ id: "task", exercise_ids: ["joint_attention-01"], responses: {}, assigned_at: "2026-11-11T10:00:00Z", due_on: "2026-11-30", instructions: "Занимайтесь вместе" }] : [];
   await renderFamilyDashboard({ app, session: { user: { id: "parent" } }, dataRequest });
   assert.ok(app.innerHTML.indexOf("Задания специалиста") < app.innerHTML.indexOf("family-progress-card"));
   assert.match(app.innerHTML, /data-homework-response="done"/);
   assert.match(app.innerHTML, /data-homework-response="difficult"/);
   assert.match(app.innerHTML, /data-homework-response="unable"/);
+  assert.match(app.innerHTML, /2026-11-30/);
+  assert.match(app.innerHTML, /Занимайтесь вместе/);
 });
 
 test("parent sees own center tuition and attendance without internal finance notes", async () => {
