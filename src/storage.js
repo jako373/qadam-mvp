@@ -20,6 +20,8 @@ export function loadState() {
 }
 
 export function saveState(state) {
+  if (globalThis.qadamAuth?.canSaveState && !globalThis.qadamAuth.canSaveState()) { globalThis.qadamAuth.onIdentityMismatch?.(); return; }
+  globalThis.qadamAuth?.markStateOwner?.();
   writeItem(STORAGE_KEY, JSON.stringify(state));
   globalThis.qadamAuth?.scheduleSync?.(state);
 }

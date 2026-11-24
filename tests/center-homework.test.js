@@ -37,6 +37,8 @@ test("parent sees assigned homework before progress and can report each exercise
   assert.match(app.innerHTML, /data-homework-response="done"/);
   assert.match(app.innerHTML, /data-homework-response="difficult"/);
   assert.match(app.innerHTML, /data-homework-response="unable"/);
+  assert.match(app.innerHTML, /id="family-practice"/);
+  assert.match(app.innerHTML, /href="\/today"/);
   assert.match(app.innerHTML, /2026-11-30/);
   assert.match(app.innerHTML, /Занимайтесь вместе/);
 });

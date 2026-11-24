@@ -16,6 +16,8 @@ try {
     await page.addInitScript(lang => localStorage.setItem('qadam.center.language', lang), language);
     await page.goto('http://localhost:3097/tests/fixtures/center-workflows.html');
     await page.waitForLoadState('networkidle');
+    assert.equal(await page.locator('.center-hero-logo').count(), 1);
+    assert.ok(await page.locator('.center-hero-logo').evaluate(img => img.complete && img.naturalWidth > 0));
     await page.locator('[data-records]').click();
     await page.locator('[data-record-day="2026-11-24"]').click();
     await page.locator('[data-session-status="present"]').click();
