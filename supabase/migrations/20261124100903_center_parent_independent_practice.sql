@@ -1,5 +1,5 @@
--- Proposed additive migration; NOT applied. Generate the migration filename
--- with the installed Supabase CLI when hosted migration is authorized.
+-- Additive migration applied to iismpbsapzmacxqraecx on 2026-11-24.
+-- Version synchronized with the migration history returned by Supabase MCP.
 create function public.center_parent_practice_summary(p_center_id uuid, p_child_id uuid)
 returns jsonb language plpgsql security definer set search_path = '' as $$
 begin

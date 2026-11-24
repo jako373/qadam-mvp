@@ -16,5 +16,5 @@ const rows = {
   center_monthly_payment_marks: [{ center_id: "center", child_id: childId, period_month: "2026-11-01", status: "paid", marked_at: "2026-11-15T12:00:00Z" }],
   center_guardians: [{ center_id: "center", child_id: childId, full_name: "Ата-ана Тест", phone_e164: "+77000000000" }]
 };
-await renderCenterDashboard({ app: document.getElementById("app"), session: { access_token: "demo", user: { id: "admin", email: "admin@example.test" } }, membership: { center_id: "center", center_name: "Qadam орталығы", role: "admin", full_name: "Әкімші" }, dataRequest: async (path) => path === "rpc/active_exercises" || path === "rpc/center_tuition_overview" ? [] : rows[path.split("?")[0]] || [] });
+await renderCenterDashboard({ app: document.getElementById("app"), session: { access_token: "demo", user: { id: "admin", email: "admin@example.test" } }, membership: { center_id: "center", center_name: "Даму логопедиялық орталығы", role: "admin", full_name: "Әкімші" }, dataRequest: async (path) => path === "rpc/active_exercises" || path === "rpc/center_tuition_overview" ? [] : rows[path.split("?")[0]] || [] });
 </script></body></html>
