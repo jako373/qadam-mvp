@@ -36,11 +36,13 @@ test("specialist sees latest homework status and explicit recommendations for th
   globalThis.localStorage = { getItem: () => "ru", setItem() {} };
   globalThis.document = { documentElement: { lang: "ru" } };
   const listeners = new Map();
-  const app = { innerHTML: "", addEventListener: (name, listener) => listeners.set(name, listener), querySelector: () => ({ scrollIntoView() {} }) };
+  const app = { innerHTML: "", addEventListener: (name, listener) => listeners.set(name, listener), querySelector: () => ({ scrollIntoView() {}, focus() {} }) };
   const catalogueRows = exercises.filter((item) => ["imitation-01", "imitation-02", "communication-01", "communication-02"].includes(item.id)).map((content) => ({ content }));
   const dataRequest = async (path) => path.startsWith("center_students?") ? [{ child_id: "child" }] : path.startsWith("children?") ? [{ id: "child", name: "Ребёнок", age: 4 }] : path.startsWith("specialist_assessments?") ? [{ child_id: "child", skill_levels: { imitation: 1, communication: 2 }, completed_at: "2026-11-11T09:00:00Z" }] : path.startsWith("center_homework?") ? [{ id: "prior", child_id: "child", specialist_id: "staff", exercise_ids: ["imitation-01"], responses: {}, assigned_at: "2026-11-11T09:00:00Z" }] : path === "rpc/active_exercises" ? catalogueRows : [];
   await renderCenterDashboard({ app, session: { user: { id: "staff" } }, membership: { center_id: "center", role: "specialist", full_name: "Маман" }, dataRequest });
   assert.match(app.innerHTML, /Последнее задание: Нет ответа/);
+  await listeners.get("click")({ target: { closest: () => ({ dataset: { homework: "child" }, hasAttribute: (name) => name === "data-homework" }) } });
+  assert.match(app.innerHTML, /data-recommend="child"/);
   await listeners.get("click")({ target: { closest: () => ({ dataset: { recommend: "child" }, hasAttribute: (name) => name === "data-recommend" }) } });
   assert.match(app.innerHTML, /QADAM рекомендует/);
   assert.match(app.innerHTML, /value="imitation-01" checked/);

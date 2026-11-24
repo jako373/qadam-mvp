@@ -16,7 +16,7 @@ test("specialist starts with one question per skill and can choose all 16", asyn
   globalThis.localStorage = { getItem: () => "ru", setItem() {} };
   globalThis.document = { documentElement: { lang: "ru" } };
   const listeners = new Map();
-  const app = { innerHTML: "", addEventListener: (name, listener) => listeners.set(name, listener), querySelector: () => ({ scrollIntoView() {} }) };
+  const app = { innerHTML: "", addEventListener: (name, listener) => listeners.set(name, listener), querySelector: () => ({ scrollIntoView() {}, focus() {} }) };
   const child = { id: "child", name: "Ребёнок", age: 4 };
   const dataRequest = async (path) => path.startsWith("center_students?") ? [{ child_id: child.id }] : path.startsWith("children?") ? [child] : [];
   await renderCenterDashboard({ app, session: { access_token: "test", user: { id: "staff" } }, membership: { center_id: "center", role: "specialist", full_name: "Маман" }, dataRequest });

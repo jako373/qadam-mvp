@@ -16,10 +16,10 @@ test("specialist can open a child's homework composer without another child's da
   globalThis.localStorage = { getItem: () => "ru", setItem() {} };
   globalThis.document = { documentElement: { lang: "ru" } };
   const listeners = new Map();
-  const app = { innerHTML: "", addEventListener: (name, listener) => listeners.set(name, listener), querySelector: () => ({ scrollIntoView() {} }) };
+  const app = { innerHTML: "", addEventListener: (name, listener) => listeners.set(name, listener), querySelector: () => ({ scrollIntoView() {}, focus() {} }) };
   const dataRequest = async (path) => path.startsWith("center_students?") ? [{ child_id: "mine" }] : path.startsWith("children?") ? [{ id: "mine", name: "Мой ребёнок", age: 4 }] : [];
   await renderCenterDashboard({ app, session: { user: { id: "staff" } }, membership: { center_id: "center", role: "specialist", full_name: "Маман" }, dataRequest });
-  assert.match(app.innerHTML, /data-homework="mine"/);
+  assert.match(app.innerHTML, /data-records="mine"/);
   await listeners.get("click")({ target: { closest: () => ({ dataset: { homework: "mine" }, hasAttribute: (name) => name === "data-homework" }) } });
   assert.match(app.innerHTML, /data-action="assign-homework"/);
   const before = app.innerHTML;

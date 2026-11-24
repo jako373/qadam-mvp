@@ -10,6 +10,7 @@ test("birthday changes age only on the birthday; legacy age remains available", 
 
 test("phone normalizes Kazakhstan trunk form but keeps valid international numbers", () => {
   assert.equal(normalizePhone("8 (701) 234-56-78"), "+77012345678");
+  assert.equal(normalizePhone("+7 (701) 234-56-78"), "+77012345678");
   assert.equal(normalizePhone("+996 555 123 456"), "+996555123456");
   assert.equal(normalizePhone("123"), null);
 });

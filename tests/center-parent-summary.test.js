@@ -6,7 +6,7 @@ test('specialist child plan shows independent activity separately from assigned 
   globalThis.localStorage = { getItem: () => 'ru', setItem() {} };
   globalThis.document = { documentElement: { lang: 'ru' } };
   const listeners = new Map(); const paths = [];
-  const app = { innerHTML: '', addEventListener: (name, fn) => listeners.set(name, fn), querySelector: () => ({ scrollIntoView() {} }) };
+  const app = { innerHTML: '', addEventListener: (name, fn) => listeners.set(name, fn), querySelector: () => ({ scrollIntoView() {}, focus() {} }) };
   await renderCenterDashboard({ app, session: { user: { id: 'staff' } }, membership: { role: 'specialist', center_id: 'center' }, dataRequest: async (path, session, options) => {
     paths.push({ path, body: options?.body });
     if (path.startsWith('center_students?')) return [{ child_id: 'child' }];

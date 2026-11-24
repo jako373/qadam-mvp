@@ -2,6 +2,7 @@
 import { renderCenterDashboard } from '/src/center-dashboard.js';
 import { exercises } from '/src/data/exercises.js';
 const catalogue = exercises.map(content => ({ content }));
+const role = new URLSearchParams(location.search).get('role') === 'admin' ? 'admin' : 'specialist';
 const child = { id: 'test-child', name: 'Тест бала', age: 5 };
 const rows = {
   center_students: [{ child_id: child.id, active: true }], children: [child],
@@ -10,7 +11,12 @@ const rows = {
   center_homework: []
 };
 window.testWrites = [];
-await renderCenterDashboard({ app: document.querySelector('#app'), session: { user: { id: 'staff' } }, membership: { center_name: 'Даму логопедиялық орталығы', center_id: 'test-center', role: 'specialist', full_name: 'Тест маман' }, dataRequest: async (path, session, options) => {
+await renderCenterDashboard({ app: document.querySelector('#app'), session: { user: { id: 'staff' } }, membership: { center_name: 'Даму логопедиялық орталығы', center_id: 'test-center', role, full_name: 'Тест маман' }, apiRequest: async (path, options) => {
+  const body = JSON.parse(options.body); window.testWrites.push(body);
+  if (body.action === 'update_profile') { rows.center_guardians = [{ child_id: body.child_id, full_name: body.guardian_name, phone_e164: body.guardian_phone }]; return { ok: true }; }
+  if (body.action === 'reissue_password') return { ok: true, child_id: body.child_id, temporary_password: 'synthetic-password-for-ui-test-only' };
+  throw new Error('Unexpected API action');
+}, dataRequest: async (path, session, options) => {
   if (path === 'rpc/active_exercises') return catalogue;
   if (options?.method === 'PATCH') { const changes = JSON.parse(options.body); Object.assign(rows.center_sessions[0], changes); window.testWrites.push(changes); return [rows.center_sessions[0]]; }
   if (path === 'rpc/assign_center_homework_details') { const payload = JSON.parse(options.body); window.testWrites.push(payload); rows.center_homework.unshift({ id: 'test-task', child_id: payload.p_child_id, specialist_id: 'staff', exercise_ids: payload.p_exercise_ids, due_on: payload.p_due_on, instructions: payload.p_instructions, assigned_at: new Date().toISOString(), responses: {} }); return 'test-task'; }
