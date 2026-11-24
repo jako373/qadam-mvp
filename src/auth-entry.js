@@ -1,6 +1,8 @@
 import { canonicalExerciseHistory, exerciseProgressFromHistory } from "./lib/progress-engine.js";
-import { homeDestination, workspaceRedirect } from "./lib/workspace-routes.js";
+import { homeDestination, workspaceRedirect, isCenterPracticeRoute } from "./lib/workspace-routes.js";
 import { exerciseSpecialties, exerciseDifficulties, exerciseSpecialtyLabels, exerciseDifficultyLabels, updateExerciseCuration } from "./lib/exercise-curation.js";
+
+import { createCenterParentPractice } from "./lib/center-parent-practice.js";
 
 const SUPABASE_URL = "https://iismpbsapzmacxqraecx.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hFMdiuuIp051vWhUE7IQKg_DczXIfmV";
@@ -10,6 +12,9 @@ const ACCESS_KEY = "qadam.account.access.v1";
 const CATEGORIES = ["joint_attention", "understanding", "imitation", "communication", "play_thinking", "fine_motor", "regulation", "daily_social"];
 const app = document.getElementById("app");
 let syncTimer = null;
+let practiceStore = null;
+let practiceOwner = null;
+let practiceSaves = Promise.resolve();
 let adminExerciseRows = [];
 
 function escapeHtml(value = "") {
@@ -110,6 +115,7 @@ async function updatePassword(accessToken, password) {
 
 async function signOut() {
   const session = readSession();
+  clearTimeout(syncTimer); practiceOwner = null;
   clearSession();
   if (session?.access_token) await apiRequest("/auth/v1/logout", { method: "POST", headers: { Authorization: `Bearer ${session.access_token}` } }).catch(() => {});
 }
@@ -247,8 +253,28 @@ async function hydrateAccountAccess(session) {
   }
 }
 
+function practiceSyncMessage(message, failed = false) {
+  let banner = document.getElementById("practice-sync-status");
+  if (!banner) { banner = document.createElement("div"); banner.id = "practice-sync-status"; banner.setAttribute("role", "status"); banner.className = "center-card"; document.body.append(banner); }
+  banner.replaceChildren();
+  const text = document.createElement("span"); text.textContent = message; banner.append(text);
+  if (failed) { const retry = document.createElement("button"); retry.type = "button"; retry.textContent = "Қайталау / Повторить"; retry.onclick = () => { practiceSaves = practiceSaves.catch(() => {}).then(() => practiceStore.retryPending()).then(() => practiceSyncMessage("Сақталды / Сохранено")).catch(error => practiceSyncMessage(error.message, true)); }; banner.append(retry); }
+}
 function scheduleSync(state) {
   clearTimeout(syncTimer);
+  if (readSession()?.user?.app_metadata?.center_parent) {
+    if (!practiceStore || practiceOwner !== readSession()?.user?.id) return;
+    const capturedOwner = practiceOwner;
+    const snapshot = JSON.parse(JSON.stringify(state));
+    try { practiceStore.stage(snapshot); } catch (error) { practiceSyncMessage(error.message, true); return; }
+    syncTimer = setTimeout(() => {
+      if (capturedOwner !== readSession()?.user?.id) return;
+      practiceSaves = practiceSaves.catch(() => {}).then(() => practiceStore.save(snapshot))
+        .then(() => { if (capturedOwner === readSession()?.user?.id) practiceSyncMessage("Сақталды / Сохранено"); })
+        .catch(error => { if (capturedOwner === readSession()?.user?.id) practiceSyncMessage(error.message, true); });
+    }, 650);
+    return;
+  }
   syncTimer = setTimeout(() => syncState(state).catch((error) => console.warn("Qadam sync:", error.message)), 650);
 }
 
@@ -686,7 +712,7 @@ function decorateApp(session) {
       controls.dataset.accountControls = "true";
       controls.className = "account-controls";
       if (!session) controls.innerHTML = `<a href="/login">${labels.login}</a><a class="account-register" href="/register">${labels.register}</a>`;
-       else controls.innerHTML = `${centerMember ? `<a class="admin-badge" href="/center">Орталық</a>` : ""}${isAdmin(session) && !isSuperadmin(session) ? `<a class="admin-badge" href="/admin">${labels.admin}</a>` : ""}<span>${escapeHtml(session.user?.email || "")}</span><button type="button" data-account-logout>${labels.logout}</button>`;
+       else controls.innerHTML = `${session.user?.app_metadata?.center_parent ? `<a href="/family">Ата-ана кабинеті / Кабинет родителя</a>` : ""}${centerMember ? `<a class="admin-badge" href="/center">Орталық</a>` : ""}${isAdmin(session) && !isSuperadmin(session) ? `<a class="admin-badge" href="/admin">${labels.admin}</a>` : ""}<span>${escapeHtml(session.user?.email || "")}</span><button type="button" data-account-logout>${labels.logout}</button>`;
       target.append(controls);
       controls.querySelector("[data-account-logout]")?.addEventListener("click", async () => {
         await signOut();
@@ -720,5 +746,21 @@ else if (path === "/admin") await renderAdmin();
 else if (path === "/center") await renderCenter(session, centerMember);
 else if (path === "/family") await renderFamily(session);
 else if (!publicRoutes.has(path) && !session) location.replace(`/login?next=${encodeURIComponent(path)}`);
-else if (session?.user?.app_metadata?.center_parent && !publicRoutes.has(path)) location.replace("/family");
+else if (session?.user?.app_metadata?.center_parent && !publicRoutes.has(path) && !isCenterPracticeRoute(path)) location.replace("/family");
+else if (session?.user?.app_metadata?.center_parent && isCenterPracticeRoute(path)) {
+  try {
+    practiceStore = createCenterParentPractice({ request: dataRequest, storage: localStorage, getSession });
+    const state = await practiceStore.hydrate(session, localStorage.getItem("qadam.family.language"));
+    practiceOwner = session.user.id;
+    localStorage.setItem(STATE_KEY, JSON.stringify(state));
+    await Promise.all([hydrateAccountAccess(session), hydrateExerciseCatalogue(session)]);
+    await import("./app.js?v=20260715-superadmin-library"); decorateApp(session);
+    if (practiceStore.hasPending()) practiceSyncMessage("Өзгерістер әлі сақталмады / Есть несохранённые изменения", true);
+  } catch (error) {
+    app.innerHTML = `<main class="auth-page"><section class="auth-card" role="alert"><h1>Жаттығулар жүктелмеді / Не удалось открыть занятия</h1><p>${escapeHtml(error.message)}</p><a href="${escapeHtml(path)}">Қайталау / Повторить загрузку</a><a href="/family">Ата-ана кабинеті / Кабинет родителя</a>${practiceStore?.hasPending() ? '<button type="button" id="retry-practice-draft">Черновикті сақтау / Сохранить черновик</button>' : ""}</section></main>`;
+    document.getElementById("retry-practice-draft")?.addEventListener("click", async () => {
+      try { await practiceStore.retryPending(); location.reload(); } catch (failure) { app.querySelector("p").textContent = failure.message; }
+    });
+  }
+}
 else { if (session) { await Promise.all([hydrateState(session), hydrateAccountAccess(session), hydrateExerciseCatalogue(session)]); } await import("./app.js?v=20260715-superadmin-library"); decorateApp(session); }

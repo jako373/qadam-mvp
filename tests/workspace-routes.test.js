@@ -19,8 +19,17 @@ test("specialist cannot open a parent, family, payment or platform admin workspa
 test("family cabinet stays exclusive to center parents and superadmin", () => {
   assert.equal(workspaceRedirect("/family", specialist, null, "/today"), "/today");
   assert.equal(workspaceRedirect("/family", centerParent, null, "/today"), null);
-  assert.equal(workspaceRedirect("/today", centerParent, null, "/today"), "/family");
+  assert.equal(workspaceRedirect("/today", centerParent, null, "/today"), null);
   assert.equal(workspaceRedirect("/family", superadmin, membership, "/today"), null);
+});
+
+test("center parents can practice but cannot open setup or staff workspaces", () => {
+  for (const path of ["/skill-check", "/skill-check/1", "/skill-check/16", "/plan-ready", "/today", "/daily/1", "/daily/3", "/daily-results/3", "/daily-summary", "/progress", "/recheck/1", "/recheck/8"]) {
+    assert.equal(workspaceRedirect(path, centerParent, null, "/today"), null, path);
+  }
+  for (const path of ["/admin", "/center", "/onboarding", "/subscription", "/profile", "/daily/0", "/daily/4", "/skill-check/17", "/daily/1/other"]) {
+    assert.equal(workspaceRedirect(path, centerParent, null, "/today"), "/family", path);
+  }
 });
 
 test("landing continuation follows the signed-in workspace, not another account's saved profile", () => {
