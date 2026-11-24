@@ -63,3 +63,19 @@ test("past planned lesson is shown as unmarked, not a future appointment", () =>
   assert.match(html, /data-record-day="2026-11-11"[^>]*is-unmarked|is-unmarked[^>]*data-record-day="2026-11-11"/);
   assert.match(html, /Не отмечено/);
 });
+
+test("selected lesson offers attendance correction only to its specialist", () => {
+  const html = renderCenterChildRecords({ ...base, from: "2026-11-15", to: "2026-11-15", userId: "u1" });
+  assert.match(html, /data-session-id="s1" data-session-status="present"/);
+  assert.match(html, /data-session-status="absent"/);
+  assert.match(html, /data-session-status="cancelled"/);
+  assert.match(html, /aria-current="date"/);
+  const other = renderCenterChildRecords({ ...base, userId: "other" });
+  assert.doesNotMatch(other, /data-session-id=/);
+});
+
+test("empty selected day offers scheduling, not a fabricated attendance mark", () => {
+  const html = renderCenterChildRecords({ ...base, from: "2026-11-24", to: "2026-11-24", userId: "u1" });
+  assert.match(html, /data-record-add-session="2026-11-24"/);
+  assert.doesNotMatch(html, /data-session-id=/);
+});

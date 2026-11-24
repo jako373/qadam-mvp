@@ -50,13 +50,13 @@ test("calendar shows a localized month and a visible create-session action", asy
   assert.equal(focused, true);
 });
 
-test("specialist can mark attendance for a scheduled child", async () => {
+for (const persisted of [true, false]) test(`attendance reports ${persisted ? "success after persisted update" : "failure when server updates no rows"}`, async () => {
   const listeners = new Map();
   const app = { innerHTML: "", addEventListener: (name, listener) => listeners.set(name, listener), querySelector: () => ({ focus() {} }) };
   const item = { id: "session-1", child_id: "child-1", specialist_id: "staff", starts_at: new Date().toISOString(), duration_minutes: 45, topic: "Речь", status: "planned" };
   const writes = [];
   const dataRequest = async (path, _session, options = {}) => {
-    if (options.method === "PATCH") { writes.push({ path, body: JSON.parse(options.body) }); item.status = "present"; return {}; }
+    if (options.method === "PATCH") { writes.push({ path, body: JSON.parse(options.body) }); if (persisted) item.status = "present"; return persisted ? [item] : []; }
     if (path.startsWith("center_students?")) return [{ child_id: "child-1", active: true }];
     if (path.startsWith("children?")) return [{ id: "child-1", name: "Алия", age: 8, diagnosis: "ЗРР" }];
     if (path.startsWith("center_sessions?")) return [item];
@@ -68,7 +68,8 @@ test("specialist can mark attendance for a scheduled child", async () => {
   const target = { dataset: { sessionId: "session-1", sessionStatus: "present" }, hasAttribute: (name) => name === "data-session-id", closest: (selector) => selector === ".center-attendance" ? { querySelectorAll: () => [] } : target };
   await listeners.get("click")({ target });
   assert.deepEqual(writes, [{ path: "center_sessions?id=eq.session-1&center_id=eq.center", body: { status: "present" } }]);
-  assert.match(app.innerHTML, /Посещение отмечено/);
+  if (persisted) assert.match(app.innerHTML, /Посещение отмечено/);
+  else { assert.doesNotMatch(app.innerHTML, /Посещение отмечено/); assert.match(app.innerHTML, /role="alert"/); }
 });
 
 test("family dashboard requests only family-visible recommendations and shows skill goals", async () => {

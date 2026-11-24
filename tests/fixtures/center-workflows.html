@@ -1,0 +1,19 @@
+<!doctype html><html lang="kk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/src/styles.css"><link rel="stylesheet" href="/src/auth.css"><link rel="stylesheet" href="/src/center.css"><title>QADAM local workflow check</title></head><body><div id="app"></div><script type="module">
+import { renderCenterDashboard } from '/src/center-dashboard.js';
+import { exercises } from '/src/data/exercises.js';
+const catalogue = exercises.map(content => ({ content }));
+const child = { id: 'test-child', name: 'Тест бала', age: 5 };
+const rows = {
+  center_students: [{ child_id: child.id, active: true }], children: [child],
+  center_specialist_students: [{ child_id: child.id, specialist_id: 'staff', active: true }],
+  center_sessions: [{ id: 'test-session', child_id: child.id, specialist_id: 'staff', starts_at: '2026-11-24T09:00:00Z', status: 'planned', topic: 'Тест сабақ', duration_minutes: 45 }],
+  center_homework: []
+};
+window.testWrites = [];
+await renderCenterDashboard({ app: document.querySelector('#app'), session: { user: { id: 'staff' } }, membership: { center_id: 'test-center', role: 'specialist', full_name: 'Тест маман' }, dataRequest: async (path, session, options) => {
+  if (path === 'rpc/active_exercises') return catalogue;
+  if (options?.method === 'PATCH') { const changes = JSON.parse(options.body); Object.assign(rows.center_sessions[0], changes); window.testWrites.push(changes); return [rows.center_sessions[0]]; }
+  if (path === 'rpc/assign_center_homework_details') { const payload = JSON.parse(options.body); window.testWrites.push(payload); rows.center_homework.unshift({ id: 'test-task', child_id: payload.p_child_id, specialist_id: 'staff', exercise_ids: payload.p_exercise_ids, due_on: payload.p_due_on, instructions: payload.p_instructions, assigned_at: new Date().toISOString(), responses: {} }); return 'test-task'; }
+  return rows[path.split('?')[0]] || [];
+} });
+</script></body></html>
