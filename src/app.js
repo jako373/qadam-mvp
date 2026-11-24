@@ -50,6 +50,7 @@ function mountIcons() {
 }
 
 function routeTo(path) {
+  if (globalThis.qadamAuth?.canSaveState && !globalThis.qadamAuth.canSaveState()) { globalThis.qadamAuth.onIdentityMismatch(); return; }
   if (globalThis.qadamAuth?.isCenterParent?.() && !isCenterPracticeRoute(path)) { location.assign("/family"); return; }
   window.history.pushState({}, "", path);
   render();
@@ -540,6 +541,7 @@ function guardRoute(pathname) {
 }
 
 function render() {
+  if (globalThis.qadamAuth?.canSaveState && !globalThis.qadamAuth.canSaveState()) { globalThis.qadamAuth.onIdentityMismatch(); return; }
   document.documentElement.lang = state.language;
   const requested = normalizePath(location.pathname);
   const guarded = guardRoute(requested);

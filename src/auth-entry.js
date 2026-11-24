@@ -6,12 +6,16 @@ import { createCenterParentPractice } from "./lib/center-parent-practice.js";
 
 const SUPABASE_URL = "https://iismpbsapzmacxqraecx.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hFMdiuuIp051vWhUE7IQKg_DczXIfmV";
+import { eligibleCenterExercises } from "./lib/center-practice-catalogue.js";
+
 const SESSION_KEY = "qadam.auth.session.v1";
 const STATE_KEY = "qadam.mvp.state.v1";
 const ACCESS_KEY = "qadam.account.access.v1";
 const CATEGORIES = ["joint_attention", "understanding", "imitation", "communication", "play_thinking", "fine_motor", "regulation", "daily_social"];
 const app = document.getElementById("app");
 let syncTimer = null;
+let pageOwner = null;
+let pageIsCenterParent = false;
 let practiceStore = null;
 let practiceOwner = null;
 let practiceSaves = Promise.resolve();
@@ -26,7 +30,7 @@ function readJson(key, fallback = null) {
 }
 
 function readSession() { return readJson(SESSION_KEY); }
-function writeSession(session) { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); }
+function writeSession(session) { if (readSession()?.user?.id !== session?.user?.id) { localStorage.removeItem(STATE_KEY); localStorage.removeItem(ACCESS_KEY); localStorage.removeItem("qadam.state.owner.v1"); } localStorage.setItem(SESSION_KEY, JSON.stringify(session)); }
 function clearSession() { localStorage.removeItem(SESSION_KEY); }
 
 function readAccountAccess(session = readSession()) {
@@ -196,10 +200,11 @@ async function hydrateState(session) {
   localStorage.setItem(`qadam.synced.attempts.${uid}`, JSON.stringify(attempts.map((item) => item.created_at)));
 }
 
-async function syncState(state) {
+async function syncState(state, expectedOwner) {
   const session = await getSession();
   if (!session?.user?.id) return;
   const uid = session.user.id;
+  if (uid !== expectedOwner) return;
   await upsert("profiles", [{ id: uid, preferred_language: state.language === "ru" ? "ru" : "kk" }], "id", session);
   const profile = state.childProfile;
   if (!profile || !state.progress?.onboardingCompleted) return;
@@ -262,7 +267,8 @@ function practiceSyncMessage(message, failed = false) {
 }
 function scheduleSync(state) {
   clearTimeout(syncTimer);
-  if (readSession()?.user?.app_metadata?.center_parent) {
+  if ((readSession()?.user?.id || null) !== pageOwner) { globalThis.qadamAuth.onIdentityMismatch(); return; }
+  if (pageIsCenterParent) {
     if (!practiceStore || practiceOwner !== readSession()?.user?.id) return;
     const capturedOwner = practiceOwner;
     const snapshot = JSON.parse(JSON.stringify(state));
@@ -275,7 +281,7 @@ function scheduleSync(state) {
     }, 650);
     return;
   }
-  syncTimer = setTimeout(() => syncState(state).catch((error) => console.warn("Qadam sync:", error.message)), 650);
+  syncTimer = setTimeout(() => syncState(state, pageOwner).catch((error) => console.warn("Qadam sync:", error.message)), 650);
 }
 
 async function createPaymentOrder(planCode) {
@@ -317,7 +323,10 @@ async function paymentOrders() {
 
 globalThis.qadamAuth = {
   getSession,
-  isCenterParent: () => Boolean(readSession()?.user?.app_metadata?.center_parent),
+  isCenterParent: () => pageIsCenterParent,
+  canSaveState: () => (readSession()?.user?.id || null) === pageOwner,
+  markStateOwner: () => { if (pageOwner) localStorage.setItem("qadam.state.owner.v1", pageOwner); },
+  onIdentityMismatch: () => { clearTimeout(syncTimer); app.innerHTML = '<main class="auth-page"><section class="auth-card" role="alert"><h1>Аккаунт изменился / Аккаунт өзгерді</h1><a href="/login">Войти снова / Қайта кіру</a></section></main>'; },
   getAccess: () => readAccountAccess(),
   scheduleSync,
   signOut,
@@ -729,6 +738,12 @@ document.documentElement.lang = "ru";
 const path = location.pathname.replace(/\/$/, "") || "/";
 const publicRoutes = new Set(["/", "/login", "/register", "/forgot-password", "/reset-password"]);
 const session = await getSession();
+pageOwner = session?.user?.id || null;
+pageIsCenterParent = Boolean(session?.user?.app_metadata?.center_parent);
+const storedOwner = localStorage.getItem("qadam.state.owner.v1");
+if (storedOwner && storedOwner !== pageOwner) { localStorage.removeItem(STATE_KEY); localStorage.removeItem(ACCESS_KEY); }
+if (pageOwner) localStorage.setItem("qadam.state.owner.v1", pageOwner);
+window.addEventListener("storage", (event) => { if (event.key === SESSION_KEY && !globalThis.qadamAuth.canSaveState()) globalThis.qadamAuth.onIdentityMismatch(); });
 let centerMember = null;
 let centerLookupError = null;
 try { centerMember = session ? await centerMembership(session) : null; }
@@ -754,12 +769,19 @@ else if (session?.user?.app_metadata?.center_parent && isCenterPracticeRoute(pat
     practiceStore = createCenterParentPractice({ request: dataRequest, storage: localStorage, getSession });
     const state = await practiceStore.hydrate(session, localStorage.getItem("qadam.family.language"));
     practiceOwner = session.user.id;
+    if (!globalThis.qadamAuth.canSaveState()) throw new Error("Аккаунт изменился / Аккаунт өзгерді");
+    const rows = await rpc("active_exercises", session);
+    const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Qyzylorda", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    const catalogue = eligibleCenterExercises(Array.isArray(rows) ? rows.map(row => row.content).filter(Boolean) : [], state.childProfile.age, state.adaptive, today);
+    const module = await import("./data/exercises.js"); module.replaceExercises(catalogue);
+    if (!globalThis.qadamAuth.canSaveState()) throw new Error("Аккаунт изменился / Аккаунт өзгерді");
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
-    await Promise.all([hydrateAccountAccess(session), hydrateExerciseCatalogue(session)]);
+    await hydrateAccountAccess(session);
     await import("./app.js?v=20260715-superadmin-library"); decorateApp(session);
     if (practiceStore.hasPending()) practiceSyncMessage("Өзгерістер әлі сақталмады / Есть несохранённые изменения", true);
   } catch (error) {
-    app.innerHTML = `<main class="auth-page"><section class="auth-card" role="alert"><h1>Жаттығулар жүктелмеді / Не удалось открыть занятия</h1><p>${escapeHtml(error.message)}</p><a href="${escapeHtml(path)}">Қайталау / Повторить загрузку</a><a href="/family">Ата-ана кабинеті / Кабинет родителя</a>${practiceStore?.hasPending() ? '<button type="button" id="retry-practice-draft">Черновикті сақтау / Сохранить черновик</button>' : ""}</section></main>`;
+    app.innerHTML = `<main class="auth-page"><section class="auth-card" role="alert"><h1>Жаттығулар жүктелмеді / Не удалось открыть занятия</h1><p>${escapeHtml(error.message)}</p><a href="${escapeHtml(path)}">Қайталау / Повторить загрузку</a><a href="/family">Ата-ана кабинеті / Кабинет родителя</a>${practiceStore?.hasPending() ? '<button type="button" id="retry-practice-draft">Черновикті сақтау / Сохранить черновик</button><button type="button" id="load-practice-server">Открыть серверную версию (черновик останется в резервной копии)</button>' : ""}</section></main>`;
+    document.getElementById("load-practice-server")?.addEventListener("click", async () => { try { await practiceStore.useServerVersion(); location.reload(); } catch (failure) { app.querySelector("p").textContent = failure.message; } });
     document.getElementById("retry-practice-draft")?.addEventListener("click", async () => {
       try { await practiceStore.retryPending(); location.reload(); } catch (failure) { app.querySelector("p").textContent = failure.message; }
     });

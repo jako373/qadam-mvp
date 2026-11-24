@@ -35,6 +35,7 @@ export function createDefaultAdaptiveState() {
     dailyPlans: {},
     completedDates: [],
     lastReassessmentAt: null,
+    completedReassessment: null,
   };
 }
 
@@ -57,7 +58,7 @@ function validTimestamp(value) {
   return typeof value === "string" && Number.isFinite(Date.parse(value)) ? value : null;
 }
 
-function nonnegativeInteger(value, maximum = 10000) {
+function nonnegativeInteger(value, maximum = 2147483647) {
   const number = Math.floor(Number(value));
   return Number.isFinite(number) ? Math.max(0, Math.min(maximum, number)) : 0;
 }
@@ -189,5 +190,7 @@ export function normalizeAdaptiveState(value) {
     dailyPlans,
     completedDates: uniqueStrings(value.completedDates).filter(isDateKey).sort(),
     lastReassessmentAt: validTimestamp(value.lastReassessmentAt),
+    completedReassessment: isRecord(value.completedReassessment) && validTimestamp(value.completedReassessment.completedAt)
+      ? { answers: normalizeAnswers(value.completedReassessment.answers), completedAt: value.completedReassessment.completedAt } : null,
   };
 }

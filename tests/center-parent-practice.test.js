@@ -5,15 +5,24 @@ import { createCenterParentPractice } from '../src/lib/center-parent-practice.js
 function setup() {
   let session = { user: { id: 'parent' }, access_token: 'test' };
   let onWrite = null;
+  let revision = 1;
   const values = new Map(); const writes = [];
   const child = { id: 'child', parent_id: 'parent', name: 'Бала', age: 5 };
   const rows = { children: [child], skill_assessments: [], child_skill_levels: [], child_exercise_progress: [], daily_plans: [], exercise_attempts: [] };
   const request = async (path, auth, options) => {
+    if (path === 'rpc/center_parent_practice_state') return { child, assessments: rows.skill_assessments, levels: rows.child_skill_levels, progress: rows.child_exercise_progress, plans: rows.daily_plans, attempts: rows.exercise_attempts, revision: String(revision) };
+    if (path === 'rpc/center_save_parent_practice') {
+      const payload = JSON.parse(options.body);
+      if (payload.p_expected_revision !== String(revision)) throw new Error('changed on another device');
+      if (onWrite) await onWrite();
+      for (const [table, records] of Object.entries(payload.p_records)) if (records.length) writes.push({ path: table, uid: auth.user.id, rows: records, prefer: ['skill_assessments','exercise_attempts'].includes(table) ? 'ignore-duplicates' : 'merge-duplicates' });
+      return { revision: String(++revision) };
+    }
     if (options?.method === 'POST') { if (onWrite) await onWrite(); writes.push({ path, uid: auth.user.id, rows: JSON.parse(options.body), prefer: options.headers.Prefer }); return []; }
     return rows[path.split('?')[0]] || [];
   };
   const storage = { getItem: key => values.get(key) || null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) };
-  return { store: createCenterParentPractice({ request, storage, getSession: async () => session }), rows, values, writes, onWrite: fn => { onWrite = fn; }, switchUser: () => { session = { user: { id: 'other' } }; }, session };
+  return { store: createCenterParentPractice({ request, storage, getSession: async () => session }), rows, values, writes, otherDeviceSave: () => { revision++; }, onWrite: fn => { onWrite = fn; }, switchUser: () => { session = { user: { id: 'other' } }; }, session };
 }
 
 test('center parent hydration ignores stale browser state and retains server child', async () => {
@@ -77,4 +86,34 @@ test('an existing parent assessment is restored from server on another device', 
   const state = await f.store.hydrate(f.session, 'ru');
   assert.equal(state.adaptive.initialAssessment.completedAt, '2026-11-24T10:00:00Z');
   assert.equal(state.adaptive.dailyPlans['2026-11-24'].viewedCount, 1);
+});
+
+test('a stale device and explicit retry cannot overwrite newer server work', async () => {
+  const f = setup(); const state = await f.store.hydrate(f.session, 'ru'); state.adaptive.initialAssessment.completedAt = '2026-11-24T10:00:00Z';
+  f.otherDeviceSave(); await assert.rejects(f.store.save(state), /another device/);
+  await assert.rejects(f.store.retryPending(), /another device/); assert.equal(f.writes.length, 0); assert.equal(f.store.hasPending(), true);
+});
+
+test('lifetime counters are restored rather than recomputed from the display window', async () => {
+  const f = setup(); f.rows.child_exercise_progress = [{ exercise_id: 'communication-01', attempts: 25000, independent_count: 700, unable_streak: 0, last_outcome: 'independent', last_attempted_on: '2026-11-24' }];
+  const state = await f.store.hydrate(f.session, 'ru');
+  assert.equal(state.adaptive.exerciseProgress['communication-01'].attempts,25000);
+});
+
+test('latest completed reassessment restores source, answers and completion time', async () => {
+  const f=setup();f.rows.skill_assessments=[{assessment_type:'reassessment',answers:{a:1},completed_at:'2026-11-24T10:00:00Z'}];
+  const state=await f.store.hydrate(f.session,'ru');assert.equal(state.adaptive.lastReassessmentAt,'2026-11-24T10:00:00Z');assert.equal(state.adaptive.completedReassessment.answers.a,1);
+});
+
+test('plan-derived display history is not inserted as new attempt events',async()=>{
+  const f=setup();f.rows.skill_assessments=[{assessment_type:'initial',completed_at:'2026-11-24T10:00:00Z',answers:{}}];
+  f.rows.daily_plans=[{plan_date:'2026-11-24',items:[{exerciseId:'communication-01'}],results:{'communication-01':'independent'},viewed_count:1}];
+  const state=await f.store.hydrate(f.session,'ru');await f.store.save(state);
+  assert.equal(f.writes.some(item=>item.path==='exercise_attempts'),false);
+});
+
+test('a no-op save cannot discard a newer staged favorite',async()=>{
+  const f=setup();f.rows.skill_assessments=[{assessment_type:'initial',completed_at:'2026-11-24T10:00:00Z',answers:{}}];
+  const state=await f.store.hydrate(f.session,'ru');const newer=structuredClone(state);newer.adaptive.favoriteExerciseIds=['communication-01'];f.store.stage(newer);
+  await f.store.save(state);assert.equal(f.store.hasPending(),true);
 });

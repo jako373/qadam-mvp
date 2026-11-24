@@ -1216,6 +1216,7 @@ function saveReassessmentAnswer(context, id, rawValue) {
       ...state.adaptive,
       skillLevels,
       lastReassessmentAt: new Date().toISOString(),
+      completedReassessment: { answers: { ...answers }, completedAt: new Date().toISOString() },
       reassessment: { answers: {}, startedAt: null },
     };
     saveState(state);

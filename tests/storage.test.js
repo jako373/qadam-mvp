@@ -78,7 +78,7 @@ describe("storage", () => {
           "understanding-01": {
             independentCount: -4,
             unableStreak: "2",
-            attempts: 999999,
+              attempts: 999999999999,
             lastOutcome: "wrong",
             lastDate: "2026-99-40",
           },
@@ -103,7 +103,7 @@ describe("storage", () => {
     assert.equal(adaptive.activePlanDate, null);
     assert.equal(adaptive.exerciseProgress["understanding-01"].independentCount, 0);
     assert.equal(adaptive.exerciseProgress["understanding-01"].unableStreak, 2);
-    assert.equal(adaptive.exerciseProgress["understanding-01"].attempts, 10000);
+      assert.equal(adaptive.exerciseProgress["understanding-01"].attempts, 2147483647);
     assert.equal(adaptive.exerciseProgress["understanding-01"].lastOutcome, null);
     assert.equal(adaptive.dailyPlans["2026-07-13"].viewedCount, 3);
     assert.deepEqual(adaptive.dailyPlans["2026-07-13"].results, {});
